@@ -6,7 +6,7 @@
 
 This project is a template with some basic functionality for the ASW labs.
 
-> **Documentation Language:** This project is documented in English. See [Architecture Decision ADR-001](https://arquisoft.github.io/yovi_es4b/) for the rationale.
+> **Documentation Language:** This project is documented in English. See [Architecture Decision ADR-001](https://arquisoft.github.io/yovi_es4b/#_adr_001_documentation_language) for the rationale.
 
 ## Project Structure
 
