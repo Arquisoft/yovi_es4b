@@ -1,7 +1,11 @@
 ifndef::imagesdir[:imagesdir: ../images]
 
 [[section-introduction-and-goals]]
-== Introduction and Goals
+==  Introduction and Goals
+
+YOVI is an online game based on Game Y, an abstract strategy board game described by John Milnor in the 1950's and indepently invented in 1953 by Craige Schensted and Charles Titus. +
+The game is normally played on a triangular board by two players, whose goal is to connect the three sides of the board with an unbroken chain of their pieces. +
+YOVI is a modern implementation of Game Y, which allows players to play against bots of varying dificulties, against other players locally or online. It also features a login system, allowing it to log accounts' stats.
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -18,6 +22,22 @@ These include
 endif::arc42help[]
 
 === Requirements Overview
+
+* User registration and login system
+ ** Allow users to create accounts and log in securely
+* Game modes
+    ** Single-player mode against AI opponents of varying difficulties
+    ** Local multiplayer mode for two players on the same device
+    ** Online multiplayer mode for players to compete against each other over the internet
+* Game mechanics
+    ** Implement the rules of Game Y accurately
+    ** Provide an intuitive and responsive user interface for gameplay
+    ** Provide custom game settings (e.g., board size, time limits, game variants)
+* Account statistics
+    ** Track and display players' game statistics, such as wins, losses, and rankings
+* Bot opponents
+    ** Develop AI opponents with varying levels of difficulty and different strategies to provide a challenging gaming experience for players of all skill levels
+
 
 ifdef::arc42help[]
 [role="arc42help"]
