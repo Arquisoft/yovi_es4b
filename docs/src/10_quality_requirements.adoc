@@ -54,6 +54,37 @@ endif::arc42help[]
 
 === Quality Scenarios
 
+[options="header"]
+|===
+| Priority | Quality Requirement | Scenario | System Response
+
+| 1
+| Usability
+| A user opens the game and wants to play.
+| The interface should be intuitive, the rules clear and the user should be able to understand how to play.
+
+| 2
+| Performance
+| Multiple players plays simultaneously.
+| The game updates all moves and displays changes within 1 second.
+
+| 3
+| Reliability
+| A network hiccup occurs during a match.
+| The game state is preserved, players can continue without losing progress.
+
+| 4
+| Maintainability
+| Developers add a new feature.
+| The new feature integrates smoothly without affecting existing gameplay.
+
+| 5
+| Availability
+| The system needs to handle more concurrent users.
+| The game continues to run with a minimal decrease in latency.
+|===
+
+
 ifdef::arc42help[]
 [role="arc42help"]
 ****
