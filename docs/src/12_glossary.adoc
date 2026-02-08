@@ -39,7 +39,6 @@ endif::arc42help[]
 | JavaScript
 | A dynamic, high-level programming language frequently utilized for client-side and interactive web development
 
-
 | Front-end
 | The part of a web application that interacts with the user, usually involving the user interface and client-side logic.
 
@@ -48,4 +47,19 @@ endif::arc42help[]
 
 | Rust
 | A modern programming language focused on safety, performance, and concurrency.
+
+| Node.js
+| A JavaScript runtime built on Chrome's V8 engine that allows executing JavaScript on the server-side.
+
+| Docker
+| An open-source platform that automates the deployment, scaling, and management of applications using containerization.
+
+| Framework
+| A reusable set of libraries or tools that provides a structured environment to develop software applications efficiently.
+
+| API
+| API refers to Application Programming Interface. It is a set of rules and protocols that allows software applications to communicate with each other.
+
+| React
+| A JavaScript library for building interactive user interfaces, particularly single-page applications.
 |===
