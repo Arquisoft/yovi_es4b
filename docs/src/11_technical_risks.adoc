@@ -3,6 +3,11 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-technical-risks]]
 == Risks and Technical Debts
 
+Identifying and recording technical risks and debts at an early stage is essential for the project's success.
+By identifying potential issues ahead of time, the team can take appropriate measures to minimize their impact. 
+Prioritizing these risks ensures that the most critical ones are addressed first, allowing for better planning
+and a more stable and maintainable architecture.
+
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -25,3 +30,53 @@ See https://docs.arc42.org/section-11/[Risks and Technical Debt] in the arc42 do
 
 ****
 endif::arc42help[]
+
+
+=== Technical Risks
+
+This table lists the main technical risks for our online board game project, including both team-related and system-related risks, ordered by priority.
+
+[options="header"]
+|===
+| Priority | Risk | Description | Mitigation
+
+| High
+| Team members abandoning the project
+| One or more team members leave the project in the middle of development, increasing workload for remaining members.
+| Ensure code is well documented and modular, redistribute tasks, and maintain clear progress tracking.
+
+| High
+| Poor or limited communication within the team
+| Misunderstandings and delays occur due to a lack of communication between team members.
+| Hold regular meetings with clear minutes; use task boards and messaging tools to achieve constant communication.
+
+| High
+| Limited experience with large-scale projects
+| The team has little prior experience working on projects from scratch or with multiple contributors.
+| Conduct research, review best practices, and define clear development workflows and responsibilities.
+
+| Medium
+| Limited experience with Rust
+| The project uses Rust, which is new to the team members, potentially causing delays or inefficient code.
+| Each team member should independently study Rust and experiment with small prototypes to build competence.
+
+| Medium
+| Lack of experience with Docker
+| Docker is used for deployment and development environments, but the team is not familiar with it.
+| Set up step-by-step guides and practice building containers.
+
+| Medium
+| Database performance or schema issues
+| As users increase, the database may slow down or be difficult to scale due to initial design choices.
+| Optimize queries, define indexes, and design the schema for future scalability.
+
+| Medium
+| Third-party API failures
+| Some game functionalities rely on external APIs, which may become unavailable.
+| Implement caching, evaluate fallback APIs, and provide error handling to minimize disruption.
+
+| Low
+| High concurrent usage
+| Many players using the system simultaneously may degrade performance or affect game state consistency.
+| Conduct load testing, use caching, and optimize backend services.
+|===
