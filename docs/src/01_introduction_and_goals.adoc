@@ -23,6 +23,7 @@ endif::arc42help[]
 
 === Requirements Overview
 
+
 * User registration and login system
  ** Allow users to create accounts and log in securely
 * Game modes
@@ -34,9 +35,12 @@ endif::arc42help[]
     ** Provide an intuitive and responsive user interface for gameplay
     ** Provide custom game settings (e.g., board size, time limits, game variants)
 * Account statistics
-    ** Track and display players' game statistics, such as wins, losses, and rankings
+    ** Track and display players' game statistics, such as wins, losses, and games played
 * Bot opponents
     ** Develop AI opponents with varying levels of difficulty and different strategies to provide a challenging gaming experience for players of all skill levels
+* API
+    ** Provide an API that allows bots to retrieve their game statistics, enabling them to track their progress and performance over time
+    ** Provide an API that allows bots to play against the game, enabling developers to create their own bots and integrate them into the game
 
 
 ifdef::arc42help[]
@@ -66,6 +70,15 @@ See https://docs.arc42.org/section-1/[Introduction and Goals] in the arc42 docum
 endif::arc42help[]
 
 === Quality Goals
+
+|===
+|Priority|Quality Goal|Description
+|1|Robustness|The game should be able to handle unexpected inputs and situations without crashing or producing incorrect results. This includes handling invalid moves, network interruptions, and other unforeseen circumstances gracefully. |
+2|Usability|The game should have an intuitive and user-friendly interface that allows players to easily navigate through menus, understand game mechanics, and enjoy a seamless gaming experience.|
+3|Performance|The game should run smoothly with minimal latency, especially in online multiplayer mode, to ensure a responsive and enjoyable gaming experience for all players.|
+4|Compatibility|The game should be compatible with any type of device that has a web browser, including desktops, laptops, tablets, and smartphones, to reach a wide audience of players.|
+5|Security|The game should implement robust security measures to protect user data and prevent unauthorized access, especially in the context of user accounts and online multiplayer interactions.|
+|===
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -103,10 +116,6 @@ Explicit overview of stakeholders of the system, i.e. all person, roles or organ
 * need the documentation of the architecture for their work
 * have to come up with decisions about the system or its development
 
-.Motivation
-You should know all parties involved in development of the system or affected by the system.
-Otherwise, you may get nasty surprises later in the development process.
-These stakeholders determine the extent and the level of detail of your work and its results.
 
 .Form
 Table with role names, person names, and their expectations with respect to the architecture and its documentation.
@@ -116,6 +125,12 @@ endif::arc42help[]
 [options="header",cols="1,2,2"]
 |===
 |Role/Name|Contact|Expectations
-| _<Role-1>_ | _<Contact-1>_ | _<Expectation-1>_
-| _<Role-2>_ | _<Contact-2>_ | _<Expectation-2>_
+| Development Team | Julián Fernández Herruzo (UO300199@uniovi.es) +
+Fernando Begega Suarez (UO295286@uniovi.es) +
+Rodrigo García López (UO300548@uniovi.es) +
+Adrian Burguet Diego (UO294819@uniovi.es) | Responsible for implementing and designing the architecture, ensuring that it meets the specified requirements and quality goals. 
+| Micrati | N/A | Interested in the successful development and deployment of the game, as well as its commercial success. They also specify some requirements or constraints that need to be considered during the architectural design process, such as the chosen language (Rust)
+| Players | N/A | Expect a fun and engaging gaming experience, with a user-friendly interface, smooth performance, and challenging gameplay. They also expect regular updates and improvements to the game based on their feedback.
+
+
 |===
