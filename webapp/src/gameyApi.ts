@@ -41,18 +41,49 @@ interface ApiErrorResponse {
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${GAMEY_API_URL}${path}`, init);
-  const payload = await response.json();
+  const url = `${GAMEY_API_URL}${path}`;
+  const response = await fetch(url, init);
+  const raw = await response.text();
+  let payload: unknown = null;
+
+  if (raw.trim().length > 0) {
+    try {
+      payload = JSON.parse(raw) as unknown;
+    } catch {
+      if (!response.ok) {
+        throw new Error(
+          `Request failed with status ${response.status} (${response.statusText}) at ${url}`,
+        );
+      }
+      throw new Error(`Invalid JSON response from ${url}`);
+    }
+  }
 
   if (!response.ok) {
     const message =
-      payload && typeof payload.message === 'string'
+      payload &&
+      typeof payload === 'object' &&
+      payload !== null &&
+      'message' in payload &&
+      typeof payload.message === 'string'
         ? payload.message
+        : raw.trim().length > 0
+          ? raw
         : `Request failed with status ${response.status}`;
     throw new Error(message);
   }
 
-  if (payload && typeof payload.message === 'string' && !('game_id' in payload)) {
+  if (!payload) {
+    throw new Error(`Empty response body from ${url}`);
+  }
+
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'message' in payload &&
+    typeof payload.message === 'string' &&
+    !('game_id' in payload)
+  ) {
     throw new Error((payload as ApiErrorResponse).message);
   }
 
