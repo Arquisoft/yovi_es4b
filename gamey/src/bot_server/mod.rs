@@ -21,6 +21,7 @@
 
 pub mod choose;
 pub mod error;
+pub mod games;
 pub mod state;
 pub mod version;
 use axum::response::IntoResponse;
@@ -29,7 +30,8 @@ pub use choose::MoveResponse;
 pub use error::ErrorResponse;
 pub use version::*;
 
-use crate::{GameYError, RandomBot, YBotRegistry, state::AppState};
+use crate::{GameYError, RandomBot, YBotRegistry};
+use self::state::AppState;
 
 /// Creates the Axum router with the given state.
 ///
@@ -40,6 +42,16 @@ pub fn create_router(state: AppState) -> axum::Router {
         .route(
             "/{api_version}/ybot/choose/{bot_id}",
             axum::routing::post(choose::choose),
+        )
+        .route("/{api_version}/games", axum::routing::post(games::create_game))
+        .route("/{api_version}/games/{game_id}", axum::routing::get(games::get_game))
+        .route(
+            "/{api_version}/games/{game_id}/moves",
+            axum::routing::post(games::play_move),
+        )
+        .route(
+            "/{api_version}/games/{game_id}/resign",
+            axum::routing::post(games::resign_game),
         )
         .with_state(state)
 }
