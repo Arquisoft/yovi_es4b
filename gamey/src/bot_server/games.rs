@@ -9,6 +9,7 @@ use axum::{
     extract::{Path, State},
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Supported game modes for the HTTP API.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -121,15 +122,7 @@ pub async fn get_game(
 
     let games = state.games();
     let guard = games.read().await;
-    let session = match guard.get(&params.game_id) {
-        Some(session) => session,
-        None => {
-            return Err(error_response(
-                &format!("Game not found: {}", params.game_id),
-                Some(params.api_version),
-            ));
-        }
-    };
+    let session = require_game_session(&guard, &params)?;
 
     Ok(Json(build_game_state_response(
         &params.api_version,
@@ -153,22 +146,8 @@ pub async fn play_move(
     let games = state.games();
     let mut guard = games.write().await;
 
-    let session = match guard.get_mut(&params.game_id) {
-        Some(session) => session,
-        None => {
-            return Err(error_response(
-                &format!("Game not found: {}", params.game_id),
-                Some(params.api_version),
-            ));
-        }
-    };
-
-    if session.game.check_game_over() {
-        return Err(error_response(
-            "Game is already finished",
-            Some(params.api_version),
-        ));
-    }
+    let session = require_game_session_mut(&mut guard, &params)?;
+    ensure_game_not_finished(&session.game, &params.api_version)?;
 
     validate_coordinates(&request.coords, session.game.board_size()).map_err(|msg| {
         error_response(
@@ -177,20 +156,12 @@ pub async fn play_move(
         )
     })?;
 
-    let current_player = match session.game.next_player() {
-        Some(player) => player,
-        None => {
-            return Err(error_response(
-                "Game is already finished",
-                Some(params.api_version),
-            ));
-        }
-    };
+    let current_player = current_player_or_finished(&session.game, &params.api_version)?;
 
     if session.bot_id.is_some() && current_player != PlayerId::new(0) {
         return Err(error_response(
             "Human moves are only allowed on player 0 turn in human_vs_bot mode",
-            Some(params.api_version),
+            Some(params.api_version.clone()),
         ));
     }
 
@@ -214,12 +185,10 @@ pub async fn play_move(
             Some(bot) => bot,
             None => {
                 let available_bots = bots.names().join(", ");
-                return Err(error_response(
-                    &format!(
-                        "Bot not found: {}, available bots: [{}]",
-                        bot_id, available_bots
-                    ),
-                    Some(params.api_version),
+                return Err(bot_not_found_error(
+                    &params.api_version,
+                    bot_id,
+                    &available_bots,
                 ));
             }
         };
@@ -229,7 +198,7 @@ pub async fn play_move(
             None => {
                 return Err(error_response(
                     "No valid moves available for the bot",
-                    Some(params.api_version),
+                    Some(params.api_version.clone()),
                 ));
             }
         };
@@ -282,32 +251,13 @@ pub async fn resign_game(
     let games = state.games();
     let mut guard = games.write().await;
 
-    let session = match guard.get_mut(&params.game_id) {
-        Some(session) => session,
-        None => {
-            return Err(error_response(
-                &format!("Game not found: {}", params.game_id),
-                Some(params.api_version),
-            ));
-        }
-    };
-
-    if session.game.check_game_over() {
-        return Err(error_response(
-            "Game is already finished",
-            Some(params.api_version),
-        ));
-    }
+    let session = require_game_session_mut(&mut guard, &params)?;
+    ensure_game_not_finished(&session.game, &params.api_version)?;
 
     let resigning_player = match (&session.bot_id, session.game.next_player()) {
         (Some(_), _) => PlayerId::new(0),
         (None, Some(player)) => player,
-        (None, None) => {
-            return Err(error_response(
-                "Game is already finished",
-                Some(params.api_version),
-            ));
-        }
+        (None, None) => return Err(game_finished_error(&params.api_version)),
     };
 
     session
@@ -334,6 +284,61 @@ fn default_board_size() -> u32 {
     7
 }
 
+fn require_game_session<'a>(
+    games: &'a HashMap<String, GameSession>,
+    params: &GameParams,
+) -> Result<&'a GameSession, Json<ErrorResponse>> {
+    games
+        .get(&params.game_id)
+        .ok_or_else(|| game_not_found_error(&params.api_version, &params.game_id))
+}
+
+fn require_game_session_mut<'a>(
+    games: &'a mut HashMap<String, GameSession>,
+    params: &GameParams,
+) -> Result<&'a mut GameSession, Json<ErrorResponse>> {
+    games
+        .get_mut(&params.game_id)
+        .ok_or_else(|| game_not_found_error(&params.api_version, &params.game_id))
+}
+
+fn game_not_found_error(api_version: &str, game_id: &str) -> Json<ErrorResponse> {
+    error_response(
+        &format!("Game not found: {}", game_id),
+        Some(api_version.to_string()),
+    )
+}
+
+fn game_finished_error(api_version: &str) -> Json<ErrorResponse> {
+    error_response("Game is already finished", Some(api_version.to_string()))
+}
+
+fn ensure_game_not_finished(game: &GameY, api_version: &str) -> Result<(), Json<ErrorResponse>> {
+    if game.check_game_over() {
+        Err(game_finished_error(api_version))
+    } else {
+        Ok(())
+    }
+}
+
+fn current_player_or_finished(
+    game: &GameY,
+    api_version: &str,
+) -> Result<PlayerId, Json<ErrorResponse>> {
+    game.next_player()
+        .ok_or_else(|| game_finished_error(api_version))
+}
+
+fn bot_not_found_error(api_version: &str, bot_id: &str, available_bots: &str) -> Json<ErrorResponse> {
+    error_response(
+        &format!(
+            "Bot not found: {}, available bots: [{}]",
+            bot_id, available_bots
+        ),
+        Some(api_version.to_string()),
+    )
+}
+
 fn resolve_bot_id(
     state: &AppState,
     mode: GameMode,
@@ -355,13 +360,7 @@ fn resolve_bot_id(
             let bots = state.bots();
             if bots.find(&bot_id).is_none() {
                 let available_bots = bots.names().join(", ");
-                return Err(error_response(
-                    &format!(
-                        "Bot not found: {}, available bots: [{}]",
-                        bot_id, available_bots
-                    ),
-                    Some(api_version.to_string()),
-                ));
+                return Err(bot_not_found_error(api_version, &bot_id, &available_bots));
             }
             Ok(Some(bot_id))
         }
