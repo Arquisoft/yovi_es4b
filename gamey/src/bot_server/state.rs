@@ -1,5 +1,19 @@
-use crate::YBotRegistry;
-use std::sync::Arc;
+use crate::{GameY, YBotRegistry};
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+};
+use tokio::sync::RwLock;
+
+/// In-memory state for a running game session.
+#[derive(Clone)]
+pub struct GameSession {
+    pub game: GameY,
+    pub bot_id: Option<String>,
+}
 
 /// Shared application state for the bot server.
 ///
@@ -10,6 +24,10 @@ use std::sync::Arc;
 pub struct AppState {
     /// The registry of available bots, wrapped in Arc for thread-safe sharing.
     bots: Arc<YBotRegistry>,
+    /// In-memory game sessions indexed by game id.
+    games: Arc<RwLock<HashMap<String, GameSession>>>,
+    /// Counter used to generate unique game identifiers.
+    next_game_id: Arc<AtomicU64>,
 }
 
 impl AppState {
@@ -17,12 +35,25 @@ impl AppState {
     pub fn new(bots: YBotRegistry) -> Self {
         Self {
             bots: Arc::new(bots),
+            games: Arc::new(RwLock::new(HashMap::new())),
+            next_game_id: Arc::new(AtomicU64::new(1)),
         }
     }
 
     /// Returns a clone of the Arc-wrapped bot registry.
     pub fn bots(&self) -> Arc<YBotRegistry> {
         Arc::clone(&self.bots)
+    }
+
+    /// Returns the in-memory game storage.
+    pub fn games(&self) -> Arc<RwLock<HashMap<String, GameSession>>> {
+        Arc::clone(&self.games)
+    }
+
+    /// Returns a new unique game identifier.
+    pub fn new_game_id(&self) -> String {
+        let id = self.next_game_id.fetch_add(1, Ordering::Relaxed);
+        format!("game-{}", id)
     }
 }
 
