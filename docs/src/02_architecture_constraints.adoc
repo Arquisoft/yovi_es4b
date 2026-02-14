@@ -3,26 +3,47 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-architecture-constraints]]
 == Architecture Constraints
 
+=== Technical Constraints
+|====
+| Constraint | Description
+| Languages | Front-end: TypeScript (React). Game engine: Rust.
+| Communication format | JSON using the YEN notation for game states and moves.
+| Public API | Must implement an API for bots to interact with the game, and view users stats.
+| Deployment | Application must be deployable and publicly accessible through the internet.
+| Testing | Unit, integration and end-to-end test.
+| Security | Authentication for users with a secure login mechanism.
+| Stored data | User data and game states must be stored persistently in a database.
+|====
+
+=== Organizational Constraints
+|====
+| Constraint | Description
+| Documentation | Use arc42 template for documentation of the application. The documentation must be publicly accessible and updated regularly.
+| Development time | The application should be developed by the end of the semester.
+| Github repository | Use a shared GitHub repository for version control and collaboration.
+| Meetings | At least one meeting per week to discuss progress, challenges and next steps. Every meeting must be documented.
+|====
+
+=== Conventions
+|====
+| Convention | Description
+| Code style & linting | Follow existing project style for TypeScript and Rust.
+| Version control | Use of "main" branch for stable code releases; feature branches for development. Use pull requests and code review before merging.
+|====
 
 ifdef::arc42help[]
 [role="arc42help"]
 ****
 .Contents
-Any requirement that constraints software architects in their freedom of design and implementation decisions or decision about the development process. These constraints sometimes go beyond individual systems and are valid for whole organizations and companies.
+Any requirement that constrains architects' freedom of design and implementation. These can be technical, organizational, or conventional and may be negotiable.
 
 .Motivation
-Architects should know exactly where they are free in their design decisions and where they must adhere to constraints.
-Constraints must always be dealt with; they may be negotiable, though.
+Architects should know where they have freedom and where they must adhere to constraints.
 
 .Form
-Simple tables of constraints with explanations.
-If needed you can subdivide them into
-technical constraints, organizational and political constraints and
-conventions (e.g. programming or versioning guidelines, documentation or naming conventions)
-
+Short tables and paragraphs describing constraints, rationale and impact.
 
 .Further Information
-
 See https://docs.arc42.org/section-2/[Architecture Constraints] in the arc42 documentation.
 
 ****
