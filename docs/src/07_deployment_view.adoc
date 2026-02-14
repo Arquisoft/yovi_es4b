@@ -60,18 +60,88 @@ For multiple environments or alternative deployments please copy and adapt this 
 ****
 endif::arc42help[]
 
+The system is deployed as a distributed, container-based architecture.
+It consists of independent services communicating over HTTP and running within isolated container environments.
+
+The deployment view describes the technical infrastructure required to execute the system and the mapping of software building blocks to infrastructure elements.
+
+The following diagram shows the high-level deployment structure in a local environment using containerization.
 _**<Overview Diagram>**_
+@startuml
+node "User Device" {
+  component "Web Browser"
+}
+
+node "Docker Host" {
+
+  node "Docker Network" {
+
+    node "Webapp Container\n(React + Vite)" {
+      component "SPA Frontend"
+    }
+
+    node "Users Service Container\n(Node.js + Express)" {
+      component "Users REST API"
+    }
+
+    node "Gamey Container\n(Rust Engine)" {
+      component "Game Engine API"
+    }
+
+    node "Database Container" {
+      database "User Database"
+    }
+
+  }
+}
+
+"Web Browser" --> "SPA Frontend" : HTTP
+"SPA Frontend" --> "Users REST API" : HTTP /createuser
+"SPA Frontend" --> "Game Engine API" : HTTP
+"Users REST API" --> "User Database" : DB connection
+
+@enduml
 
 Motivation::
 
-_<explanation in text form>_
+The deployment structure is based on containerized services to ensure:
+
+ - Clear separation between frontend, backend, and game engine.
+
+ - Independent deployment and scalability of each service.
+
+ - Reproducible development environments.
+
+ - Isolation of runtime dependencies.
+
+A database component has been introduced to persist user data, enabling real user registration and long-term storage.
+
 
 Quality and/or Performance Features::
 
-_<explanation in text form>_
+- Scalability: Services can be scaled independently in future production environments.
+
+- Isolation: Each component runs in its own container.
+
+- Loose Coupling: Communication occurs via well-defined HTTP APIs.
+
+- Persistence: User data is stored in a dedicated database component.
+
+- Portability: The system can run on any infrastructure supporting containerization.
+
+- Maintainability: Clear separation of concerns reduces system complexity.
 
 Mapping of Building Blocks to Infrastructure::
-_<description of the mapping>_
+
+| Building Block         | Infrastructure Element                       |
+| ---------------------- | -------------------------------------------- |
+| React SPA (Webapp)     | Webapp Container                             |
+| User Management Logic  | Users Service Container                      |
+| User Persistence Layer | Database Container                           |
+| Game Core & Bots       | Gamey Container                              |
+| Client Interface       | Web Browser                                  |
+| Communication          | Docker Internal Network (HTTP + DB protocol) |
+
 
 
 === Infrastructure Level 2
@@ -85,16 +155,121 @@ Please copy the structure from level 1 for each selected element.
 ****
 endif::arc42help[]
 
-==== _<Infrastructure Element 1>_
+This level provides a more detailed view of selected infrastructure elements.
 
-_<diagram + explanation>_
+==== _<Infrastructure Element 1>_
+Webapp Container
+
+@startuml
+node "Webapp Container" {
+  component "React SPA"
+  component "UI Components"
+  component "API Client Module"
+}
+
+node "External Services" {
+  component "Users REST API"
+  component "Game Engine API"
+}
+
+"React SPA" --> "UI Components"
+"React SPA" --> "API Client Module"
+"API Client Module" --> "Users REST API" : HTTP
+"API Client Module" --> "Game Engine API" : HTTP
+
+@enduml
+
+The Webapp container:
+
+ - Hosts a Single Page Application built with React.
+
+ - Handles all user interactions.
+
+ - Communicates with backend services via HTTP.
+
+ - Does not maintain persistent state.
+
+ - Acts as the primary system entry point.
 
 ==== _<Infrastructure Element 2>_
+Users Service Container
+@startuml
+node "Users Service Container" {
+  component "Express Server"
+  component "User Controller"
+  component "User Service"
+  component "Persistence Layer"
+}
 
-_<diagram + explanation>_
+node "Database Container" {
+  database "User Database"
+}
 
-...
+"Express Server" --> "User Controller"
+"User Controller" --> "User Service"
+"User Service" --> "Persistence Layer"
+"Persistence Layer" --> "User Database"
 
-==== _<Infrastructure Element n>_
+@enduml
+The Users Service container:
 
-_<diagram + explanation>_
+ - Exposes REST endpoints (e.g., /createuser).
+
+ - Implements business logic for user registration.
+
+ - Contains a persistence layer responsible for storing user data.
+
+ - Connects to an external database container.
+
+ - Ensures separation between API layer, business logic, and data access.
+
+
+
+==== _<Infrastructure Element 3>_
+Gamey Container
+@startuml
+node "Gamey Container" {
+  component "Web API"
+  component "Game Core"
+  component "Bot Engine"
+  component "Notation Module"
+}
+
+"Web API" --> "Game Core"
+"Game Core" --> "Bot Engine"
+"Game Core" --> "Notation Module"
+
+@enduml
+
+The Gamey container:
+
+ - Hosts the Rust-based game engine.
+
+ - Encapsulates all core game logic.
+
+ - Provides bot functionality.
+
+ - Exposes a Web API for interaction with the frontend.
+
+ - Does not directly depend on the user database.
+
+Gamey remains logically independent from user management.
+
+==== _<Infrastructure Element 4>_
+Database Container
+@startuml
+node "Database Container" {
+  database "User Database"
+}
+
+@enduml
+
+The database container:
+
+ - Stores user registration data persistently.
+
+ - Is accessed exclusively by the Users Service.
+
+ - Is not directly exposed to the frontend or Gamey.
+
+ - Ensures data durability and separation of concerns.

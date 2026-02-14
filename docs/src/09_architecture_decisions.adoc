@@ -35,3 +35,196 @@ There you will find links and examples about ADR.
 
 ****
 endif::arc42help[]
+
+Architecture Decisions
+
+This section documents the most relevant architectural decisions made during the design of the system.
+Each decision includes context, alternatives, rationale, and consequences to ensure traceability and transparency.
+
+ADR-01: Adoption of a Service-Oriented Architecture
+    Status
+
+        Accepted
+
+    Context
+
+        The system consists of three main functional areas:
+
+            User interface (Webapp)
+
+            User management
+
+            Game engine logic
+
+            These areas could be implemented either as a single monolithic application or as independent services.
+
+    Decision
+
+        The system is implemented as a set of loosely coupled services, each running independently and communicating via HTTP APIs.
+
+    Alternatives Considered
+
+        Monolithic architecture
+
+        Service-oriented (multi-container) architecture
+
+    Rationale
+
+        The service-oriented approach was selected because:
+
+            It enforces clear separation of concerns.
+
+            It allows independent development and testing.
+
+            It aligns with container-based deployment.
+
+            It improves maintainability and scalability.
+
+    Consequences
+
+        Positive:
+
+            Independent evolution of components.
+
+            Clear API contracts.
+
+            Better modularity.
+
+        Negative:
+
+            Increased deployment complexity.
+
+            Network communication overhead.
+
+
+
+ADR-02: Use of Container-Based Deployment
+    Status
+
+        Accepted
+
+    Context
+
+        The system needs to be executable in development environments and easily portable across machines.
+
+    Decision
+
+        All services are deployed using containerization and orchestrated together.
+
+        Alternatives Considered
+
+        Native execution on host machine
+
+        Containerized execution
+
+    Rationale
+
+        Containerization ensures:
+
+            Environment consistency.
+
+            Dependency isolation.
+
+            Simplified onboarding.
+
+            Infrastructure reproducibility.
+
+    Consequences
+
+        Positive:
+
+            Predictable deployments.
+
+            Technology independence per service.
+
+        Negative:
+
+            Slight overhead compared to native execution.
+
+
+
+ADR-03: Introduction of a Dedicated Persistence Layer for Users
+    Status
+
+        Accepted
+
+    Context
+
+        To support real user management, persistent storage is required.
+
+    Decision
+
+        A dedicated database component is introduced for storing user data.
+        The database is accessed exclusively through a persistence layer inside the Users Service.
+
+    Alternatives Considered
+
+        In-memory user storage
+
+        File-based storage
+
+    Rationale
+
+        A database-based solution was chosen because:
+
+        It provides durability and consistency.
+
+        It enables long-term user management.
+
+        It allows future extension (authentication, statistics, etc.).
+
+        It enforces architectural separation between services.
+
+
+    Consequences
+
+        Positive:
+
+            Persistent user data.
+
+            Improved scalability.
+
+            Clear data ownership (Users Service).
+
+        Negative:
+
+            Additional infrastructure component.
+
+            Need for connection management and data modeling.
+
+
+ADR-04: Separation of Game Logic from User Management
+
+    Status
+
+        Accepted
+
+    Context
+
+        The system includes both user registration and game execution logic.
+
+    Decision
+
+    T   he Gamey engine remains fully independent from user persistence and user management.
+
+    Rationale
+
+        Ensures single responsibility per service.
+
+        Allows the game engine to be reused in other contexts.
+
+        Prevents unnecessary coupling between domain areas.
+
+    Consequences
+
+        Positive:
+
+            Clear domain boundaries.
+
+            Higher reusability.
+
+            Easier testing.
+
+        Negative:
+
+            Requires API coordination between services.
