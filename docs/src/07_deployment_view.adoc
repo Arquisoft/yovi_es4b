@@ -157,8 +157,8 @@ endif::arc42help[]
 
 This level provides a more detailed view of selected infrastructure elements.
 
-==== _<Infrastructure Element 1>_
-Webapp Container
+==== _<Webapp Container>_
+
 
 @startuml
 node "Webapp Container" {
@@ -191,8 +191,8 @@ The Webapp container:
 
  - Acts as the primary system entry point.
 
-==== _<Infrastructure Element 2>_
-Users Service Container
+==== _<Users Service Container>_
+
 @startuml
 node "Users Service Container" {
   component "Express Server"
@@ -225,8 +225,8 @@ The Users Service container:
 
 
 
-==== _<Infrastructure Element 3>_
-Gamey Container
+==== _<Gamey Container>_
+
 @startuml
 node "Gamey Container" {
   component "Web API"
@@ -255,8 +255,8 @@ The Gamey container:
 
 Gamey remains logically independent from user management.
 
-==== _<Infrastructure Element 4>_
-Database Container
+==== _<Database Container>_
+
 @startuml
 node "Database Container" {
   database "User Database"

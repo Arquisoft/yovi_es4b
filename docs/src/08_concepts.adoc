@@ -60,9 +60,9 @@ endif::arc42help[]
 This section describes the fundamental concepts, architectural principles, and technical decisions that apply across multiple components of the system.
 These concepts ensure architectural consistency, reduce complexity, and support the system’s long-term evolution.
 
-=== _<Concept 1>_
+=== _<Domain Concepts>_
 
-Domain Concepts
+
 
 The domain of the system is centered around user management and Game Y execution.
 
@@ -84,8 +84,8 @@ Key domain concepts include:
 
 
 
-=== _<Concept 2>_
-Architecture and Design Patterns
+=== _<Architecture and Design Patterns>_
+
 
 The system follows a service-oriented and layered architecture, applying the following principles:
 
@@ -107,9 +107,9 @@ The system follows a service-oriented and layered architecture, applying the fol
 This approach ensures loose coupling and enables independent evolution of components.
 
 
-=== _<Concept 3>_
+=== _<Security Concepts>_
 
-Security Concepts
+
 
 The system implements basic security concepts, appropriate for a development or educational environment:
 
@@ -124,8 +124,8 @@ The system implements basic security concepts, appropriate for a development or 
  - Security considerations are intentionally simplified to keep the architectural focus on modularity and clarity.
 
 
-=== _<Concept 4>_
-Development Concepts
+=== _<Development Concepts>_
+
 
 Development follows these principles:
 
@@ -137,8 +137,8 @@ Development follows these principles:
 
 This enables parallel development and easier maintenance.
 
-=== _<Concept 5>_
-Operational Concepts
+=== _<Operational Concepts>_
+
 
 From an operational perspective:
 

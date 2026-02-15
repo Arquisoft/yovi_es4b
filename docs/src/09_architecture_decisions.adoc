@@ -42,6 +42,7 @@ This section documents the most relevant architectural decisions made during the
 Each decision includes context, alternatives, rationale, and consequences to ensure traceability and transparency.
 
 ADR-01: Adoption of a Service-Oriented Architecture
+
     Status
 
         Accepted
@@ -99,6 +100,7 @@ ADR-01: Adoption of a Service-Oriented Architecture
 
 
 ADR-02: Use of Container-Based Deployment
+
     Status
 
         Accepted
@@ -144,6 +146,7 @@ ADR-02: Use of Container-Based Deployment
 
 
 ADR-03: Introduction of a Dedicated Persistence Layer for Users
+
     Status
 
         Accepted
