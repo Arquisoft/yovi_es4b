@@ -1,10 +1,17 @@
 # Yovi_es4b - Game Y at UniOvi
 
+## 
 [![Release — Test, Build, Publish, Deploy](https://github.com/arquisoft/yovi_es4b/actions/workflows/release-deploy.yml/badge.svg)](https://github.com/arquisoft/yovi_es4b/actions/workflows/release-deploy.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Arquisoft_yovi_es4b&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Arquisoft_yovi_es4b)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Arquisoft_yovi_es4b&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Arquisoft_yovi_es4b)
 
 This project is a template with some basic functionality for the ASW labs.
+
+## Team Members
+* Julián Fernández Herruzo UO300199@uniovi.es 
+* Fernando Begega Suarez UO295286@uniovi.es
+* Rodrigo García López UO300548@uniovi.es 
+* Adrian Burguet Diego UO294819@uniovi.es
 
 ## Project Structure
 
