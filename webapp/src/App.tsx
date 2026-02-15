@@ -14,9 +14,15 @@ function App() {
     board,
     canPlayCell,
     statusText,
+    matchmakingTicketId,
+    matchmakingStatus,
+    matchmakingPosition,
+    myPlayerId,
     setMode,
     updateBoardSize,
     createNewGame,
+    startMatchmaking,
+    cancelCurrentMatchmaking,
     refreshCurrentGame,
     resignCurrentGame,
     playCell,
@@ -58,12 +64,39 @@ function App() {
         </div>
       </section>
 
+      <section className="panel">
+        <h2>Matchmaking online (MVP)</h2>
+        <div className="controls">
+          <button type="button" onClick={startMatchmaking} disabled={loading || matchmakingStatus === 'waiting'}>
+            {matchmakingStatus === 'waiting' ? 'Buscando rival...' : 'Buscar rival'}
+          </button>
+          <button
+            type="button"
+            onClick={cancelCurrentMatchmaking}
+            disabled={loading || matchmakingStatus !== 'waiting'}
+          >
+            Cancelar busqueda
+          </button>
+        </div>
+        {matchmakingStatus !== 'idle' && (
+          <p className="status-text">
+            {matchmakingStatus === 'waiting' &&
+              `Ticket ${matchmakingTicketId ?? '-'} en cola${
+                matchmakingPosition ? ` (posicion ${matchmakingPosition})` : ''
+              }`}
+            {matchmakingStatus === 'matched' && 'Emparejado. Cargando partida...'}
+            {matchmakingStatus === 'cancelled' && 'Busqueda cancelada.'}
+          </p>
+        )}
+      </section>
+
       {error && <p className="error-text">{error}</p>}
 
       {game && (
         <section className="panel">
           <h2>Partida {game.game_id}</h2>
           <p className="status-text">{statusText}</p>
+          {myPlayerId !== null && <p className="status-text">Tu id de jugador: {myPlayerId}</p>}
 
           <div className="actions">
             <button type="button" onClick={refreshCurrentGame} disabled={loading}>

@@ -7,6 +7,7 @@ use crate::{Coordinates, GameAction, GameStatus, GameY, Movement, PlayerId, YEN}
 use axum::{
     Json,
     extract::{Path, State},
+    http::HeaderMap,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -38,6 +39,8 @@ pub struct CreateGameRequest {
 pub struct MoveRequest {
     /// Coordinates where the current player places a piece.
     pub coords: Coordinates,
+    /// Authentication token for multiplayer matchmaking games.
+    pub player_token: Option<String>,
 }
 
 /// Response payload containing full game state after each operation.
@@ -99,6 +102,7 @@ pub async fn create_game(
     let session = GameSession {
         game: GameY::new(request.size),
         bot_id: bot_id.clone(),
+        player_tokens: None,
     };
 
     let game_id = state.new_game_id();
@@ -157,6 +161,12 @@ pub async fn play_move(
     })?;
 
     let current_player = current_player_or_finished(&session.game, &params.api_version)?;
+    validate_player_token_for_turn(
+        session,
+        current_player,
+        request.player_token.as_deref(),
+        &params.api_version,
+    )?;
 
     if session.bot_id.is_some() && current_player != PlayerId::new(0) {
         return Err(error_response(
@@ -245,6 +255,7 @@ pub async fn play_move(
 pub async fn resign_game(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
+    headers: HeaderMap,
 ) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
     check_api_version(&params.api_version)?;
 
@@ -254,10 +265,13 @@ pub async fn resign_game(
     let session = require_game_session_mut(&mut guard, &params)?;
     ensure_game_not_finished(&session.game, &params.api_version)?;
 
-    let resigning_player = match (&session.bot_id, session.game.next_player()) {
-        (Some(_), _) => PlayerId::new(0),
-        (None, Some(player)) => player,
-        (None, None) => return Err(game_finished_error(&params.api_version)),
+    let resigning_player = match &session.player_tokens {
+        Some(_) => resolve_player_from_header_token(session, &headers, &params.api_version)?,
+        None => match (&session.bot_id, session.game.next_player()) {
+            (Some(_), _) => PlayerId::new(0),
+            (None, Some(player)) => player,
+            (None, None) => return Err(game_finished_error(&params.api_version)),
+        },
     };
 
     session
@@ -329,7 +343,83 @@ fn current_player_or_finished(
         .ok_or_else(|| game_finished_error(api_version))
 }
 
-fn bot_not_found_error(api_version: &str, bot_id: &str, available_bots: &str) -> Json<ErrorResponse> {
+fn validate_player_token_for_turn(
+    session: &GameSession,
+    current_player: PlayerId,
+    provided_token: Option<&str>,
+    api_version: &str,
+) -> Result<(), Json<ErrorResponse>> {
+    let Some(tokens) = &session.player_tokens else {
+        return Ok(());
+    };
+
+    let expected_token = tokens.get(&current_player.id()).ok_or_else(|| {
+        error_response(
+            "Player token configuration is invalid",
+            Some(api_version.to_string()),
+        )
+    })?;
+    let provided = provided_token.ok_or_else(|| {
+        error_response(
+            "player_token is required for this matchmaking game",
+            Some(api_version.to_string()),
+        )
+    })?;
+
+    if provided != expected_token {
+        return Err(error_response(
+            "Invalid player_token for current turn",
+            Some(api_version.to_string()),
+        ));
+    }
+
+    Ok(())
+}
+
+fn resolve_player_from_header_token(
+    session: &GameSession,
+    headers: &HeaderMap,
+    api_version: &str,
+) -> Result<PlayerId, Json<ErrorResponse>> {
+    let tokens = session.player_tokens.as_ref().ok_or_else(|| {
+        error_response(
+            "This game does not use player tokens",
+            Some(api_version.to_string()),
+        )
+    })?;
+
+    let provided = headers
+        .get("x-player-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| {
+            error_response(
+                "x-player-token header is required for this matchmaking game",
+                Some(api_version.to_string()),
+            )
+        })?;
+
+    tokens
+        .iter()
+        .find_map(|(player_id, token)| {
+            if token == provided {
+                Some(PlayerId::new(*player_id))
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| {
+            error_response(
+                "Invalid x-player-token for this game",
+                Some(api_version.to_string()),
+            )
+        })
+}
+
+fn bot_not_found_error(
+    api_version: &str,
+    bot_id: &str,
+    available_bots: &str,
+) -> Json<ErrorResponse> {
     error_response(
         &format!(
             "Bot not found: {}, available bots: [{}]",

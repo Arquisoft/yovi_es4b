@@ -1,0 +1,347 @@
+use super::{
+    error::ErrorResponse,
+    state::{
+        AppState, GameSession, MatchmakingQueueEntry, MatchmakingState, MatchmakingTicketStatus,
+    },
+    version::check_api_version,
+};
+use crate::GameY;
+use axum::{
+    Json,
+    extract::{Path, State},
+};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+
+const DEFAULT_BOARD_SIZE: u32 = 7;
+const DEFAULT_POLL_AFTER_MS: u64 = 1_000;
+const MATCHMAKING_TICK_MS: u64 = 300;
+
+#[derive(Deserialize)]
+pub struct ApiVersionParams {
+    api_version: String,
+}
+
+#[derive(Deserialize)]
+pub struct TicketParams {
+    api_version: String,
+    ticket_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EnqueueRequest {
+    #[serde(default = "default_board_size")]
+    pub size: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchmakingStatus {
+    Waiting,
+    Matched,
+    Cancelled,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TicketResponse {
+    pub api_version: String,
+    pub ticket_id: String,
+    pub status: MatchmakingStatus,
+    pub poll_after_ms: Option<u64>,
+    pub position: Option<usize>,
+    pub game_id: Option<String>,
+    pub player_id: Option<u32>,
+    pub player_token: Option<String>,
+}
+
+pub fn start_matchmaking_worker(state: AppState) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(MATCHMAKING_TICK_MS));
+        loop {
+            interval.tick().await;
+            if let Err(err) = process_once(&state).await {
+                tracing::warn!("matchmaking worker error: {}", err);
+            }
+        }
+    });
+}
+
+pub async fn enqueue(
+    State(state): State<AppState>,
+    Path(params): Path<ApiVersionParams>,
+    Json(request): Json<EnqueueRequest>,
+) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
+    check_api_version(&params.api_version)?;
+
+    if request.size == 0 {
+        return Err(error_response(
+            "Board size must be >= 1",
+            Some(params.api_version),
+        ));
+    }
+
+    let ticket_id = state.new_ticket_id();
+
+    let matchmaking = state.matchmaking();
+    let mut guard = matchmaking.write().await;
+    guard.queue.push_back(MatchmakingQueueEntry {
+        ticket_id: ticket_id.clone(),
+        size: request.size,
+    });
+    guard.tickets.insert(
+        ticket_id.clone(),
+        MatchmakingTicketStatus::Waiting {
+            size: request.size,
+            enqueued_at: Instant::now(),
+        },
+    );
+
+    let position = queue_position(&guard, &ticket_id);
+    Ok(Json(TicketResponse {
+        api_version: params.api_version,
+        ticket_id,
+        status: MatchmakingStatus::Waiting,
+        poll_after_ms: Some(DEFAULT_POLL_AFTER_MS),
+        position,
+        game_id: None,
+        player_id: None,
+        player_token: None,
+    }))
+}
+
+pub async fn get_ticket(
+    State(state): State<AppState>,
+    Path(params): Path<TicketParams>,
+) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
+    check_api_version(&params.api_version)?;
+
+    let matchmaking = state.matchmaking();
+    let guard = matchmaking.read().await;
+    let ticket_status = guard.tickets.get(&params.ticket_id).ok_or_else(|| {
+        error_response(
+            &format!("Ticket not found: {}", params.ticket_id),
+            Some(params.api_version.clone()),
+        )
+    })?;
+
+    let response = match ticket_status {
+        MatchmakingTicketStatus::Waiting { .. } => TicketResponse {
+            api_version: params.api_version,
+            ticket_id: params.ticket_id.clone(),
+            status: MatchmakingStatus::Waiting,
+            poll_after_ms: Some(DEFAULT_POLL_AFTER_MS),
+            position: queue_position(&guard, &params.ticket_id),
+            game_id: None,
+            player_id: None,
+            player_token: None,
+        },
+        MatchmakingTicketStatus::Matched {
+            game_id,
+            player_id,
+            player_token,
+        } => TicketResponse {
+            api_version: params.api_version,
+            ticket_id: params.ticket_id.clone(),
+            status: MatchmakingStatus::Matched,
+            poll_after_ms: None,
+            position: None,
+            game_id: Some(game_id.clone()),
+            player_id: Some(*player_id),
+            player_token: Some(player_token.clone()),
+        },
+        MatchmakingTicketStatus::Cancelled => TicketResponse {
+            api_version: params.api_version,
+            ticket_id: params.ticket_id.clone(),
+            status: MatchmakingStatus::Cancelled,
+            poll_after_ms: None,
+            position: None,
+            game_id: None,
+            player_id: None,
+            player_token: None,
+        },
+    };
+
+    Ok(Json(response))
+}
+
+pub async fn cancel_ticket(
+    State(state): State<AppState>,
+    Path(params): Path<TicketParams>,
+) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
+    check_api_version(&params.api_version)?;
+
+    let matchmaking = state.matchmaking();
+    let mut guard = matchmaking.write().await;
+    let ticket_status = guard.tickets.get_mut(&params.ticket_id).ok_or_else(|| {
+        error_response(
+            &format!("Ticket not found: {}", params.ticket_id),
+            Some(params.api_version.clone()),
+        )
+    })?;
+
+    match ticket_status {
+        MatchmakingTicketStatus::Waiting { .. } => {
+            *ticket_status = MatchmakingTicketStatus::Cancelled;
+            guard
+                .queue
+                .retain(|entry| entry.ticket_id != params.ticket_id);
+        }
+        MatchmakingTicketStatus::Matched { .. } => {
+            return Err(error_response(
+                "Ticket is already matched and cannot be cancelled",
+                Some(params.api_version),
+            ));
+        }
+        MatchmakingTicketStatus::Cancelled => {}
+    }
+
+    Ok(Json(TicketResponse {
+        api_version: params.api_version,
+        ticket_id: params.ticket_id,
+        status: MatchmakingStatus::Cancelled,
+        poll_after_ms: None,
+        position: None,
+        game_id: None,
+        player_id: None,
+        player_token: None,
+    }))
+}
+
+async fn process_once(state: &AppState) -> Result<(), String> {
+    loop {
+        let pair = {
+            let matchmaking = state.matchmaking();
+            let mut guard = matchmaking.write().await;
+            take_next_pair(&mut guard)
+        };
+
+        let Some((a, b)) = pair else {
+            break;
+        };
+
+        let game_id = state.new_game_id();
+        let player_a_token = state.new_player_token();
+        let player_b_token = state.new_player_token();
+        let player_tokens = HashMap::from([
+            (0_u32, player_a_token.clone()),
+            (1_u32, player_b_token.clone()),
+        ]);
+
+        let games = state.games();
+        let mut games_guard = games.write().await;
+        games_guard.insert(
+            game_id.clone(),
+            GameSession {
+                game: GameY::new(a.size),
+                bot_id: None,
+                player_tokens: Some(player_tokens),
+            },
+        );
+        drop(games_guard);
+
+        let matchmaking = state.matchmaking();
+        let mut mm_guard = matchmaking.write().await;
+        mm_guard.tickets.insert(
+            a.ticket_id,
+            MatchmakingTicketStatus::Matched {
+                game_id: game_id.clone(),
+                player_id: 0,
+                player_token: player_a_token,
+            },
+        );
+        mm_guard.tickets.insert(
+            b.ticket_id,
+            MatchmakingTicketStatus::Matched {
+                game_id,
+                player_id: 1,
+                player_token: player_b_token,
+            },
+        );
+    }
+
+    Ok(())
+}
+
+fn take_next_pair(
+    state: &mut MatchmakingState,
+) -> Option<(MatchmakingQueueEntry, MatchmakingQueueEntry)> {
+    while let Some(first) = state.queue.pop_front() {
+        if !is_waiting_ticket(&state.tickets, &first.ticket_id) {
+            continue;
+        }
+
+        let second_idx = state.queue.iter().position(|candidate| {
+            candidate.size == first.size && is_waiting_ticket(&state.tickets, &candidate.ticket_id)
+        });
+
+        if let Some(idx) = second_idx
+            && let Some(second) = state.queue.remove(idx)
+        {
+            return Some((first, second));
+        }
+
+        state.queue.push_front(first);
+        return None;
+    }
+    None
+}
+
+fn is_waiting_ticket(tickets: &HashMap<String, MatchmakingTicketStatus>, ticket_id: &str) -> bool {
+    matches!(
+        tickets.get(ticket_id),
+        Some(MatchmakingTicketStatus::Waiting { .. })
+    )
+}
+
+fn queue_position(state: &MatchmakingState, ticket_id: &str) -> Option<usize> {
+    state
+        .queue
+        .iter()
+        .position(|entry| entry.ticket_id == ticket_id)
+        .map(|idx| idx + 1)
+}
+
+fn default_board_size() -> u32 {
+    DEFAULT_BOARD_SIZE
+}
+
+fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorResponse> {
+    Json(ErrorResponse::error(message, api_version, None))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_take_next_pair_fifo_same_size() {
+        let mut state = MatchmakingState::default();
+        state.queue.push_back(MatchmakingQueueEntry {
+            ticket_id: "ticket-1".to_string(),
+            size: 7,
+        });
+        state.queue.push_back(MatchmakingQueueEntry {
+            ticket_id: "ticket-2".to_string(),
+            size: 7,
+        });
+        state.tickets.insert(
+            "ticket-1".to_string(),
+            MatchmakingTicketStatus::Waiting {
+                size: 7,
+                enqueued_at: Instant::now(),
+            },
+        );
+        state.tickets.insert(
+            "ticket-2".to_string(),
+            MatchmakingTicketStatus::Waiting {
+                size: 7,
+                enqueued_at: Instant::now(),
+            },
+        );
+
+        let pair = take_next_pair(&mut state).unwrap();
+        assert_eq!(pair.0.ticket_id, "ticket-1");
+        assert_eq!(pair.1.ticket_id, "ticket-2");
+    }
+}

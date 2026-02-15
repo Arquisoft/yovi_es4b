@@ -21,6 +21,7 @@ export interface CreateGameRequest {
 
 export interface MoveRequest {
   coords: Coordinates;
+  player_token?: string;
 }
 
 export interface GameStateResponse {
@@ -36,6 +37,19 @@ export interface GameStateResponse {
 
 interface ApiErrorResponse {
   message: string;
+}
+
+export type MatchmakingStatus = 'waiting' | 'matched' | 'cancelled';
+
+export interface MatchmakingTicketResponse {
+  api_version: string;
+  ticket_id: string;
+  status: MatchmakingStatus;
+  poll_after_ms: number | null;
+  position: number | null;
+  game_id: string | null;
+  player_id: number | null;
+  player_token: string | null;
 }
 
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
@@ -118,8 +132,30 @@ export async function playMove(gameId: string, move: MoveRequest): Promise<GameS
   });
 }
 
-export async function resignGame(gameId: string): Promise<GameStateResponse> {
+export async function resignGame(gameId: string, playerToken?: string): Promise<GameStateResponse> {
+  const headers = playerToken ? { 'x-player-token': playerToken } : undefined;
   return requestJson<GameStateResponse>(`/v1/games/${gameId}/resign`, {
+    method: 'POST',
+    headers,
+  });
+}
+
+export async function enqueueMatchmaking(size = 7): Promise<MatchmakingTicketResponse> {
+  return requestJson<MatchmakingTicketResponse>('/v1/matchmaking/enqueue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ size }),
+  });
+}
+
+export async function getMatchmakingTicket(ticketId: string): Promise<MatchmakingTicketResponse> {
+  return requestJson<MatchmakingTicketResponse>(`/v1/matchmaking/tickets/${ticketId}`, {
+    method: 'GET',
+  });
+}
+
+export async function cancelMatchmakingTicket(ticketId: string): Promise<MatchmakingTicketResponse> {
+  return requestJson<MatchmakingTicketResponse>(`/v1/matchmaking/tickets/${ticketId}/cancel`, {
     method: 'POST',
   });
 }
