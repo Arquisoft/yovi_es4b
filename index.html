@@ -436,15 +436,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
-<h1><span class="image"><img src="./images/arc42-logo.png" alt="arc42"></span> yovi_es4b</h1>
-<div class="details">
-<span id="revnumber">version 8.2 EN,</span>
-<span id="revdate">January 2023</span>
-<br><span id="revremark">(based upon AsciiDoc version)</span>
-</div>
 <div id="toc" class="toc">
-<div id="toctitle">Table of Contents</div>
+<div id="toctitle">table of contents</div>
 <ul class="sectlevel1">
+<li><a href="#_yovi_es4b"><span class="image"><img src="./images/arc42-logo.png" alt="arc42"></span> yovi_es4b</a></li>
 <li><a href="#section-introduction-and-goals">1. Introduction and Goals</a>
 <ul class="sectlevel2">
 <li><a href="#_requirements_overview">1.1. Requirements Overview</a></li>
@@ -452,15 +447,28 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_stakeholders">1.3. Stakeholders</a></li>
 </ul>
 </li>
-<li><a href="#section-architecture-constraints">2. Architecture Constraints</a></li>
+<li><a href="#section-architecture-constraints">2. Architecture Constraints</a>
+<ul class="sectlevel2">
+<li><a href="#_technical_constraints">2.1. Technical Constraints</a></li>
+<li><a href="#_organizational_constraints">2.2. Organizational Constraints</a></li>
+<li><a href="#_conventions">2.3. Conventions</a></li>
+</ul>
+</li>
 <li><a href="#section-context-and-scope">3. Context and Scope</a>
 <ul class="sectlevel2">
-<li><a href="#_business_context">3.1. Business Context</a></li>
+<li><a href="#_elements_description">3.1. Elements Description</a></li>
 <li><a href="#_technical_context">3.2. Technical Context</a></li>
 </ul>
 </li>
-<li><a href="#section-solution-strategy">4. Solution Strategy</a></li>
-<li><a href="#section-building-block-view">5. Building Block View</a>
+<li><a href="#section-solution-strategy">4. Solution Strategy</a>
+<ul class="sectlevel2">
+<li><a href="#_4_1_technology_decisions">4.1. 4.1 Technology Decisions</a></li>
+<li><a href="#_4_2_top_level_decomposition_decision">4.2. 4.2 Top-Level Decomposition Decision</a></li>
+<li><a href="#_4_3_decisions_to_achieve_quality_goals">4.3. 4.3 Decisions to Achieve Quality Goals</a></li>
+<li><a href="#_4_4_organizational_decisions">4.4. 4.4 Organizational Decisions</a></li>
+</ul>
+</li>
+<li><a href="#section-building-block-view">5. 5. Building Block View</a>
 <ul class="sectlevel2">
 <li><a href="#_whitebox_overall_system">5.1. Whitebox Overall System</a></li>
 <li><a href="#_level_2">5.2. Level 2</a></li>
@@ -469,10 +477,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#section-runtime-view">6. Runtime View</a>
 <ul class="sectlevel2">
-<li><a href="#_runtime_scenario_1">6.1. &lt;Runtime Scenario 1&gt;</a></li>
-<li><a href="#_runtime_scenario_2">6.2. &lt;Runtime Scenario 2&gt;</a></li>
-<li><a href="#">6.3. &#8230;&#8203;</a></li>
-<li><a href="#_runtime_scenario_n">6.4. &lt;Runtime Scenario n&gt;</a></li>
+<li><a href="#_login">6.1. Login</a></li>
+<li><a href="#_jugar_partida">6.2. Jugar partida</a></li>
 </ul>
 </li>
 <li><a href="#section-deployment-view">7. Deployment View</a>
@@ -483,9 +489,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#section-concepts">8. Cross-cutting Concepts</a>
 <ul class="sectlevel2">
-<li><a href="#_concept_1">8.1. <em>&lt;Concept 1&gt;</em></a></li>
-<li><a href="#_concept_2">8.2. <em>&lt;Concept 2&gt;</em></a></li>
-<li><a href="#_concept_n">8.3. <em>&lt;Concept n&gt;</em></a></li>
+<li><a href="#_domain_concepts">8.1. <em>&lt;Domain Concepts&gt;</em></a></li>
+<li><a href="#_architecture_and_design_patterns">8.2. <em>&lt;Architecture and Design Patterns&gt;</em></a></li>
+<li><a href="#_security_concepts">8.3. <em>&lt;Security Concepts&gt;</em></a></li>
+<li><a href="#_development_concepts">8.4. <em>&lt;Development Concepts&gt;</em></a></li>
+<li><a href="#_operational_concepts">8.5. <em>&lt;Operational Concepts&gt;</em></a></li>
 </ul>
 </li>
 <li><a href="#section-design-decisions">9. Architecture Decisions</a></li>
@@ -495,13 +503,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_quality_scenarios">10.2. Quality Scenarios</a></li>
 </ul>
 </li>
-<li><a href="#section-technical-risks">11. Risks and Technical Debts</a></li>
+<li><a href="#section-technical-risks">11. Risks and Technical Debts</a>
+<ul class="sectlevel2">
+<li><a href="#_technical_risks">11.1. Technical Risks</a></li>
+</ul>
+</li>
 <li><a href="#section-glossary">12. Glossary</a></li>
 </ul>
 </div>
 </div>
 <div id="content">
-<div id="preamble">
+<div class="sect1">
+<h2 id="_yovi_es4b"><span class="image"><img src="./images/arc42-logo.png" alt="arc42"></span> yovi_es4b</h2>
 <div class="sectionbody">
 <style>
 .arc42help {font-size:small; width: 14px; height: 16px; overflow: hidden; position: absolute; right: 0; padding: 2px 0 3px 2px;}
@@ -553,7 +566,9 @@ For documentation of your own system you use better the <em>plain</em> version.<
 <h2 id="section-introduction-and-goals">1. Introduction and Goals</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This is a very nice documentation created by Adrián, Rodrigo, Fernando and Julián.</p>
+<p>YOVI is an online game based on Game Y, an abstract strategy board game described by John Milnor in the 1950&#8217;s and indepently invented in 1953 by Craige Schensted and Charles Titus.<br>
+The game is normally played on a triangular board by two players, whose goal is to connect the three sides of the board with an unbroken chain of their pieces.<br>
+YOVI is a modern implementation of Game Y, which allows players to play against bots of varying dificulties, against other players locally or online. It also features a login system, allowing it to log accounts' stats.</p>
 </div>
 <div class="sidebarblock arc42help">
 <div class="content">
@@ -584,6 +599,85 @@ These include</p>
 </div>
 <div class="sect2">
 <h3 id="_requirements_overview">1.1. Requirements Overview</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>User registration and login system</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Allow users to create accounts and log in securely</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Game modes</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Single-player mode against AI opponents of varying difficulties</p>
+</li>
+<li>
+<p>Local multiplayer mode for two players on the same device</p>
+</li>
+<li>
+<p>Online multiplayer mode for players to compete against each other over the internet</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Game mechanics</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Implement the rules of Game Y accurately</p>
+</li>
+<li>
+<p>Provide an intuitive and responsive user interface for gameplay</p>
+</li>
+<li>
+<p>Provide custom game settings (e.g., board size, time limits, game variants)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Account statistics</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Track and display players' game statistics, such as wins, losses, and games played</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Bot opponents</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Develop AI opponents with varying levels of difficulty and different strategies to provide a challenging gaming experience for players of all skill levels</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>API</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Provide an API that allows bots to retrieve their game statistics, enabling them to track their progress and performance over time</p>
+</li>
+<li>
+<p>Provide an API that allows bots to play against the game, enabling developers to create their own bots and integrate them into the game</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -614,6 +708,45 @@ If requirements documents exist this overview should refer to these documents.</
 </div>
 <div class="sect2">
 <h3 id="_quality_goals">1.2. Quality Goals</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Priority</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Quality Goal</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Robustness</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game should be able to handle unexpected inputs and situations without crashing or producing incorrect results. This includes handling invalid moves, network interruptions, and other unforeseen circumstances gracefully.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Usability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game should have an intuitive and user-friendly interface that allows players to easily navigate through menus, understand game mechanics, and enjoy a seamless gaming experience.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Performance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game should run smoothly with minimal latency, especially in online multiplayer mode, to ensure a responsive and enjoyable gaming experience for all players.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compatibility</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game should be compatible with any type of device that has a web browser, including desktops, laptops, tablets, and smartphones, to reach a wide audience of players.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Security</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game should implement robust security measures to protect user data and prevent unauthorized access, especially in the context of user accounts and online multiplayer interactions.</p></td>
+</tr>
+</tbody>
+</table>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -671,12 +804,6 @@ If you as an architect do not know how the quality of your work will be judged&#
 </ul>
 </div>
 <div class="paragraph">
-<div class="title">Motivation</div>
-<p>You should know all parties involved in development of the system or affected by the system.
-Otherwise, you may get nasty surprises later in the development process.
-These stakeholders determine the extent and the level of detail of your work and its results.</p>
-</div>
-<div class="paragraph">
 <div class="title">Form</div>
 <p>Table with role names, person names, and their expectations with respect to the architecture and its documentation.</p>
 </div>
@@ -697,14 +824,22 @@ These stakeholders determine the extent and the level of detail of your work and
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Role-1&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Contact-1&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Expectation-1&gt;</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Development Team</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Julián Fernández Herruzo (<a href="mailto:UO300199@uniovi.es">UO300199@uniovi.es</a>)<br>
+Fernando Begega Suarez (<a href="mailto:UO295286@uniovi.es">UO295286@uniovi.es</a>)<br>
+Rodrigo García López (<a href="mailto:UO300548@uniovi.es">UO300548@uniovi.es</a>)<br>
+Adrian Burguet Diego (<a href="mailto:UO294819@uniovi.es">UO294819@uniovi.es</a>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Responsible for implementing and designing the architecture, ensuring that it meets the specified requirements and quality goals.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Role-2&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Contact-2&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Expectation-2&gt;</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micrati</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N/A</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Interested in the successful development and deployment of the game, as well as its commercial success. They also specify some requirements or constraints that need to be considered during the architectural design process, such as the chosen language (Rust)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Players</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N/A</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Expect a fun and engaging gaming experience, with a user-friendly interface, smooth performance, and challenging gameplay. They also expect regular updates and improvements to the game based on their feedback.</p></td>
 </tr>
 </tbody>
 </table>
@@ -715,23 +850,115 @@ These stakeholders determine the extent and the level of detail of your work and
 <div class="sect1">
 <h2 id="section-architecture-constraints">2. Architecture Constraints</h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="_technical_constraints">2.1. Technical Constraints</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Constraint</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Languages</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Front-end: TypeScript (React). Game engine: Rust.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Communication format</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON using the YEN notation for game states and moves.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Public API</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Must implement an API for bots to interact with the game, and view users stats.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Deployment</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Application must be deployable and publicly accessible through the internet.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Testing</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Unit, integration and end-to-end test.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Security</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Authentication for users with a secure login mechanism.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stored data</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User data and game states must be stored persistently in a database.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_organizational_constraints">2.2. Organizational Constraints</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Constraint</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Documentation</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Use arc42 template for documentation of the application. The documentation must be publicly accessible and updated regularly.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Development time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The application should be developed by the end of the semester.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Github repository</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Use a shared GitHub repository for version control and collaboration.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Meetings</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">At least one meeting per week to discuss progress, challenges and next steps. Every meeting must be documented.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_conventions">2.3. Conventions</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Convention</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code style &amp; linting</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Follow existing project style for TypeScript and Rust.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Version control</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Use of "main" branch for stable code releases; feature branches for development. Use pull requests and code review before merging.</p></td>
+</tr>
+</tbody>
+</table>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
 <div class="title">Contents</div>
-<p>Any requirement that constraints software architects in their freedom of design and implementation decisions or decision about the development process. These constraints sometimes go beyond individual systems and are valid for whole organizations and companies.</p>
+<p>Any requirement that constrains architects' freedom of design and implementation. These can be technical, organizational, or conventional and may be negotiable.</p>
 </div>
 <div class="paragraph">
 <div class="title">Motivation</div>
-<p>Architects should know exactly where they are free in their design decisions and where they must adhere to constraints.
-Constraints must always be dealt with; they may be negotiable, though.</p>
+<p>Architects should know where they have freedom and where they must adhere to constraints.</p>
 </div>
 <div class="paragraph">
 <div class="title">Form</div>
-<p>Simple tables of constraints with explanations.
-If needed you can subdivide them into
-technical constraints, organizational and political constraints and
-conventions (e.g. programming or versioning guidelines, documentation or naming conventions)</p>
+<p>Short tables and paragraphs describing constraints, rationale and impact.</p>
 </div>
 <div class="paragraph">
 <div class="title">Further Information</div>
@@ -742,51 +969,58 @@ conventions (e.g. programming or versioning guidelines, documentation or naming 
 <div style="page-break-after: always;"></div>
 </div>
 </div>
+</div>
 <div class="sect1">
 <h2 id="section-context-and-scope">3. Context and Scope</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
+<div class="paragraph">
+<p>This section describes the system boundary: the communication partners (users and external systems),
+the domain-level inputs and outputs, and the technical channels used for interaction. It separates
+business context (who interacts with the system and what domain information is exchanged) from
+technical context (protocols, ports, and runtime deployment aspects).</p>
+</div>
+<div class="paragraph">
+<p>Motivation: clear context and scope prevent misunderstandings about responsibilities, interfaces,
+and deployment requirements.
+=== Business Context</p>
+</div>
+<div class="imageblock">
 <div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>Context and scope - as the name suggests - delimits your system (i.e. your scope) from all its communication partners
-(neighboring systems and users, i.e. the context of your system). It thereby specifies the external interfaces.</p>
-</div>
-<div class="paragraph">
-<p>If necessary, differentiate the business context (domain specific inputs and outputs) from the technical context (channels, protocols, hardware).</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>The domain interfaces and technical interfaces to communication partners are among your system&#8217;s most critical aspects. Make sure that you completely understand them.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Various options:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Context diagrams</p>
-</li>
-<li>
-<p>Lists of communication partners and their interfaces.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-3/">Context and Scope</a> in the arc42 documentation.</p>
-</div>
+<img src="./images/diagram-name.png" alt="diagram name" width="620" height="647">
 </div>
 </div>
 <div class="sect2">
-<h3 id="_business_context">3.1. Business Context</h3>
+<h3 id="_elements_description">3.1. Elements Description</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Player</strong>: The end-user who interacts with the system through a web browser to play games and view statistics.</p>
+</li>
+<li>
+<p><strong>Administrator</strong>: Responsible for managing users and monitoring the system.</p>
+</li>
+<li>
+<p><strong>Bot</strong>: An automated agent that can interact with the game engine to play games and view user stats.</p>
+</li>
+<li>
+<p><strong>WebApp</strong>: The front-end application built with React and Vite, serving the user interface and handling user interactions.</p>
+</li>
+<li>
+<p><strong>Users</strong>: The back-end service responsible for user authentication and management, built with Node.js.</p>
+</li>
+<li>
+<p><strong>Gamey</strong>: The game engine and bot service implemented in Rust, responsible for game logic and interactions with bots.</p>
+</li>
+<li>
+<p><strong>DB</strong>: The database used to persist user data and games.</p>
+</li>
+</ul>
+</div>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
 <div class="title">Contents</div>
-<p>Specification of <strong>all</strong> communication partners (users, IT-systems, &#8230;&#8203;) with explanations of domain specific inputs and outputs or interfaces.
-Optionally you can add domain specific formats or communication protocols.</p>
+<p>Specification of <strong>all</strong> communication partners (users, IT-systems, &#8230;&#8203;) with explanations of domain specific inputs and outputs or interfaces.</p>
 </div>
 <div class="paragraph">
 <div class="title">Motivation</div>
@@ -797,25 +1031,25 @@ Optionally you can add domain specific formats or communication protocols.</p>
 <p>All kinds of diagrams that show the system as a black box and specify the domain interfaces to communication partners.</p>
 </div>
 <div class="paragraph">
-<p>Alternatively (or additionally) you can use a table.
-The title of the table is the name of your system, the three columns contain the name of the communication partner, the inputs, and the outputs.</p>
+<p>The title of the table is the name of your system, the three columns contain the name of the communication partner, the inputs, and the outputs.</p>
 </div>
 </div>
-</div>
-<div class="paragraph">
-<p><strong>&lt;Diagram or Table&gt;</strong></p>
-</div>
-<div class="paragraph">
-<p><strong>&lt;optionally: Explanation of external domain interfaces&gt;</strong></p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_technical_context">3.2. Technical Context</h3>
+<div class="imageblock">
+<div class="content">
+<img src="./images/diagram-name.png" alt="diagram name" width="1614" height="969">
+</div>
+</div>
+<div class="sect3">
+<h4 id="_elements_description_2">3.2.1. Elements Description</h4>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
 <div class="title">Contents</div>
-<p>Technical interfaces (channels and transmission media) linking your system to its environment. In addition a mapping of domain specific input/output to the channels, i.e. an explanation which I/O uses which channel.</p>
+<p>Technical interfaces (channels and transmission media) linking the system to its environment. In addition a mapping of domain specific input/output to the channels, i.e. an explanation which I/O uses which channel.</p>
 </div>
 <div class="paragraph">
 <div class="title">Motivation</div>
@@ -828,16 +1062,74 @@ together with a mapping table showing the relationships between channels and inp
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p><strong>&lt;Diagram or Table&gt;</strong></p>
-</div>
-<div class="paragraph">
-<p><strong>&lt;optionally: Explanation of technical interfaces&gt;</strong></p>
-</div>
-<div class="paragraph">
-<p><strong>&lt;Mapping Input/Output to Channels&gt;</strong></p>
-</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Participants</th>
+<th class="tableblock halign-left valign-top">Input/Output</th>
+<th class="tableblock halign-left valign-top">Channel/Protocol</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Player (Browser)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Web navigation, gameplay actions, requests to the frontend</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS (via Reverse Proxy) / HTTP (dev 5173)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Administrator</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Administration actions, user management requests</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS (Users API)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">External Bot</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game actions, statistics queries, automated gameplay</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS JSON (Gamey API)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reverse Proxy (nginx)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Incoming HTTP/HTTPS traffic, routing to internal services</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS externally / HTTP internally</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">WebApp (React + Vite + TypeScript)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User interactions, REST API calls to Users and Gamey</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Users (Node.js + Express)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Authentication, user management, metrics endpoint</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST) / TCP (database driver)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Gamey (Rust Engine + Bot Service)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game logic, bot API, metrics endpoint</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST) / TCP (database driver)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Database (Postgres / Mongo)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Storage of users, game sessions, statistics</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SQL/NoSQL over TCP</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prometheus</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Metrics scraping from Users and Gamey</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (/metrics)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Grafana</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Dashboard visualization, queries to Prometheus</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (host port 9091 → container port 3000)</p></td>
+</tr>
+</tbody>
+</table>
 <div style="page-break-after: always;"></div>
+</div>
 </div>
 </div>
 </div>
@@ -885,11 +1177,181 @@ Refer to details in the following sections.</p>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>This section summarizes the architectural decisions that guide the system and explains how they support the main quality goals.</p>
+</div>
+<div class="sect2">
+<h3 id="_4_1_technology_decisions">4.1. 4.1 Technology Decisions</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Frontend</code>: React + TypeScript.</p>
+<div class="paragraph">
+<p>Reason: fast development, maintainability through static typing, and a broad ecosystem.</p>
+</div>
+</li>
+<li>
+<p><code>Application Backend</code>: Node.js + Express (with TypeScript in the application layer where applicable).</p>
+<div class="paragraph">
+<p>Reason: agile REST API development and a mature ecosystem.</p>
+</div>
+</li>
+<li>
+<p><code>Game Engine Service</code>: Rust + Axum.</p>
+<div class="paragraph">
+<p>Reason: alignment with assignment constraints and clear separation of game-domain logic in a specialized service.</p>
+</div>
+</li>
+<li>
+<p><code>Containerization</code>: Docker + Docker Compose.</p>
+<div class="paragraph">
+<p>Reason: reproducible environments and consistent service integration.</p>
+</div>
+</li>
+<li>
+<p><code>Monitoring</code>: Prometheus + Grafana.</p>
+<div class="paragraph">
+<p>Reason: baseline observability through service-level metrics.</p>
+</div>
+</li>
+<li>
+<p><code>Deployment Target</code>: Azure.</p>
+<div class="paragraph">
+<p>Reason: academic availability and prior team experience.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_4_2_top_level_decomposition_decision">4.2. 4.2 Top-Level Decomposition Decision</h3>
+<div class="paragraph">
+<p>The architecture is decomposed into four main building blocks:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>Webapp (Frontend)</code></p>
+<div class="paragraph">
+<p>Responsibility: user interaction and game state visualization.</p>
+</div>
+<div class="paragraph">
+<p>Architectural role: system client.</p>
+</div>
+</li>
+<li>
+<p><code>Users Service (Application API)</code></p>
+<div class="paragraph">
+<p>Responsibility: public API, user/game/history management, and use-case orchestration.</p>
+</div>
+<div class="paragraph">
+<p>Architectural role: single entry point for frontend clients.</p>
+</div>
+</li>
+<li>
+<p><code>Gamey Service (Game Engine)</code></p>
+<div class="paragraph">
+<p>Responsibility: move validation, game rules, and bot move calculation.</p>
+</div>
+<div class="paragraph">
+<p>Architectural role: internal domain service invoked by <code>Users Service</code>.</p>
+</div>
+</li>
+<li>
+<p><code>Persistence Layer (Database)</code></p>
+<div class="paragraph">
+<p>Responsibility: storage of users, matches, statistics, and history.</p>
+</div>
+<div class="paragraph">
+<p>Architectural role: persistence dependency used by <code>Users Service</code>.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="_communication_between_subsystems">4.2.1. Communication Between Subsystems</h4>
+<div class="paragraph">
+<p>Communication follows the pattern <code>Webapp &#8594; Users Service &#8594; Gamey Service</code>.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Webapp &#8594; Users Service</code>: HTTP/REST + JSON (public API).</p>
+</li>
+<li>
+<p><code>Users Service &#8594; Gamey Service</code>: HTTP/REST + JSON (internal domain API).</p>
+</li>
+<li>
+<p><code>Users Service &lt;&#8594; Database</code>: persistence operations.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>Users &#8594; Gamey</code> interaction is synchronous for move validation/calculation, and the backend returns a normalized game state to the frontend.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_4_3_decisions_to_achieve_quality_goals">4.3. 4.3 Decisions to Achieve Quality Goals</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Quality Goal</th>
+<th class="tableblock halign-left valign-top">Architectural Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Usability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">React UI with straightforward navigation, clear loading/error feedback, and input validation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Performance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Critical game logic isolated in <code>Gamey</code> (Rust), with a lightweight application API in <code>Users</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Testability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Unit tests per service, integration tests across services, and E2E tests for key user flows.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Maintainability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clear separation of responsibilities (<code>webapp</code>, <code>users</code>, <code>gamey</code>), explicit API contracts, and CI with linting and tests.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Availability and Reliability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Containerized execution, baseline monitoring with Prometheus/Grafana, and cloud deployment strategy.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_4_4_organizational_decisions">4.4. 4.4 Organizational Decisions</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Central GitHub repository for source code and collaboration.</p>
+</li>
+<li>
+<p>Task tracking and technical discussion through GitHub Issues.</p>
+</li>
+<li>
+<p>Periodic team meetings for progress review and task distribution.</p>
+</li>
+<li>
+<p>Decision and meeting traceability through documented records (e.g., team wiki).</p>
+</li>
+</ul>
+</div>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
+</div>
 <div class="sect1">
-<h2 id="section-building-block-view">5. Building Block View</h2>
+<h2 id="section-building-block-view">5. 5. Building Block View</h2>
 <div class="sectionbody">
 <div class="sidebarblock arc42help">
 <div class="content">
@@ -966,32 +1428,48 @@ Depending on your choice of tool this list could be sub-chapters (in text files)
 </div>
 </li>
 <li>
-<p>(optional:) important interfaces, that are not explained in the black box templates of a building block, but are very important for understanding the white box.
+<p>(optional:) important interfaces, that are not explained in the black box templates of a building block,but are very important for understanding the white box.
 Since there are so many ways to specify interfaces why do not provide a specific template for them.
- In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
- restrictions, versions, qualities, necessary compatibilities and many things more.
+In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
+restrictions, versions, qualities, necessary compatibilities and many things more.
 In the best case you will get away with examples or simple signatures.</p>
 </li>
 </ul>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p><em><strong>&lt;Overview Diagram&gt;</strong></em></p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/05_level1_yovi.png" alt="General View - System Boundary">
+</div>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p><em>&lt;text explanation&gt;</em></p>
+<p>This first view shows the system at its highest abstraction level.
+It defines the system boundary (<code>Yovi</code>) and the external actor (<code>Usuario</code>) before introducing internal decomposition.
+This helps stakeholders understand scope and ownership before going into technical details.</p>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
 <dd>
-<p><em>&lt;Description of contained building block (black boxes)&gt;</em></p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Yovi</code>: Main system boundary that contains the application internals, detailed in the next levels.</p>
+</li>
+</ul>
+</div>
 </dd>
 <dt class="hdlist1">Important Interfaces</dt>
 <dd>
-<p><em>&lt;Description of important interfaces&gt;</em></p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Usuario &#8594; Yovi</code>: Primary interaction interface between the end user and the system.</p>
+</li>
+</ul>
+</div>
 </dd>
 </dl>
 </div>
@@ -1033,77 +1511,10 @@ Its headline is the name of the black box.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_name_black_box_1">5.1.1. &lt;Name black box 1&gt;</h4>
-<div class="sidebarblock arc42help">
-<div class="content">
+<h4 id="_yovi">5.1.1. Yovi</h4>
 <div class="paragraph">
-<p>Here you describe &lt;black box 1&gt;
-according the the following black box template:</p>
+<p>System boundary that provides gameplay capabilities to the user and is internally decomposed in the following levels.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Purpose/Responsibility</p>
-</li>
-<li>
-<p>Interface(s), when they are not extracted as separate paragraphs. This interfaces may include qualities and performance characteristics.</p>
-</li>
-<li>
-<p>(Optional) Quality-/Performance characteristics of the black box, e.g.availability, run time behavior, &#8230;&#8203;.</p>
-</li>
-<li>
-<p>(Optional) directory/file location</p>
-</li>
-<li>
-<p>(Optional) Fulfilled requirements (if you need traceability to requirements).</p>
-</li>
-<li>
-<p>(Optional) Open issues/problems/risks</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p><em>&lt;Purpose/Responsibility&gt;</em></p>
-</div>
-<div class="paragraph">
-<p><em>&lt;Interface(s)&gt;</em></p>
-</div>
-<div class="paragraph">
-<p><em>&lt;(Optional) Quality/Performance Characteristics&gt;</em></p>
-</div>
-<div class="paragraph">
-<p><em>&lt;(Optional) Directory/File Location&gt;</em></p>
-</div>
-<div class="paragraph">
-<p><em>&lt;(Optional) Fulfilled Requirements&gt;</em></p>
-</div>
-<div class="paragraph">
-<p><em>&lt;(optional) Open Issues/Problems/Risks&gt;</em></p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_name_black_box_2">5.1.2. &lt;Name black box 2&gt;</h4>
-<div class="paragraph">
-<p><em>&lt;black box template&gt;</em></p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_name_black_box_n">5.1.3. &lt;Name black box n&gt;</h4>
-<div class="paragraph">
-<p><em>&lt;black box template&gt;</em></p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_name_interface_1">5.1.4. &lt;Name interface 1&gt;</h4>
-<div class="paragraph">
-<p>&#8230;&#8203;</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_name_interface_m">5.1.5. &lt;Name interface m&gt;</h4>
-
 </div>
 </div>
 <div class="sect2">
@@ -1121,7 +1532,7 @@ Leave out normal, simple, boring or standardized parts of your system</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_white_box_building_block_1">5.2.1. White Box <em>&lt;building block 1&gt;</em></h4>
+<h4 id="_white_box_yovi">5.2.1. White Box <em>Yovi</em></h4>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -1129,23 +1540,51 @@ Leave out normal, simple, boring or standardized parts of your system</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p><em>&lt;white box template&gt;</em></p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/05_level2_yovi.png" alt="Level 2 - Yovi Main Decomposition">
 </div>
 </div>
-<div class="sect3">
-<h4 id="_white_box_building_block_2">5.2.2. White Box <em>&lt;building block 2&gt;</em></h4>
-<div class="paragraph">
-<p><em>&lt;white box template&gt;</em></p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Motivation</dt>
+<dd>
+<p>Level 2 decomposes <code>Yovi</code> into its main runtime building blocks while keeping implementation details hidden.
+This view clarifies responsibilities between presentation, backend logic, and persistence.</p>
+</dd>
+<dt class="hdlist1">Contained Building Blocks</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>WebApp</code>: Frontend used by the player for interaction.</p>
+</li>
+<li>
+<p><code>Backend</code>: Server-side component that exposes business operations.</p>
+</li>
+<li>
+<p><code>BBDD</code>: Persistent storage used by backend services.</p>
+</li>
+</ul>
 </div>
-<div class="paragraph">
-<p>&#8230;&#8203;</p>
+</dd>
+<dt class="hdlist1">Important Interfaces</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Usuario &#8594; WebApp</code>: User interaction interface.</p>
+</li>
+<li>
+<p><code>WebApp &#8594; Backend</code>: HTTP/JSON application interface.</p>
+</li>
+<li>
+<p><code>Backend &#8594; BBDD</code>: Persistence access interface.</p>
+</li>
+</ul>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_white_box_building_block_m">5.2.3. White Box <em>&lt;building block m&gt;</em></h4>
-<div class="paragraph">
-<p><em>&lt;white box template&gt;</em></p>
+</dd>
+</dl>
 </div>
 </div>
 </div>
@@ -1163,7 +1602,7 @@ part of arc42 for additional levels.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_white_box_building_block_x_1">5.3.1. White Box &lt;_building block x.1_&gt;</h4>
+<h4 id="_white_box_backend">5.3.1. White Box <em>Backend</em></h4>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -1171,20 +1610,51 @@ part of arc42 for additional levels.</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p><em>&lt;white box template&gt;</em></p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/05_level3_yovi.png" alt="Level 3 - Backend Internal Decomposition">
 </div>
 </div>
-<div class="sect3">
-<h4 id="_white_box_building_block_x_2">5.3.2. White Box &lt;_building block x.2_&gt;</h4>
-<div class="paragraph">
-<p><em>&lt;white box template&gt;</em></p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Motivation</dt>
+<dd>
+<p>Level 3 details the internal structure of the backend component.
+It isolates the key business services and their collaboration for user and gameplay operations.</p>
+</dd>
+<dt class="hdlist1">Contained Building Blocks</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>User</code>: Service responsible for user-related operations.</p>
+</li>
+<li>
+<p><code>Gamey</code>: Service responsible for game engine and game logic.</p>
+</li>
+<li>
+<p><code>BBDD</code>: Shared persistence component used by backend services.</p>
+</li>
+</ul>
 </div>
+</dd>
+<dt class="hdlist1">Important Interfaces</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>User &#8592;&#8594; Gamey</code>: Internal service-to-service interface for game/user data exchange.</p>
+</li>
+<li>
+<p><code>User &#8594; BBDD</code>: User data persistence interface.</p>
+</li>
+<li>
+<p><code>Gamey &#8594; BBDD</code>: Game state persistence interface.</p>
+</li>
+</ul>
 </div>
-<div class="sect3">
-<h4 id="_white_box_building_block_y_1">5.3.3. White Box &lt;_building block y.1_&gt;</h4>
-<div class="paragraph">
-<p><em>&lt;white box template&gt;</em></p>
+</dd>
+</dl>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -1257,37 +1727,46 @@ You will mainly capture scenarios in your documentation to communicate your arch
 </div>
 </div>
 <div class="sect2">
-<h3 id="_runtime_scenario_1">6.1. &lt;Runtime Scenario 1&gt;</h3>
+<h3 id="_login">6.1. Login</h3>
+<div class="imageblock">
+<div class="content">
+<img src="./images/runtime-login.png" alt="runtime login" width="605" height="365">
+</div>
+</div>
 <div class="ulist">
 <ul>
 <li>
-<p><em>&lt;insert runtime diagram or textual description of the scenario&gt;</em></p>
+<p>Escenario de autenticacion de usuario.</p>
 </li>
 <li>
-<p><em>&lt;insert description of the notable aspects of the interactions between the
-building block instances depicted in this diagram.&gt;</em></p>
+<p><code>WebApp</code> se comunica directamente con <code>User</code> para autenticar.</p>
+</li>
+<li>
+<p><code>User</code> usa <code>BBDD</code> para comprobar los datos del usuario.</p>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>It is possible to use a sequence diagram:</p>
 </div>
+<div class="sect2">
+<h3 id="_jugar_partida">6.2. Jugar partida</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/Sequence%20diagram.png" alt="Sequence diagram" width="337" height="335">
+<img src="./images/runtime-play-game.png" alt="runtime play game" width="567" height="365">
 </div>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>Escenario principal de ejecucion de juego.</p>
+</li>
+<li>
+<p><code>Gamey</code> encapsula la logica de partida.</p>
+</li>
+<li>
+<p>El estado de la partida se persiste en <code>BBDD</code>.</p>
+</li>
+</ul>
 </div>
-<div class="sect2">
-<h3 id="_runtime_scenario_2">6.2. &lt;Runtime Scenario 2&gt;</h3>
-
-</div>
-<div class="sect2">
-<h3 id="">6.3. &#8230;&#8203;</h3>
-
-</div>
-<div class="sect2">
-<h3 id="_runtime_scenario_n">6.4. &lt;Runtime Scenario n&gt;</h3>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
@@ -1378,21 +1857,135 @@ when your infrastructure is more complex.</p>
 </div>
 </div>
 <div class="paragraph">
-<p><em><strong>&lt;Overview Diagram&gt;</strong></em></p>
+<p>The system is deployed as a distributed, container-based architecture.
+It consists of independent services communicating over HTTP and running within isolated container environments.</p>
+</div>
+<div class="paragraph">
+<p>The deployment view describes the technical infrastructure required to execute the system and the mapping of software building blocks to infrastructure elements.</p>
+</div>
+<div class="paragraph">
+<p>The following diagram shows the high-level deployment structure in a local environment using containerization.
+<em><strong>&lt;Overview Diagram&gt;</strong></em>
+@startuml
+node "User Device" {
+  component "Web Browser"
+}</p>
+</div>
+<div class="paragraph">
+<p>node "Docker Host" {</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>node "Docker Network" {</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>node "Webapp Container\n(React + Vite)" {
+  component "SPA Frontend"
+}</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>node "Users Service Container\n(Node.js + Express)" {
+  component "Users REST API"
+}</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>node "Gamey Container\n(Rust Engine)" {
+  component "Game Engine API"
+}</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>node "Database Container" {
+  database "User Database"
+}</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>  }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>"Web Browser" -&#8594; "SPA Frontend" : HTTP
+"SPA Frontend" -&#8594; "Users REST API" : HTTP /createuser
+"SPA Frontend" -&#8594; "Game Engine API" : HTTP
+"Users REST API" -&#8594; "User Database" : DB connection</p>
+</div>
+<div class="paragraph">
+<p>@enduml</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p><em>&lt;explanation in text form&gt;</em></p>
+<p>The deployment structure is based on containerized services to ensure:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Clear separation between frontend, backend, and game engine.</p>
+</li>
+<li>
+<p>Independent deployment and scalability of each service.</p>
+</li>
+<li>
+<p>Reproducible development environments.</p>
+</li>
+<li>
+<p>Isolation of runtime dependencies.</p>
+</li>
+</ul>
+</div>
 </dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>A database component has been introduced to persist user data, enabling real user registration and long-term storage.</p>
+</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1">Quality and/or Performance Features</dt>
 <dd>
-<p><em>&lt;explanation in text form&gt;</em></p>
+<div class="ulist">
+<ul>
+<li>
+<p>Scalability: Services can be scaled independently in future production environments.</p>
+</li>
+<li>
+<p>Isolation: Each component runs in its own container.</p>
+</li>
+<li>
+<p>Loose Coupling: Communication occurs via well-defined HTTP APIs.</p>
+</li>
+<li>
+<p>Persistence: User data is stored in a dedicated database component.</p>
+</li>
+<li>
+<p>Portability: The system can run on any infrastructure supporting containerization.</p>
+</li>
+<li>
+<p>Maintainability: Clear separation of concerns reduces system complexity.</p>
+</li>
+</ul>
+</div>
 </dd>
 <dt class="hdlist1">Mapping of Building Blocks to Infrastructure</dt>
 <dd>
-<p><em>&lt;description of the mapping&gt;</em></p>
+<p>| Building Block         | Infrastructure Element                       |
+| ---------------------- | -------------------------------------------- |
+| React SPA (Webapp)     | Webapp Container                             |
+| User Management Logic  | Users Service Container                      |
+| User Persistence Layer | Database Container                           |
+| Game Core &amp; Bots       | Gamey Container                              |
+| Client Interface       | Web Browser                                  |
+| Communication          | Docker Internal Network (HTTP + DB protocol) |</p>
 </dd>
 </dl>
 </div>
@@ -1409,25 +2002,177 @@ when your infrastructure is more complex.</p>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_infrastructure_element_1">7.2.1. <em>&lt;Infrastructure Element 1&gt;</em></h4>
 <div class="paragraph">
-<p><em>&lt;diagram + explanation&gt;</em></p>
-</div>
+<p>This level provides a more detailed view of selected infrastructure elements.</p>
 </div>
 <div class="sect3">
-<h4 id="_infrastructure_element_2">7.2.2. <em>&lt;Infrastructure Element 2&gt;</em></h4>
+<h4 id="_webapp_container">7.2.1. <em>&lt;Webapp Container&gt;</em></h4>
 <div class="paragraph">
-<p><em>&lt;diagram + explanation&gt;</em></p>
+<p>@startuml
+node "Webapp Container" {
+  component "React SPA"
+  component "UI Components"
+  component "API Client Module"
+}</p>
 </div>
 <div class="paragraph">
-<p>&#8230;&#8203;</p>
+<p>node "External Services" {
+  component "Users REST API"
+  component "Game Engine API"
+}</p>
+</div>
+<div class="paragraph">
+<p>"React SPA" -&#8594; "UI Components"
+"React SPA" -&#8594; "API Client Module"
+"API Client Module" -&#8594; "Users REST API" : HTTP
+"API Client Module" -&#8594; "Game Engine API" : HTTP</p>
+</div>
+<div class="paragraph">
+<p>@enduml</p>
+</div>
+<div class="paragraph">
+<p>The Webapp container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Hosts a Single Page Application built with React.</p>
+</li>
+<li>
+<p>Handles all user interactions.</p>
+</li>
+<li>
+<p>Communicates with backend services via HTTP.</p>
+</li>
+<li>
+<p>Does not maintain persistent state.</p>
+</li>
+<li>
+<p>Acts as the primary system entry point.</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_infrastructure_element_n">7.2.3. <em>&lt;Infrastructure Element n&gt;</em></h4>
+<h4 id="_users_service_container">7.2.2. <em>&lt;Users Service Container&gt;</em></h4>
 <div class="paragraph">
-<p><em>&lt;diagram + explanation&gt;</em></p>
+<p>@startuml
+node "Users Service Container" {
+  component "Express Server"
+  component "User Controller"
+  component "User Service"
+  component "Persistence Layer"
+}</p>
+</div>
+<div class="paragraph">
+<p>node "Database Container" {
+  database "User Database"
+}</p>
+</div>
+<div class="paragraph">
+<p>"Express Server" -&#8594; "User Controller"
+"User Controller" -&#8594; "User Service"
+"User Service" -&#8594; "Persistence Layer"
+"Persistence Layer" -&#8594; "User Database"</p>
+</div>
+<div class="paragraph">
+<p>@enduml
+The Users Service container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Exposes REST endpoints (e.g., /createuser).</p>
+</li>
+<li>
+<p>Implements business logic for user registration.</p>
+</li>
+<li>
+<p>Contains a persistence layer responsible for storing user data.</p>
+</li>
+<li>
+<p>Connects to an external database container.</p>
+</li>
+<li>
+<p>Ensures separation between API layer, business logic, and data access.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_gamey_container">7.2.3. <em>&lt;Gamey Container&gt;</em></h4>
+<div class="paragraph">
+<p>@startuml
+node "Gamey Container" {
+  component "Web API"
+  component "Game Core"
+  component "Bot Engine"
+  component "Notation Module"
+}</p>
+</div>
+<div class="paragraph">
+<p>"Web API" -&#8594; "Game Core"
+"Game Core" -&#8594; "Bot Engine"
+"Game Core" -&#8594; "Notation Module"</p>
+</div>
+<div class="paragraph">
+<p>@enduml</p>
+</div>
+<div class="paragraph">
+<p>The Gamey container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Hosts the Rust-based game engine.</p>
+</li>
+<li>
+<p>Encapsulates all core game logic.</p>
+</li>
+<li>
+<p>Provides bot functionality.</p>
+</li>
+<li>
+<p>Exposes a Web API for interaction with the frontend.</p>
+</li>
+<li>
+<p>Does not directly depend on the user database.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Gamey remains logically independent from user management.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_database_container">7.2.4. <em>&lt;Database Container&gt;</em></h4>
+<div class="paragraph">
+<p>@startuml
+node "Database Container" {
+  database "User Database"
+}</p>
+</div>
+<div class="paragraph">
+<p>@enduml</p>
+</div>
+<div class="paragraph">
+<p>The database container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Stores user registration data persistently.</p>
+</li>
+<li>
+<p>Is accessed exclusively by the Users Service.</p>
+</li>
+<li>
+<p>Is not directly exposed to the frontend or Gamey.</p>
+</li>
+<li>
+<p>Ensures data durability and separation of concerns.</p>
+</li>
+</ul>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -1536,25 +2281,148 @@ on this list.</p>
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_concept_1">8.1. <em>&lt;Concept 1&gt;</em></h3>
 <div class="paragraph">
-<p><em>&lt;explanation&gt;</em></p>
-</div>
+<p>This section describes the fundamental concepts, architectural principles, and technical decisions that apply across multiple components of the system.
+These concepts ensure architectural consistency, reduce complexity, and support the system’s long-term evolution.</p>
 </div>
 <div class="sect2">
-<h3 id="_concept_2">8.2. <em>&lt;Concept 2&gt;</em></h3>
+<h3 id="_domain_concepts">8.1. <em>&lt;Domain Concepts&gt;</em></h3>
 <div class="paragraph">
-<p><em>&lt;explanation&gt;</em></p>
+<p>The domain of the system is centered around user management and Game Y execution.</p>
 </div>
 <div class="paragraph">
-<p>&#8230;&#8203;</p>
+<p>Key domain concepts include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>User: A registered client of the system.</p>
+</li>
+<li>
+<p>Game: A Game Y match, either active or completed.</p>
+</li>
+<li>
+<p>Player: An entity participating in a game (human or automated).</p>
+</li>
+<li>
+<p>Bot: An automated player controlled by the game engine.</p>
+</li>
+<li>
+<p>Move / Action: A single action performed during gameplay.</p>
+</li>
+<li>
+<p>Game State: The current state of a game.</p>
+</li>
+<li>
+<p>User Profile: Persisted information associated with a user.</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_concept_n">8.3. <em>&lt;Concept n&gt;</em></h3>
+<h3 id="_architecture_and_design_patterns">8.2. <em>&lt;Architecture and Design Patterns&gt;</em></h3>
 <div class="paragraph">
-<p><em>&lt;explanation&gt;</em></p>
+<p>The system follows a service-oriented and layered architecture, applying the following principles:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Client–Server Architecture
+The web application acts as a client, while backend services act as servers.</p>
+</li>
+<li>
+<p>Separation of Concerns
+Each component has a clearly defined responsibility:</p>
+</li>
+<li>
+<p>Webapp: User interaction and presentation</p>
+</li>
+<li>
+<p>Users Service: User management and persistence</p>
+</li>
+<li>
+<p>Gamey: Game logic and bot execution</p>
+</li>
+<li>
+<p>API-first Design
+All communication between components is performed through HTTP-based APIs.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This approach ensures loose coupling and enables independent evolution of components.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_security_concepts">8.3. <em>&lt;Security Concepts&gt;</em></h3>
+<div class="paragraph">
+<p>The system implements basic security concepts, appropriate for a development or educational environment:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>No authentication or authorization mechanisms are currently enforced.</p>
+</li>
+<li>
+<p>No sensitive credentials are stored.</p>
+</li>
+<li>
+<p>Database access is restricted to the Users Service.</p>
+</li>
+<li>
+<p>Services communicate within a trusted internal network.</p>
+</li>
+<li>
+<p>Security considerations are intentionally simplified to keep the architectural focus on modularity and clarity.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_development_concepts">8.4. <em>&lt;Development Concepts&gt;</em></h3>
+<div class="paragraph">
+<p>Development follows these principles:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Each service can be built, tested, and run independently.</p>
+</li>
+<li>
+<p>Clear interface contracts define inter-service communication.</p>
+</li>
+<li>
+<p>Technology choices are isolated per component.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This enables parallel development and easier maintenance.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_operational_concepts">8.5. <em>&lt;Operational Concepts&gt;</em></h3>
+<div class="paragraph">
+<p>From an operational perspective:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The system is primarily designed for local and development environments.</p>
+</li>
+<li>
+<p>Services are started and stopped as a group.</p>
+</li>
+<li>
+<p>Logs are written to standard output.</p>
+</li>
+<li>
+<p>No monitoring or automated scaling is currently implemented.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The operational model favors simplicity and transparency over production-level optimization.</p>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -1607,6 +2475,466 @@ There you will find links and examples about ADR.</p>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>Architecture Decisions</p>
+</div>
+<div class="paragraph">
+<p>This section documents the most relevant architectural decisions made during the design of the system.
+Each decision includes context, alternatives, rationale, and consequences to ensure traceability and transparency.</p>
+</div>
+<div class="paragraph">
+<p>ADR-01: Adoption of a Service-Oriented Architecture</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Status</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Accepted</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Context</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The system consists of three main functional areas:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>User interface (Webapp)</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>User management</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Game engine logic</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>These areas could be implemented either as a single monolithic application or as independent services.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Decision</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The system is implemented as a set of loosely coupled services, each running independently and communicating via HTTP APIs.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Alternatives Considered</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Monolithic architecture</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Service-oriented (multi-container) architecture</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Rationale</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The service-oriented approach was selected because:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It enforces clear separation of concerns.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It allows independent development and testing.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It aligns with container-based deployment.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It improves maintainability and scalability.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Consequences</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Positive:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Independent evolution of components.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Clear API contracts.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Better modularity.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Negative:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Increased deployment complexity.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Network communication overhead.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>ADR-02: Use of Container-Based Deployment</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Status</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Accepted</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Context</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The system needs to be executable in development environments and easily portable across machines.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Decision</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>All services are deployed using containerization and orchestrated together.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Alternatives Considered</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Native execution on host machine</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Containerized execution</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Rationale</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Containerization ensures:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Environment consistency.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Dependency isolation.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Simplified onboarding.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Infrastructure reproducibility.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Consequences</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Positive:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Predictable deployments.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Technology independence per service.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Negative:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Slight overhead compared to native execution.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>ADR-03: Introduction of a Dedicated Persistence Layer for Users</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Status</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Accepted</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Context</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>To support real user management, persistent storage is required.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Decision</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>A dedicated database component is introduced for storing user data.
+The database is accessed exclusively through a persistence layer inside the Users Service.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Alternatives Considered</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>In-memory user storage</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>File-based storage</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Rationale</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>A database-based solution was chosen because:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It provides durability and consistency.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It enables long-term user management.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It allows future extension (authentication, statistics, etc.).</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>It enforces architectural separation between services.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Consequences</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Positive:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Persistent user data.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Improved scalability.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Clear data ownership (Users Service).</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Negative:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Additional infrastructure component.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Need for connection management and data modeling.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>ADR-04: Separation of Game Logic from User Management</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Status</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Accepted</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Context</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The system includes both user registration and game execution logic.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Decision</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>T   he Gamey engine remains fully independent from user persistence and user management.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Rationale</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Ensures single responsibility per service.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Allows the game engine to be reused in other contexts.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Prevents unnecessary coupling between domain areas.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Consequences</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Positive:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Clear domain boundaries.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Higher reusability.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Easier testing.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Negative:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Requires API coordination between services.</pre>
+</div>
+</div>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
@@ -1637,6 +2965,9 @@ concrete and measurable.</p>
 </div>
 <div class="sect2">
 <h3 id="_quality_tree">10.1. Quality Tree</h3>
+<div class="paragraph">
+<p><span class="image"><img src="./images/10-docs-Quality-tree.png" alt="Quality Tree"></span></p>
+</div>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -1669,6 +3000,54 @@ concrete and measurable.</p>
 </div>
 <div class="sect2">
 <h3 id="_quality_scenarios">10.2. Quality Scenarios</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Priority</th>
+<th class="tableblock halign-left valign-top">Quality Requirement</th>
+<th class="tableblock halign-left valign-top">Scenario</th>
+<th class="tableblock halign-left valign-top">System Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Usability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A user opens the game and wants to play.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The interface should be intuitive, the rules clear and the user should be able to understand how to play.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Performance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Multiple players plays simultaneously.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game updates all moves and displays changes within 1 second.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reliability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A network hiccup occurs during a match.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game state is preserved, players can continue without losing progress.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Maintainability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Developers add a new feature.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The new feature integrates smoothly without affecting existing gameplay.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Availability</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The system needs to handle more concurrent users.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The game continues to run with a minimal decrease in latency.</p></td>
+</tr>
+</tbody>
+</table>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -1714,6 +3093,12 @@ more precisely down to a level of scenarios that can be discussed and evaluated.
 <div class="sect1">
 <h2 id="section-technical-risks">11. Risks and Technical Debts</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Identifying and recording technical risks and debts at an early stage is essential for the project&#8217;s success.
+By identifying potential issues ahead of time, the team can take appropriate measures to minimize their impact.
+Prioritizing these risks ensures that the most critical ones are addressed first, allowing for better planning
+and a more stable and maintainable architecture.</p>
+</div>
 <div class="sidebarblock arc42help">
 <div class="content">
 <div class="paragraph">
@@ -1737,7 +3122,79 @@ more precisely down to a level of scenarios that can be discussed and evaluated.
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_technical_risks">11.1. Technical Risks</h3>
+<div class="paragraph">
+<p>This table lists the main technical risks for our online board game project, including both team-related and system-related risks, ordered by priority.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Priority</th>
+<th class="tableblock halign-left valign-top">Risk</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">High</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Team members abandoning the project</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One or more team members leave the project in the middle of development, increasing workload for remaining members.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Ensure code is well documented and modular, redistribute tasks, and maintain clear progress tracking.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">High</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Poor or limited communication within the team</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Misunderstandings and delays occur due to a lack of communication between team members.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hold regular meetings with clear minutes; use task boards and messaging tools to achieve constant communication.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">High</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Limited experience with large-scale projects</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The team has little prior experience working on projects from scratch or with multiple contributors.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Conduct research, review best practices, and define clear development workflows and responsibilities.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Medium</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Limited experience with Rust</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The project uses Rust, which is new to the team members, potentially causing delays or inefficient code.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Each team member should independently study Rust and experiment with small prototypes to build competence.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Medium</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lack of experience with Docker</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Docker is used for deployment and development environments, but the team is not familiar with it.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set up step-by-step guides and practice building containers.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Medium</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Database performance or schema issues</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">As users increase, the database may slow down or be difficult to scale due to initial design choices.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Optimize queries, define indexes, and design the schema for future scalability.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Medium</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Third-party API failures</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Some game functionalities rely on external APIs, which may become unavailable.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Implement caching, evaluate fallback APIs, and provide error handling to minimize disruption.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Low</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">High concurrent usage</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Many players using the system simultaneously may degrade performance or affect game state consistency.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Conduct load testing, use caching, and optimize backend services.</p></td>
+</tr>
+</tbody>
+</table>
 <div style="page-break-after: always;"></div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1792,12 +3249,40 @@ more precisely down to a level of scenarios that can be discussed and evaluated.
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Term-1&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;definition-1&gt;</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>JavaScript</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>A dynamic, high-level programming language frequently utilized for client-side and interactive web development</em></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;Term-2&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;definition-2&gt;</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Front-end</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>The part of a web application that interacts with the user, usually involving the user interface and client-side logic.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Back-end</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>The part of a web application that runs on the server, handling data storage, business logic, and interaction with the front-end.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Rust</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>A modern programming language focused on safety, performance, and concurrency.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Node.js</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>A JavaScript runtime built on Chrome&#8217;s V8 engine that allows executing JavaScript on the server-side.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Docker</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>An open-source platform that automates the deployment, scaling, and management of applications using containerization.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Framework</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>A reusable set of libraries or tools that provides a structured environment to develop software applications efficiently.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>API</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>API refers to Application Programming Interface. It is a set of rules and protocols that allows software applications to communicate with each other.</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>React</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>A JavaScript library for building interactive user interfaces, particularly single-page applications.</em></p></td>
 </tr>
 </tbody>
 </table>
@@ -1807,7 +3292,7 @@ more precisely down to a level of scenarios that can be discussed and evaluated.
 <div id="footer">
 <div id="footer-text">
 Version 8.2 EN<br>
-Last updated 2026-01-26 17:11:35 +0100
+Last updated 2026-02-16 18:50:23 +0100
 </div>
 </div>
 </body>
