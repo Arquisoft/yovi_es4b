@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "scripts": {
     "build": "shx rm -rf build && asciidoctor -D build -a imagesdir=./images -r asciidoctor-diagram index.adoc && shx cp -R images build",
-    "predeploy": "shx touch build/.nojekyll",
     "deploy": "gh-pages -d build"
   },
   "dependencies": {
