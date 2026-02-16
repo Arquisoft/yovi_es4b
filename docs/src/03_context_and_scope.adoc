@@ -42,7 +42,7 @@ Gamey --> DB : Save games\nQuery statistics
 @enduml
 ----
 
-==== Elements Description
+=== Elements Description
 * **Player**: The end-user who interacts with the system through a web browser to play games and view statistics.
 * **Administrator**: Responsible for managing users and monitoring the system.
 * **Bot**: An automated agent that can interact with the game engine to play games and view user stats.

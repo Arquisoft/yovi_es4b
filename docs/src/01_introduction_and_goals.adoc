@@ -77,7 +77,7 @@ endif::arc42help[]
 2|Usability|The game should have an intuitive and user-friendly interface that allows players to easily navigate through menus, understand game mechanics, and enjoy a seamless gaming experience.|
 3|Performance|The game should run smoothly with minimal latency, especially in online multiplayer mode, to ensure a responsive and enjoyable gaming experience for all players.|
 4|Compatibility|The game should be compatible with any type of device that has a web browser, including desktops, laptops, tablets, and smartphones, to reach a wide audience of players.|
-5|Security|The game should implement robust security measures to protect user data and prevent unauthorized access, especially in the context of user accounts and online multiplayer interactions.|
+5|Security|The game should implement robust security measures to protect user data and prevent unauthorized access, especially in the context of user accounts and online multiplayer interactions.
 |===
 
 ifdef::arc42help[]
