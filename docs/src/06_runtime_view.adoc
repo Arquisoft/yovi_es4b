@@ -39,29 +39,44 @@ See https://docs.arc42.org/section-6/[Runtime View] in the arc42 documentation.
 ****
 endif::arc42help[]
 
-=== <Runtime Scenario 1>
+=== Login
 
-
-* _<insert runtime diagram or textual description of the scenario>_
-* _<insert description of the notable aspects of the interactions between the
-building block instances depicted in this diagram.>_
-
-It is possible to use a sequence diagram:
-
-[plantuml,"Sequence diagram",png]
+[plantuml,"runtime-login",png]
 ----
-actor Alice
-actor Bob
-database Pod as "Bob's Pod"
-Alice -> Bob: Authentication Request
-Bob --> Alice: Authentication Response
-Alice  --> Pod: Store route
-Alice -> Bob: Another authentication Request
-Alice <-- Bob: another authentication Response
+actor Usuario
+participant WebApp
+participant User
+database BBDD
+
+Usuario -> WebApp: Introduce credenciales
+WebApp -> User: POST /login
+User -> BBDD: Validar usuario y password
+BBDD --> User: Resultado autenticacion
+User --> WebApp: Respuesta login
+WebApp --> Usuario: Acceso concedido o mensaje de error
 ----
 
-=== <Runtime Scenario 2>
+* Escenario de autenticacion de usuario.
+* `WebApp` se comunica directamente con `User` para autenticar.
+* `User` usa `BBDD` para comprobar los datos del usuario.
 
-=== ...
+=== Jugar partida
 
-=== <Runtime Scenario n>
+[plantuml,"runtime-play-game",png]
+----
+actor Usuario
+participant WebApp
+participant Gamey
+database BBDD
+
+Usuario -> WebApp: Inicia o continua partida
+WebApp -> Gamey: POST /game/action
+Gamey -> BBDD: Leer/guardar estado de partida
+BBDD --> Gamey: Estado actualizado
+Gamey --> WebApp: Estado de partida
+WebApp --> Usuario: Tablero actualizado
+----
+
+* Escenario principal de ejecucion de juego.
+* `Gamey` encapsula la logica de partida.
+* El estado de la partida se persiste en `BBDD`.
