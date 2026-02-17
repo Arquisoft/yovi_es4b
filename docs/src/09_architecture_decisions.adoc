@@ -3,231 +3,149 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-design-decisions]]
 == Architecture Decisions
 
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-Important, expensive, large scale or risky architecture decisions including rationales.
-With "decisions" we mean selecting one alternative based on given criteria.
-
-Please use your judgement to decide whether an architectural decision should be documented
-here in this central section or whether you better document it locally
-(e.g. within the white box template of one building block).
-
-Avoid redundancy. 
-Refer to section 4, where you already captured the most important decisions of your architecture.
-
-.Motivation
-Stakeholders of your system should be able to comprehend and retrace your decisions.
-
-.Form
-Various options:
-
-* ADR (https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions[Documenting Architecture Decisions]) for every important decision
-* List or table, ordered by importance and consequences or:
-* more detailed in form of separate sections per decision
-
-.Further Information
-
-See https://docs.arc42.org/section-9/[Architecture Decisions] in the arc42 documentation.
-There you will find links and examples about ADR.
-
-****
-endif::arc42help[]
-
-Architecture Decisions
-
 This section documents the most relevant architectural decisions made during the design of the system.
 Each decision includes context, alternatives, rationale, and consequences to ensure traceability and transparency.
 
-ADR-01: Adoption of a Service-Oriented Architecture
+=== ADR-01: Adoption of a Service-Oriented Architecture
 
-    Status
+Status:: Accepted
 
-        Accepted
+Context::
+The system consists of three main functional areas:
 
-    Context
+* User interface (Webapp)
+* User management
+* Game engine logic
 
-        The system consists of three main functional areas:
+These areas could be implemented either as a single monolithic application or as independent services.
 
-            User interface (Webapp)
+Decision::
+The system is implemented as a set of loosely coupled services, each running independently and communicating via HTTP APIs.
 
-            User management
+Alternatives Considered::
 
-            Game engine logic
+* Monolithic architecture
+* Service-oriented (multi-container) architecture
 
-            These areas could be implemented either as a single monolithic application or as independent services.
+Rationale::
+The service-oriented approach was selected because:
 
-    Decision
+* It enforces clear separation of concerns
+* It allows independent development and testing
+* It aligns with container-based deployment
+* It improves maintainability and scalability
 
-        The system is implemented as a set of loosely coupled services, each running independently and communicating via HTTP APIs.
+Consequences::
 
-    Alternatives Considered
+Positive:
 
-        Monolithic architecture
+* Independent evolution of components
+* Clear API contracts
+* Better modularity
 
-        Service-oriented (multi-container) architecture
+Negative:
 
-    Rationale
+* Increased deployment complexity
+* Network communication overhead
 
-        The service-oriented approach was selected because:
 
-            It enforces clear separation of concerns.
+=== ADR-02: Use of Container-Based Deployment
 
-            It allows independent development and testing.
+Status:: Accepted
 
-            It aligns with container-based deployment.
+Context::
+The system needs to be executable in development environments and easily portable across machines.
 
-            It improves maintainability and scalability.
+Decision::
+All services are deployed using containerization and orchestrated together.
 
-    Consequences
+Alternatives Considered::
 
-        Positive:
+* Native execution on host machine
+* Containerized execution
 
-            Independent evolution of components.
+Rationale::
+Containerization ensures:
 
-            Clear API contracts.
+* Environment consistency
+* Dependency isolation
+* Simplified onboarding
+* Infrastructure reproducibility
 
-            Better modularity.
+Consequences::
 
-        Negative:
+Positive:
 
-            Increased deployment complexity.
+* Predictable deployments
+* Technology independence per service
 
-            Network communication overhead.
+Negative:
 
+* Slight overhead compared to native execution
 
 
-ADR-02: Use of Container-Based Deployment
+=== ADR-03: Introduction of a Dedicated Persistence Layer for Users
 
-    Status
+Status:: Accepted
 
-        Accepted
+Context::
+To support real user management, persistent storage is required.
 
-    Context
+Decision::
+A dedicated database component is introduced for storing user data.
+The database is accessed exclusively through a persistence layer inside the Users Service.
 
-        The system needs to be executable in development environments and easily portable across machines.
+Alternatives Considered::
 
-    Decision
+* In-memory user storage
+* File-based storage
 
-        All services are deployed using containerization and orchestrated together.
+Rationale::
+A database-based solution was chosen because:
 
-        Alternatives Considered
+* It provides durability and consistency
+* It enables long-term user management
+* It allows future extension (authentication, statistics, etc.)
+* It enforces architectural separation between services
 
-        Native execution on host machine
+Consequences::
 
-        Containerized execution
+Positive:
 
-    Rationale
+* Persistent user data
+* Improved scalability
+* Clear data ownership (Users Service)
 
-        Containerization ensures:
+Negative:
 
-            Environment consistency.
+* Additional infrastructure component
+* Need for connection management and data modeling
 
-            Dependency isolation.
 
-            Simplified onboarding.
+=== ADR-04: Separation of Game Logic from User Management
 
-            Infrastructure reproducibility.
+Status:: Accepted
 
-    Consequences
+Context::
+The system includes both user registration and game execution logic.
 
-        Positive:
+Decision::
+The Gamey engine remains fully independent from user persistence and user management.
 
-            Predictable deployments.
+Rationale::
 
-            Technology independence per service.
+* Ensures single responsibility per service
+* Allows the game engine to be reused in other contexts
+* Prevents unnecessary coupling between domain areas
 
-        Negative:
+Consequences::
 
-            Slight overhead compared to native execution.
+Positive:
 
+* Clear domain boundaries
+* Higher reusability
+* Easier testing
 
+Negative:
 
-ADR-03: Introduction of a Dedicated Persistence Layer for Users
-
-    Status
-
-        Accepted
-
-    Context
-
-        To support real user management, persistent storage is required.
-
-    Decision
-
-        A dedicated database component is introduced for storing user data.
-        The database is accessed exclusively through a persistence layer inside the Users Service.
-
-    Alternatives Considered
-
-        In-memory user storage
-
-        File-based storage
-
-    Rationale
-
-        A database-based solution was chosen because:
-
-        It provides durability and consistency.
-
-        It enables long-term user management.
-
-        It allows future extension (authentication, statistics, etc.).
-
-        It enforces architectural separation between services.
-
-
-    Consequences
-
-        Positive:
-
-            Persistent user data.
-
-            Improved scalability.
-
-            Clear data ownership (Users Service).
-
-        Negative:
-
-            Additional infrastructure component.
-
-            Need for connection management and data modeling.
-
-
-ADR-04: Separation of Game Logic from User Management
-
-    Status
-
-        Accepted
-
-    Context
-
-        The system includes both user registration and game execution logic.
-
-    Decision
-
-    T   he Gamey engine remains fully independent from user persistence and user management.
-
-    Rationale
-
-        Ensures single responsibility per service.
-
-        Allows the game engine to be reused in other contexts.
-
-        Prevents unnecessary coupling between domain areas.
-
-    Consequences
-
-        Positive:
-
-            Clear domain boundaries.
-
-            Higher reusability.
-
-            Easier testing.
-
-        Negative:
-
-            Requires API coordination between services.
+* Requires API coordination between services
