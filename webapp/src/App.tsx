@@ -1,6 +1,5 @@
 import './App.css';
 import { useEffect, useState } from 'react';
-import type { GameMode } from './gameyApi';
 import { useGamey } from './useGamey';
 import LoginView from './views/LoginView';
 import ConfigView from './views/ConfigView';
