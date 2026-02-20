@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GameMode } from '../gameyApi';
+import { Box, Paper, TextField, MenuItem, Button, Typography } from '@mui/material';
 
 type Props = {
   boardSize: number;
@@ -21,44 +22,48 @@ const ConfigView: React.FC<Props> = ({
   onBack,
 }) => {
   return (
-    <div className="app">
-      <h2>Configurar nueva partida</h2>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', width: '100%' }}>
+      <Typography variant="h5">Configurar nueva partida</Typography>
 
-      <section className="panel">
-        <div className="controls">
-          <label htmlFor="size-input">Tamaño</label>
-          <input
+      <Paper sx={{ p: 3, width: '100%', maxWidth: 640 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <TextField
             id="size-input"
+            label="Tamaño"
             type="number"
-            min={1}
             value={boardSize}
             onChange={(event) => {
               const next = Number.parseInt(event.target.value, 10);
               updateBoardSize(Number.isNaN(next) ? 1 : next);
             }}
+            size="small"
+            variant="filled"
           />
 
-          <label htmlFor="mode-select">Modo</label>
-          <select
+          <TextField
             id="mode-select"
+            select
+            label="Modo"
             value={mode}
             onChange={(event) => setMode(event.target.value as GameMode)}
+            size="small"
+            variant="filled"
           >
-            <option value="human_vs_bot">Human vs Bot</option>
-            <option value="human_vs_human">Human vs Human</option>
-          </select>
+            <MenuItem value="human_vs_bot">Human vs Bot</MenuItem>
+            <MenuItem value="human_vs_human">Human vs Human</MenuItem>
+          </TextField>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button type="button" onClick={createNewGame} disabled={loading}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="contained" onClick={createNewGame} disabled={loading}>
               {loading ? 'Cargando...' : 'Crear partida'}
-            </button>
-            <button type="button" onClick={onBack}>
+            </Button>
+            <Button variant="outlined" onClick={onBack}>
               Volver
-            </button>
-          </div>
-        </div>
-      </section>
-    </div>
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 };
 

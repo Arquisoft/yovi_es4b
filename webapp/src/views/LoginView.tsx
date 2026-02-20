@@ -1,5 +1,6 @@
 import React from 'react';
 import RegisterForm from '../RegisterForm';
+import { Box, Typography, Paper, Button } from '@mui/material';
 
 type Props = {
   onNext: () => void;
@@ -7,17 +8,18 @@ type Props = {
 
 const LoginView: React.FC<Props> = ({ onNext }) => {
   return (
-    <div className="app">
-      <h2>Registro / Login</h2>
-      <section className="panel">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', width: '100%' }}>
+      <Typography variant="h5">Registro / Login</Typography>
+
+      <Paper sx={{ p: 3, width: '100%', maxWidth: 520 }}>
         <RegisterForm />
-        <div style={{ marginTop: 12 }}>
-          <button type="button" onClick={onNext} className="submit-button">
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+          <Button variant="outlined" onClick={onNext}>
             Continuar
-          </button>
-        </div>
-      </section>
-    </div>
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 };
 
