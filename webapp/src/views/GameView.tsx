@@ -1,6 +1,7 @@
 import React from 'react';
 import { cellClassName } from '../gameyUi';
 import { Box, Typography, Button, Paper } from '@mui/material';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
 type Props = {
   game: any | null;
@@ -29,6 +30,8 @@ const GameView: React.FC<Props> = ({
 }) => {
   if (!game) return <div>No hay partida activa.</div>;
 
+  const humanSymbol = game.yen?.players?.[0] ?? null;
+
   return (
     <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
       <Typography variant="h5">Partida {game.game_id}</Typography>
@@ -49,18 +52,24 @@ const GameView: React.FC<Props> = ({
             >
               {row.map((cell: any) => {
                 const isEmpty = cell.symbol === '.';
-                const color = cell.symbol === 'B' ? 'primary' : cell.symbol === 'R' ? 'error' : undefined;
+                let color: any = undefined;
+                if (!isEmpty) {
+                  // color green for cells owned by the local player (player 0), red for opponent
+                  color = cell.symbol === humanSymbol ? 'success' : 'error';
+                }
+
                 return (
                   <Button
                     key={cell.key}
                     variant={isEmpty ? 'outlined' : 'contained'}
-                    color={color as any}
-                    disabled={!isEmpty || !canPlayCell || loading}
-                    onClick={() => void playCell(cell.coords)}
-                    sx={{ minWidth: cellSize, minHeight: cellSize, borderRadius: 1 }}
+                    color={color}
+                    // only disable empty cells when the player cannot play or loading
+                    disabled={isEmpty ? (!canPlayCell || loading) : false}
+                    onClick={isEmpty ? () => void playCell(cell.coords) : undefined}
+                    sx={{ minWidth: cellSize, minHeight: cellSize, borderRadius: 1, p: 0 }}
                     title={`${cell.coords.x},${cell.coords.y},${cell.coords.z}`}
                   >
-                    {isEmpty ? '.' : cell.symbol}
+                    {isEmpty ? null : <FiberManualRecordIcon fontSize="small" />}
                   </Button>
                 );
               })}
