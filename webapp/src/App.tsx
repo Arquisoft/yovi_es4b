@@ -32,7 +32,7 @@ function App() {
   return (
     <div className="app">
       <h1>GameY Web</h1>
-      <p className="subtitle">Crear partida y jugar desde el navegador</p>
+      <br></br>
 
       {error && <p className="error-text">{error}</p>}
 
