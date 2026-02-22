@@ -30,7 +30,7 @@ pub use choose::MoveResponse;
 pub use error::ErrorResponse;
 pub use version::*;
 
-use crate::{GameYError, RandomBot, YBotRegistry};
+use crate::{GameYError, RandomBot, BiasedRandomBot, YBotRegistry};
 use self::state::AppState;
 
 /// Creates the Axum router with the given state.
@@ -60,7 +60,9 @@ pub fn create_router(state: AppState) -> axum::Router {
 ///
 /// The default state includes the `RandomBot` which selects moves randomly.
 pub fn create_default_state() -> AppState {
-    let bots = YBotRegistry::new().with_bot(Arc::new(RandomBot));
+    let bots = YBotRegistry::new()
+        .with_bot(Arc::new(RandomBot))
+        .with_bot(Arc::new(BiasedRandomBot));
     AppState::new(bots)
 }
 
