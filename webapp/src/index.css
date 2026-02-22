@@ -18,6 +18,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+
+  /* small helpers to center content before MUI mounts */
+  #root { display: flex; justify-content: center; }
 }
 
 h1 {
