@@ -54,12 +54,12 @@ const RegisterForm: React.FC = () => {
         size="small"
       />
 
-      <Button type="submit" variant="contained" color="primary" disabled={loading}>
+      <Button className="submit-button" type="submit" variant="contained" color="primary" disabled={loading}>
         {loading ? 'Entering...' : 'Lets go!'}
       </Button>
 
-      {responseMessage && <Alert severity="success">{responseMessage}</Alert>}
-      {error && <Alert severity="error">{error}</Alert>}
+      {responseMessage && <Alert className="success-message" severity="success">{responseMessage}</Alert>}
+      {error && <Alert className="error-message" severity="error">{error}</Alert>}
     </Box>
   );
 };
