@@ -1,24 +1,28 @@
 services:
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    image: ghcr.io/arquisoft/yovi_es4b-gateway:latest
+    ports:
+      - "80:8080"
+    depends_on:
+      - webapp
+      - users
+      - gamey
+    networks:
+      - monitor-net
+
   users:
     build: ./users
     container_name: users
     image: ghcr.io/arquisoft/yovi_es4b-users:latest
-    ports:
-      - "3000:3000"
     networks:
       - monitor-net
 
   webapp:
-    build:
-      context: ./webapp
-      args:
-        - VITE_API_URL=http://localhost:3000
+    build: ./webapp
     container_name: webapp
     image: ghcr.io/arquisoft/yovi_es4b-webapp:latest
-    ports:
-      - "80:80"
-    depends_on:
-      - users
     networks:
       - monitor-net
 
@@ -26,8 +30,6 @@ services:
     build: ./gamey
     container_name: gamey
     image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
-    ports:
-      - "4000:4000"
     networks:
       - monitor-net
 
