@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Box, TextField, Button, Alert } from '@mui/material';
 
 const RegisterForm: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -20,11 +21,12 @@ const RegisterForm: React.FC = () => {
     try {
       const USERS_API_URL = import.meta.env.VITE_USERS_API_URL ?? '/users';
       const res = await fetch(`${USERS_API_URL}/createuser`, {
+
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ username }),
       });
 
       const data = await res.json();
@@ -42,33 +44,23 @@ const RegisterForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="register-form">
-      <div className="form-group">
-        <label htmlFor="username">Whats your name?</label>
-        <input
-          type="text"
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="form-input"
-        />
-      </div>
-      <button type="submit" className="submit-button" disabled={loading}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 360 }}>
+      <TextField
+        id="username"
+        label="Whats your name?"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        variant="filled"
+        size="small"
+      />
+
+      <Button type="submit" variant="contained" color="primary" disabled={loading}>
         {loading ? 'Entering...' : 'Lets go!'}
-      </button>
+      </Button>
 
-      {responseMessage && (
-        <div className="success-message" style={{ marginTop: 12, color: 'green' }}>
-          {responseMessage}
-        </div>
-      )}
-
-      {error && (
-        <div className="error-message" style={{ marginTop: 12, color: 'red' }}>
-          {error}
-        </div>
-      )}
-    </form>
+      {responseMessage && <Alert severity="success">{responseMessage}</Alert>}
+      {error && <Alert severity="error">{error}</Alert>}
+    </Box>
   );
 };
 
