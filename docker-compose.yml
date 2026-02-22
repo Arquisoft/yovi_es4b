@@ -1,4 +1,29 @@
 services:
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - monitor-net
+
+  stats:
+    build: ./stats
+    container_name: stats
+    image: ghcr.io/arquisoft/yovi_es4b-stats:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - MONGO_DB_NAME=yovi_stats
+      - STATS_INTERNAL_TOKEN=stats-internal-token
+    depends_on:
+      - mongo
+    networks:
+      - monitor-net
+
   users:
     build: ./users
     container_name: users
@@ -54,3 +79,6 @@ services:
 networks:
   monitor-net:
     driver: bridge
+
+volumes:
+  mongo-data:
