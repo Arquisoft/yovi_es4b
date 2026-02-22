@@ -149,3 +149,105 @@ Positive:
 Negative:
 
 * Requires API coordination between services
+
+
+=== ADR-05: Technology Choices for Services
+
+Status:: Accepted
+
+Context::
+The system requires different technologies for frontend, backend services, and game engine to optimize for performance, development speed, and maintainability.
+
+Decision::
+- Frontend: React with TypeScript and Vite for modern, fast web development.
+- User Service: Node.js with Express for lightweight, JavaScript-based API.
+- Game Engine: Rust for high-performance, safe game logic and bot implementation.
+
+Alternatives Considered::
+
+* Use a single technology stack (e.g., all JavaScript/Node.js)
+* Use compiled languages for all services
+
+Rationale::
+Technology choices are based on suitability for each component:
+- React provides a rich ecosystem for UI development.
+- Node.js allows rapid prototyping and aligns with JavaScript expertise.
+- Rust ensures memory safety and performance for game computations.
+
+Consequences::
+
+Positive:
+
+* Optimized performance per component
+* Leverage best tools for each task
+* Improved developer productivity
+
+Negative:
+
+* Polyglot development increases complexity
+* Requires multiple build tools and deployment processes
+
+
+=== ADR-06: RESTful API Design
+
+Status:: Accepted
+
+Context::
+Services need to communicate reliably and scalably.
+
+Decision::
+All inter-service communication uses RESTful HTTP APIs with JSON payloads.
+
+Alternatives Considered::
+
+* GraphQL
+* Message queues (e.g., RabbitMQ)
+* Direct function calls
+
+Rationale::
+REST is simple, widely supported, and sufficient for the system's needs. It allows easy testing and integration.
+
+Consequences::
+
+Positive:
+
+* Standard and familiar
+* Easy to debug and monitor
+* Stateless communication
+
+Negative:
+
+* Potential over-fetching/under-fetching compared to GraphQL
+* HTTP overhead for frequent calls
+
+
+=== ADR-07: Monitoring with Prometheus and Grafana
+
+Status:: Accepted
+
+Context::
+The system needs observability for performance and reliability in development and potential production.
+
+Decision::
+Integrate Prometheus for metrics collection and Grafana for visualization, with basic dashboards.
+
+Alternatives Considered::
+
+* No monitoring
+* Commercial solutions (e.g., DataDog)
+
+Rationale::
+Open-source tools provide sufficient monitoring without cost. Prometheus integrates well with Node.js services.
+
+Consequences::
+
+Positive:
+
+* Real-time insights into system health
+* Proactive issue detection
+* Educational value for learning observability
+
+Negative:
+
+* Additional infrastructure components
+* Initial setup complexity

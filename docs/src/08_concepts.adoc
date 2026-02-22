@@ -84,6 +84,26 @@ Key domain concepts include:
 
 
 
+=== _<User Experience Concepts>_
+
+
+
+The user experience is designed to be intuitive and responsive, focusing on ease of use for players of varying skill levels.
+
+Key UX concepts include:
+
+ - Single Page Application (SPA): The webapp provides a seamless, client-side experience without page reloads.
+
+ - Responsive Design: The interface adapts to different screen sizes for accessibility on various devices.
+
+ - Real-time Feedback: Users receive immediate responses to actions, such as game moves or registration confirmations.
+
+ - Progressive Enhancement: Core functionality works without JavaScript, with enhancements for modern browsers.
+
+ - Accessibility: Basic support for screen readers and keyboard navigation to ensure inclusivity.
+
+
+
 === _<Architecture and Design Patterns>_
 
 
@@ -98,6 +118,13 @@ The system follows a service-oriented and layered architecture, applying the fol
      - Webapp: User interaction and presentation
 
      - Users Service: User management and persistence
+
+     - Gamey: Game logic and bot execution
+
+ - API-first Design
+    All communication between components is performed through HTTP-based APIs.
+
+This approach ensures loose coupling and enables independent evolution of components.
 
      - Gamey: Game logic and bot execution
 
