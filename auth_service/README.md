@@ -1,24 +1,17 @@
 # AuthService
 
-Microservicio de autenticación con JWT y MongoDB.
+Microservicio de autenticación (Express) que guarda usuarios en MongoDB, hashea contraseñas con bcrypt y emite JWT.
 
-## Características
+Resumen rápido:
+- Endpoints: `POST /register`, `POST /login`, `GET /me` (protegido)
+- Puerto por defecto: `3500`
 
-- Registro de usuarios con bcrypt hash
-- Login con JWT tokens
-- Endpoint protegido `/me` para obtener info del usuario actual
-- Integración con MongoDB
-- Métricas de Prometheus
+Requisitos
+- Node.js para desarrollo local
+- MongoDB para persistencia (puede correr en Docker)
 
-## Instalación local
-
-```bash
-npm install
-```
-
-## Variables de entorno
-
-Ver `.env.example`:
+Variables de entorno
+Ver `auth_service/.env.example`:
 
 ```
 MONGO_URL=mongodb://mongo:27017/auth
@@ -27,68 +20,69 @@ JWT_EXPIRES=1h
 PORT=3500
 ```
 
-## Endpoints
+Instalación y ejecución local (sin Docker)
 
-### POST /register
-Registra un nuevo usuario.
+1. Instala dependencias:
 
-```json
-{
-  "username": "usuario",
-  "password": "contraseña"
-}
+```bash
+cd auth_service
+npm install
 ```
 
-Respuesta (201):
-```json
-{
-  "id": "user_id",
-  "username": "usuario"
-}
-```
+2. Arranca MongoDB localmente (o exporta `MONGO_URL` hacia un Mongo accesible).
 
-### POST /login
-Autentica un usuario y retorna JWT.
-
-```json
-{
-  "username": "usuario",
-  "password": "contraseña"
-}
-```
-
-Respuesta (200):
-```json
-{
-  "token": "eyJhbGc...",
-  "expires_in": "1h"
-}
-```
-
-### GET /me
-Endpoint protegido. Requiere header:
-```
-Authorization: Bearer <token>
-```
-
-Respuesta (200):
-```json
-{
-  "id": "user_id",
-  "username": "usuario"
-}
-```
-
-## Desarrollo
+3. Inicia el servicio en modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-## Docker
+Uso con Docker / docker-compose
+
+Nota importante sobre el `Dockerfile` actual: usa `npm ci --production`. `npm ci` requiere que exista `package-lock.json`. Antes de construir la imagen asegúrate de generar `package-lock.json` ejecutando `npm install` en `auth_service`, o modifica el Dockerfile para usar `npm install` en lugar de `npm ci`.
+
+Para levantar Mongo y el servicio (con rebuild):
 
 ```bash
-docker-compose up auth
+docker-compose up -d --build mongo auth
 ```
 
-El servicio estará disponible en `http://localhost:3500`.
+El servicio quedará expuesto en `http://localhost:3500` (según `docker-compose.yml`).
+
+Endpoints
+
+POST /register
+- Body JSON: `{ "username": "usuario", "password": "contraseña" }`
+- Respuesta 201: `{ "id": "<id>", "username": "usuario" }`
+
+POST /login
+- Body JSON: `{ "username": "usuario", "password": "contraseña" }`
+- Respuesta 200: `{ "token": "<jwt>", "expires_in": "1h" }`
+
+GET /me
+- Requiere header `Authorization: Bearer <token>`
+- Respuesta 200: `{ "id": "<id>", "username": "usuario" }`
+
+Pruebas
+
+Las pruebas incluidas ejercitan los endpoints, pero actualmente asumen que hay acceso a MongoDB (la suite no arranca un Mongo en memoria). Para ejecutar las pruebas:
+
+```bash
+cd auth_service
+npm install
+# Asegúrate de tener Mongo corriendo en MONGO_URL
+npm test
+```
+
+Si prefieres aislamiento, adapta las pruebas para usar `mongodb-memory-server`.
+
+Notas de integración
+- En `docker-compose.yml` se añadió un servicio `auth` y `mongo`. El `gateway` fue configurado para depender de `auth`.
+- Ajusta el frontend para llamar a `http://<auth-host>:3500` o configura el `gateway` para enrutar `/auth`.
+
+Seguridad
+- Las contraseñas se hashean con `bcrypt` (salt rounds: 10)
+- Guarda `JWT_SECRET` en un gestor de secretos en producción
+
+Problemas conocidos
+- El `Dockerfile` usa `npm ci`; si no hay `package-lock.json` la build fallará. Genera `package-lock.json` localmente o cambie el Dockerfile.
