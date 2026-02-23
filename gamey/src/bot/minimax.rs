@@ -68,7 +68,7 @@ impl MinimaxBot {
 
         if maximizing {
             let mut max_eval = f64::NEG_INFINITY;
-            for &cell_index in &available_cells {
+            for &cell_index in available_cells {
                 let coords = Coordinates::from_index(cell_index, board.board_size());
                 let mut new_board = board.clone();
                 if new_board.add_move(crate::Movement::Placement {
@@ -86,7 +86,7 @@ impl MinimaxBot {
             max_eval
         } else {
             let mut min_eval = f64::INFINITY;
-            for &cell_index in &available_cells {
+            for &cell_index in available_cells {
                 let coords = Coordinates::from_index(cell_index, board.board_size());
                 let mut new_board = board.clone();
                 if new_board.add_move(crate::Movement::Placement {
@@ -127,7 +127,7 @@ impl YBot for MinimaxBot {
         let mut best_move = None;
         let mut best_value = f64::NEG_INFINITY;
 
-        for &cell_index in &available_cells {
+        for &cell_index in available_cells {
             let coords = Coordinates::from_index(cell_index, board.board_size());
             let mut new_board = board.clone();
             if new_board.add_move(crate::Movement::Placement {

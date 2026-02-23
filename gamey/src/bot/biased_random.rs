@@ -5,6 +5,7 @@
 //! It combines randomness with basic heuristics for intermediate difficulty.
 
 use crate::{Coordinates, GameY, YBot};
+use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
 
 /// A bot that chooses moves randomly from available cells, but with biases towards strategic positions.
@@ -65,8 +66,8 @@ impl BiasedRandomBot {
 
         // Avoid the very center of the board
         // In barycentric coordinates, the center has x ≈ y ≈ z ≈ board_size/3
-        let max_coord = coords.x.max(coords.y).max(coords.z);
-        let min_coord = coords.x.min(coords.y).min(coords.z);
+        let max_coord = coords.x().max(coords.y()).max(coords.z());
+        let min_coord = coords.x().min(coords.y()).min(coords.z());
 
         // If the cell is very centralized (min and max close together),
         // reduce its weight slightly
@@ -107,7 +108,7 @@ impl YBot for BiasedRandomBot {
         let mut rng = rand::rng();
         let weights: Vec<f64> = weighted_cells.iter().map(|(_, w)| *w).collect();
 
-        let dist = rand::distributions::WeightedIndex::new(&weights)
+        let dist = WeightedIndex::new(&weights)
             .expect("weights should be valid");
         let selected_idx = rng.sample(dist);
 

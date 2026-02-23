@@ -71,7 +71,7 @@ impl YBot for GreedyBot {
         let mut best_move = None;
         let mut best_score = f64::NEG_INFINITY;
 
-        for &cell_index in &available_cells {
+        for &cell_index in available_cells {
             let coords = Coordinates::from_index(cell_index, board.board_size());
 
             // Simulate the move
@@ -96,7 +96,7 @@ impl YBot for GreedyBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{GameY, PlayerId};
+    use crate::GameY;
 
     #[test]
     fn test_greedy_bot_name() {
