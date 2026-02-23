@@ -527,7 +527,7 @@ impl From<&GameY> for YEN {
     }
 }
 
-fn other_player(player: PlayerId) -> PlayerId {
+pub fn other_player(player: PlayerId) -> PlayerId {
     // Assuming two players with IDs 0 and 1
     if player.id() == 0 {
         PlayerId::new(1)
