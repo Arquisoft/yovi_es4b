@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Alert } from '@mui/material';
+import { uiSx } from './theme';
 
 const RegisterForm: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -21,7 +22,6 @@ const RegisterForm: React.FC = () => {
     try {
       const USERS_API_URL = import.meta.env.VITE_USERS_API_URL ?? '/users';
       const res = await fetch(`${USERS_API_URL}/createuser`, {
-
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,14 +44,12 @@ const RegisterForm: React.FC = () => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 360 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={uiSx.formColumn}>
       <TextField
         id="username"
         label="Whats your name?"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        variant="filled"
-        size="small"
       />
 
       <Button type="submit" variant="contained" color="primary" disabled={loading}>

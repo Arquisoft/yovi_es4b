@@ -1,6 +1,7 @@
 import React from 'react';
 import RegisterForm from '../RegisterForm';
 import { Box, Typography, Paper, Button } from '@mui/material';
+import { uiSx } from '../theme';
 
 type Props = {
   onNext: () => void;
@@ -8,12 +9,12 @@ type Props = {
 
 const LoginView: React.FC<Props> = ({ onNext }) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', width: '100%' }}>
+    <Box sx={uiSx.centeredColumn}>
       <Typography variant="h5">Registro / Login</Typography>
 
-      <Paper sx={{ p: 3, width: '100%', maxWidth: 520 }}>
+      <Paper sx={uiSx.panel(520)}>
         <RegisterForm />
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={[uiSx.centeredRow, { mt: 2 }]}>
           <Button variant="outlined" onClick={onNext}>
             Continuar
           </Button>

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GameMode } from '../gameyApi';
 import { Box, Paper, TextField, MenuItem, Button, Typography } from '@mui/material';
+import { uiSx } from '../theme';
 
 type Props = {
   boardSize: number;
@@ -22,22 +23,20 @@ const ConfigView: React.FC<Props> = ({
   onBack,
 }) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', width: '100%' }}>
+    <Box sx={uiSx.centeredColumn}>
       <Typography variant="h5">Configurar nueva partida</Typography>
 
-      <Paper sx={{ p: 3, width: '100%', maxWidth: 640 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Paper sx={uiSx.panel(640)}>
+        <Box sx={uiSx.configRow}>
           <TextField
             id="size-input"
-            label="Tamaño"
+            label="Tamano"
             type="number"
             value={boardSize}
             onChange={(event) => {
               const next = Number.parseInt(event.target.value, 10);
               updateBoardSize(Number.isNaN(next) ? 1 : next);
             }}
-            size="small"
-            variant="filled"
           />
 
           <TextField
@@ -46,14 +45,12 @@ const ConfigView: React.FC<Props> = ({
             label="Modo"
             value={mode}
             onChange={(event) => setMode(event.target.value as GameMode)}
-            size="small"
-            variant="filled"
           >
             <MenuItem value="human_vs_bot">Human vs Bot</MenuItem>
             <MenuItem value="human_vs_human">Human vs Human</MenuItem>
           </TextField>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={uiSx.centeredRow}>
             <Button variant="contained" onClick={createNewGame} disabled={loading}>
               {loading ? 'Cargando...' : 'Crear partida'}
             </Button>

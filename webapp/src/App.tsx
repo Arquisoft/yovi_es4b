@@ -1,9 +1,11 @@
 import './App.css';
 import { useEffect, useState } from 'react';
+import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
 import LoginView from './views/LoginView';
 import ConfigView from './views/ConfigView';
 import GameView from './views/GameView';
+import { uiSx } from './theme';
 
 function App() {
   const {
@@ -30,11 +32,16 @@ function App() {
   }, [game]);
 
   return (
-    <div className="app">
-      <h1>GameY Web</h1>
-      <br></br>
+    <Box sx={uiSx.appRoot}>
+      <Typography variant="h4" sx={uiSx.appTitle}>
+        GameY Web
+      </Typography>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && (
+        <Alert severity="error" sx={uiSx.errorText}>
+          {error}
+        </Alert>
+      )}
 
       {view === 'login' && <LoginView onNext={() => setView('config')} />}
 
@@ -63,7 +70,7 @@ function App() {
           onBack={() => setView('config')}
         />
       )}
-    </div>
+    </Box>
   );
 }
 

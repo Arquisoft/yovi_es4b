@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Button, Paper } from '@mui/material';
 import TriangularBoard from './TriangularBoard';
+import { uiSx } from '../theme';
 
 type Props = {
   game: any | null;
@@ -30,56 +31,28 @@ const GameView: React.FC<Props> = ({
   const humanSymbol = game.yen?.players?.[0] ?? null;
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-        alignItems: 'center',
-      }}
-    >
-      <Typography variant="h5">
-        Partida {game.game_id}
-      </Typography>
+    <Box sx={uiSx.centeredColumn}>
+      <Typography variant="h5">Partida {game.game_id}</Typography>
 
       <Typography variant="body2" color="text.secondary">
         {statusText}
       </Typography>
 
-      <Paper sx={{ p: 2, width: '100%', maxWidth: 760 }}>
-        {/* Botones superiores */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            mb: 2,
-            justifyContent: 'center',
-          }}
-        >
-          <Button
-            variant="outlined"
-            onClick={refreshCurrentGame}
-            disabled={loading}
-          >
+      <Paper sx={uiSx.panel(760)}>
+        <Box sx={[uiSx.centeredRow, { mb: 2 }]}>
+          <Button variant="outlined" onClick={refreshCurrentGame} disabled={loading}>
             Refrescar
           </Button>
 
-          <Button
-            variant="contained"
-            color="error"
-            onClick={resignCurrentGame}
-            disabled={loading || game.game_over}
-          >
+          <Button variant="contained" color="error" onClick={resignCurrentGame} disabled={loading || game.game_over}>
             Rendirse
           </Button>
 
           <Button variant="text" onClick={onBack}>
-            Volver a configuración
+            Volver a configuracion
           </Button>
         </Box>
 
-        {/* NUEVO TABLERO HEXAGONAL */}
         <TriangularBoard
           board={board}
           humanSymbol={humanSymbol}
