@@ -79,7 +79,7 @@ const GameView: React.FC<Props> = ({
           </Button>
         </Box>
 
-        {/* 🔥 NUEVO TABLERO HEXAGONAL */}
+        {/* NUEVO TABLERO HEXAGONAL */}
         <TriangularBoard
           board={board}
           humanSymbol={humanSymbol}
