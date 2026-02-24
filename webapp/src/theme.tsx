@@ -41,11 +41,17 @@ const theme = createTheme({
     MuiButton: {
       defaultProps: {
         disableElevation: true,
+        variant: 'contained',
+        size: 'medium',
       },
       styleOverrides: {
         root: {
           fontWeight: 600,
           textTransform: 'none',
+          minWidth: 148,
+          height: 40,
+          borderRadius: 10,
+          whiteSpace: 'nowrap',
         },
       },
     },
@@ -66,11 +72,30 @@ const theme = createTheme({
 });
 
 export const uiSx = {
+  appShell: {
+    width: '100%',
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+  } satisfies SxProps<Theme>,
+  appHeader: {
+    width: '100%',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+    py: 2,
+    px: 2,
+  } satisfies SxProps<Theme>,
+  appHeaderTitle: {
+    textAlign: 'center',
+    fontWeight: 800,
+    letterSpacing: 1,
+    fontSize: { xs: '1.9rem', sm: '2.3rem' },
+  } satisfies SxProps<Theme>,
   appRoot: {
     width: '100%',
     maxWidth: 920,
     px: 2,
     py: 4,
+    mx: 'auto',
   } satisfies SxProps<Theme>,
   appTitle: {
     mb: 2,
@@ -114,6 +139,35 @@ export const uiSx = {
     flexDirection: 'column',
     alignItems: 'center',
     mt: 2,
+  } satisfies SxProps<Theme>,
+  gameBoardStage: {
+    position: 'relative',
+    width: 'fit-content',
+    mx: 'auto',
+    mt: 1,
+    mb: 3,
+    px: 5.8,
+    pt: 4.4,
+    pb: 3.4,
+    transform: 'translateX(6px)',
+    isolation: 'isolate',
+  } satisfies SxProps<Theme>,
+  gameBoardBase: {
+    position: 'absolute',
+    zIndex: -1,
+    inset: '-4px -8px -1px -7px',
+    clipPath: 'polygon(46% 7%, 54% 7%, 96% 92%, 92% 100%, 7% 100%, 4% 92%)',
+    backgroundColor: 'rgba(7, 26, 42, 0.8)',
+    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)',
+  } satisfies SxProps<Theme>,
+  gameActionsBox: {
+    width: 'fit-content',
+    mx: 'auto',
+    p: 1.5,
+    borderRadius: 2,
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(7, 26, 42, 0.8)',
+    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)',
   } satisfies SxProps<Theme>,
   boardRow: (size: number, rowIndex: number): SxProps<Theme> => ({
     display: 'flex',

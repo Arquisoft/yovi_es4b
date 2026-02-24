@@ -52,7 +52,7 @@ const RegisterForm: React.FC = () => {
         onChange={(e) => setUsername(e.target.value)}
       />
 
-      <Button type="submit" variant="contained" color="primary" disabled={loading}>
+      <Button type="submit" color="primary" disabled={loading}>
         {loading ? 'Entering...' : 'Lets go!'}
       </Button>
 

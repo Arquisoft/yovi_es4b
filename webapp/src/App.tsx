@@ -32,44 +32,48 @@ function App() {
   }, [game]);
 
   return (
-    <Box sx={uiSx.appRoot}>
-      <Typography variant="h4" sx={uiSx.appTitle}>
-        GameY Web
-      </Typography>
+    <Box sx={uiSx.appShell}>
+      <Box sx={uiSx.appHeader}>
+        <Typography component="h1" sx={uiSx.appHeaderTitle}>
+          GAME Y
+        </Typography>
+      </Box>
 
-      {error && (
-        <Alert severity="error" sx={uiSx.errorText}>
-          {error}
-        </Alert>
-      )}
+      <Box sx={uiSx.appRoot}>
+        {error && (
+          <Alert severity="error" sx={uiSx.errorText}>
+            {error}
+          </Alert>
+        )}
 
-      {view === 'login' && <LoginView onNext={() => setView('config')} />}
+        {view === 'login' && <LoginView onNext={() => setView('config')} />}
 
-      {view === 'config' && (
-        <ConfigView
-          boardSize={boardSize}
-          mode={mode}
-          loading={loading}
-          setMode={setMode}
-          updateBoardSize={updateBoardSize}
-          createNewGame={createNewGame}
-          onBack={() => setView('login')}
-        />
-      )}
+        {view === 'config' && (
+          <ConfigView
+            boardSize={boardSize}
+            mode={mode}
+            loading={loading}
+            setMode={setMode}
+            updateBoardSize={updateBoardSize}
+            createNewGame={createNewGame}
+            onBack={() => setView('login')}
+          />
+        )}
 
-      {view === 'game' && (
-        <GameView
-          game={game}
-          board={board}
-          statusText={statusText}
-          canPlayCell={canPlayCell}
-          loading={loading}
-          refreshCurrentGame={refreshCurrentGame}
-          resignCurrentGame={resignCurrentGame}
-          playCell={playCell}
-          onBack={() => setView('config')}
-        />
-      )}
+        {view === 'game' && (
+          <GameView
+            game={game}
+            board={board}
+            statusText={statusText}
+            canPlayCell={canPlayCell}
+            loading={loading}
+            refreshCurrentGame={refreshCurrentGame}
+            resignCurrentGame={resignCurrentGame}
+            playCell={playCell}
+            onBack={() => setView('config')}
+          />
+        )}
+      </Box>
     </Box>
   );
 }

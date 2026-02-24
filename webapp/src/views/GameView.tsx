@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import TriangularBoard from './TriangularBoard';
 import { uiSx } from '../theme';
 
@@ -38,21 +38,8 @@ const GameView: React.FC<Props> = ({
         {statusText}
       </Typography>
 
-      <Paper sx={uiSx.panel(760)}>
-        <Box sx={[uiSx.centeredRow, { mb: 2 }]}>
-          <Button variant="outlined" onClick={refreshCurrentGame} disabled={loading}>
-            Refrescar
-          </Button>
-
-          <Button variant="contained" color="error" onClick={resignCurrentGame} disabled={loading || game.game_over}>
-            Rendirse
-          </Button>
-
-          <Button variant="text" onClick={onBack}>
-            Volver a configuracion
-          </Button>
-        </Box>
-
+      <Box sx={uiSx.gameBoardStage}>
+        <Box sx={uiSx.gameBoardBase} />
         <TriangularBoard
           board={board}
           humanSymbol={humanSymbol}
@@ -61,7 +48,23 @@ const GameView: React.FC<Props> = ({
           playCell={playCell}
           size={game.yen.size}
         />
-      </Paper>
+      </Box>
+
+      <Box sx={uiSx.gameActionsBox}>
+        <Box sx={uiSx.centeredRow}>
+          <Button onClick={refreshCurrentGame} disabled={loading}>
+            Refrescar
+          </Button>
+
+          <Button color="error" onClick={resignCurrentGame} disabled={loading || game.game_over}>
+            Rendirse
+          </Button>
+
+          <Button onClick={onBack}>
+            Volver
+          </Button>
+        </Box>
+      </Box>
     </Box>
   );
 };

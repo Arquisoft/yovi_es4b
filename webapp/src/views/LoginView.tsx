@@ -15,7 +15,7 @@ const LoginView: React.FC<Props> = ({ onNext }) => {
       <Paper sx={uiSx.panel(520)}>
         <RegisterForm />
         <Box sx={[uiSx.centeredRow, { mt: 2 }]}>
-          <Button variant="outlined" onClick={onNext}>
+          <Button onClick={onNext}>
             Continuar
           </Button>
         </Box>

@@ -51,10 +51,10 @@ const ConfigView: React.FC<Props> = ({
           </TextField>
 
           <Box sx={uiSx.centeredRow}>
-            <Button variant="contained" onClick={createNewGame} disabled={loading}>
+            <Button onClick={createNewGame} disabled={loading}>
               {loading ? 'Cargando...' : 'Crear partida'}
             </Button>
-            <Button variant="outlined" onClick={onBack}>
+            <Button onClick={onBack}>
               Volver
             </Button>
           </Box>
