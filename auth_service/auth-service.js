@@ -13,11 +13,15 @@ const port = Number(process.env.PORT ?? 3500);
 app.use(express.json());
 app.use(promBundle({ includeMethod: true }));
 
-const MONGO_URL = process.env.MONGO_URL ?? 'mongodb://mongo:27017/auth';
-const JWT_SECRET = process.env.JWT_SECRET ?? 'change_this_secret';
-const JWT_EXPIRES = process.env.JWT_EXPIRES ?? '1h';
+const MONGO_AUTH_DB = process.env.MONGO_AUTH_DB ?? 'mongodb://mongo:27017/auth';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set');
+  process.exit(1);
+}
+const JWT_EXPIRES = process.env.JWT_EXPIRES ?? '24h';
 
-mongoose.connect(MONGO_URL, { autoIndex: true })
+mongoose.connect(MONGO_AUTH_DB, { autoIndex: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => {
     console.error('Mongo connection error', err);
