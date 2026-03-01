@@ -54,7 +54,7 @@ function validateMatchPayload(payload) {
   if (!Array.isArray(payload.players) || payload.players.length === 0) {
     return 'players must be a non-empty array';
   }
-  const validResults = new Set(['win', 'loss', 'draw']);
+  const validResults = new Set(['win', 'loss']);
   for (const player of payload.players) {
     if (!player || typeof player !== 'object') {
       return 'Each player must be an object';
@@ -63,7 +63,7 @@ function validateMatchPayload(payload) {
       return 'Each player.userId is required';
     }
     if (!validResults.has(player.result)) {
-      return "Each player.result must be one of: 'win', 'loss', 'draw'";
+      return "Each player.result must be one of: 'win', 'loss'";
     }
   }
   return null;
@@ -71,10 +71,27 @@ function validateMatchPayload(payload) {
 
 function toIncrement(result) {
   return {
-    gamesPlayed: 1,
-    wins: result === 'win' ? 1 : 0,
-    losses: result === 'loss' ? 1 : 0,
-    draws: result === 'draw' ? 1 : 0,
+    totalGames: 1,
+    victories: result === 'win' ? 1 : 0,
+    defeats: result === 'loss' ? 1 : 0,
+  };
+}
+
+function toSafeCount(value) {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num) || num < 0) {
+    return 0;
+  }
+  return Math.floor(num);
+}
+
+function normalizeStats(doc, userId) {
+  return {
+    userId,
+    totalGames: toSafeCount(doc?.totalGames ?? doc?.gamesPlayed),
+    victories: toSafeCount(doc?.victories ?? doc?.wins),
+    defeats: toSafeCount(doc?.defeats ?? doc?.losses),
+    updatedAt: doc?.updatedAt ?? null,
   };
 }
 
@@ -87,35 +104,15 @@ async function connectToMongo() {
 
   await Promise.all([
     playerStatsCollection.createIndex({ userId: 1 }, { unique: true }),
-    playerStatsCollection.createIndex({ wins: -1, gamesPlayed: -1 }),
     playerMatchesCollection.createIndex({ gameId: 1, userId: 1 }, { unique: true }),
     playerMatchesCollection.createIndex({ userId: 1, endedAt: -1 }),
   ]);
 }
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
-
 app.get('/v1/me', requireUserHeader, async (req, res) => {
   try {
-    const stats = await playerStatsCollection.findOne(
-      { userId: req.userId },
-      { projection: { _id: 0 } },
-    );
-
-    if (!stats) {
-      return res.json({
-        userId: req.userId,
-        gamesPlayed: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        updatedAt: null,
-      });
-    }
-
-    res.json(stats);
+    const stats = await playerStatsCollection.findOne({ userId: req.userId }, { projection: { _id: 0 } });
+    res.json(normalizeStats(stats, req.userId));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -131,21 +128,6 @@ app.get('/v1/me/history', requireUserHeader, async (req, res) => {
       .toArray();
 
     res.json({ userId: req.userId, count: history.length, items: history });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-app.get('/v1/leaderboard', async (req, res) => {
-  try {
-    const limit = parseLimit(req.query.limit, 20, 100);
-    const leaderboard = await playerStatsCollection
-      .find({}, { projection: { _id: 0 } })
-      .sort({ wins: -1, gamesPlayed: -1, updatedAt: 1 })
-      .limit(limit)
-      .toArray();
-
-    res.json({ count: leaderboard.length, items: leaderboard });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -209,8 +191,9 @@ app.post('/internal/v1/matches/finished', requireInternalToken, async (req, res)
       await playerStatsCollection.updateOne(
         { userId },
         {
-          $setOnInsert: { userId },
+          $setOnInsert: { userId, totalGames: 0, victories: 0, defeats: 0 },
           $set: { updatedAt: new Date() },
+          $unset: { gamesPlayed: '', wins: '', losses: '', draws: '' },
           $inc: toIncrement(result),
         },
         { upsert: true },

@@ -8,14 +8,15 @@ This project is a template with some basic functionality for the ASW labs.
 
 ## Project Structure
 
-The project is divided into three main components, each in its own directory:
+The project is divided into four main components, each in its own directory:
 
+- `gateway/`: A Node.js reverse proxy that routes all incoming requests to the correct microservice.
 - `webapp/`: A frontend application built with React, Vite, and TypeScript.
 - `users/`: A backend service for managing users, built with Node.js and Express.
 - `gamey/`: A Rust game engine and bot service.
 - `docs/`: Architecture documentation sources following Arc42 template
 
-Each component has its own `package.json` file with the necessary scripts to run and test the application.
+Each component includes the scripts/configuration needed to run and test the application.
 
 ## Basic Features
 
@@ -42,6 +43,14 @@ The `users` service is a simple REST API built with [Node.js](https://nodejs.org
 - `users-service.js`: The main file for the user service. It defines an endpoint `/createuser` to handle user creation.
 - `package.json`: Contains scripts to start the service.
 - `Dockerfile`: Defines the Docker image for the user service.
+
+### Gateway
+
+The `gateway` service is a Node.js reverse proxy built with [Express](https://expressjs.com/) and [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware).
+
+- `gateway-service.js`: Central route map for forwarding traffic to `webapp`, `users`, and `gamey`.
+- `package.json`: Contains scripts to start the gateway.
+- `Dockerfile`: Defines the Docker image for the gateway service.
 
 ### Gamey
 
@@ -71,12 +80,12 @@ This is the easiest way to get the project running. You need to have [Docker](ht
 docker-compose up --build
 ```
 
-This command will build the Docker images for both the `webapp` and `users` services and start them.
+This command will build the Docker images and start the full stack behind the gateway.
 
 2.**Access the application:**
 - Web application: [http://localhost](http://localhost)
-- User service API: [http://localhost:3000](http://localhost:3000)
-- Gamey API: [http://localhost:4000](http://localhost:4000)
+- User service API (through gateway): [http://localhost/users/createuser](http://localhost/users/createuser)
+- Gamey API (through gateway): [http://localhost/api/v1/games](http://localhost/api/v1/games)
 
 ### Without Docker
 
@@ -85,6 +94,7 @@ To run the project locally without Docker, you will need to run each component i
 #### Prerequisites
 
 * [Node.js](https://nodejs.org/) and npm installed.
+* [Rust](https://www.rust-lang.org/) and Cargo installed (for `gamey`).
 
 #### 1. Running the User Service
 
@@ -108,7 +118,21 @@ npm start
 
 The user service will be available at `http://localhost:3000`.
 
-#### 2. Running the Web Application
+#### 2. Running the GameY Service
+
+Navigate to the `gamey` directory:
+
+```bash
+cd gamey
+```
+
+Run the service on port `4000`:
+
+```bash
+cargo run -- --mode server --port 4000
+```
+
+#### 3. Running the Web Application
 
 Navigate to the `webapp` directory:
 
@@ -130,9 +154,27 @@ npm run dev
 
 The web application will be available at `http://localhost:5173`.
 
-#### 3. Running the GameY application
+#### 4. Running the Gateway
 
-At this moment the GameY application is not needed but once it is needed you should also start it from the command line.
+Navigate to the `gateway` directory:
+
+```bash
+cd gateway
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the gateway:
+
+```bash
+$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:USERS_SERVICE_URL="http://localhost:3000"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; npm start
+```
+
+The gateway will be available at `http://localhost:8080`.
 
 ## Available Scripts
 
@@ -149,6 +191,10 @@ Each component has its own set of scripts defined in its `package.json`. Here ar
 
 - `npm start`: Starts the user service.
 - `npm test`: Runs the tests for the service.
+
+### Gateway (`gateway/package.json`)
+
+- `npm start`: Starts the reverse proxy gateway.
 
 ### Gamey (`gamey/Cargo.toml`)
 
