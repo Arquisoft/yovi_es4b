@@ -1,0 +1,27 @@
+{
+  "name": "auth-service",
+  "version": "1.0.0",
+  "description": "Authentication service with JWT and MongoDB",
+  "main": "auth-service.js",
+  "scripts": {
+    "start": "node auth-service.js",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "express-prom-bundle": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.14.3"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.15",
+    "mongodb-memory-server": "^10.4.0",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.15"
+  }
+}
