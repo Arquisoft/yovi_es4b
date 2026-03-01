@@ -1,0 +1,13 @@
+{
+  "name": "stats",
+  "version": "1.0.0",
+  "private": true,
+  "main": "stats-service.js",
+  "scripts": {
+    "start": "node stats-service.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongodb": "^6.20.0"
+  }
+}

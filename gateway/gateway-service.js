@@ -20,6 +20,11 @@ const proxyRoutes = [
     stripPrefix: '/users',
   },
   {
+    mountPath: '/stats',
+    target: process.env.STATS_SERVICE_URL ?? 'http://stats:3001',
+    stripPrefix: '/stats',
+  },
+  {
     mountPath: '/',
     target: process.env.WEBAPP_SERVICE_URL ?? 'http://webapp:80',
   },
