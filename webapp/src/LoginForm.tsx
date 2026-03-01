@@ -1,58 +1,39 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Alert } from '@mui/material';
 
-interface RegisterFormProps {
+interface LoginFormProps {
   onSuccess: (token: string, username: string) => void;
 }
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [responseMessage, setResponseMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setResponseMessage(null);
     setError(null);
 
     if (!username.trim() || !password.trim()) {
-      setError('Please enter a username and password.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError('Please enter username and password.');
       return;
     }
 
     setLoading(true);
     try {
       const AUTH_URL = import.meta.env.VITE_AUTH_API_URL ?? '/auth';
-      const res = await fetch(`${AUTH_URL}/register`, {
+      const res = await fetch(`${AUTH_URL}/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setResponseMessage(data.message);
-        setUsername('');
-        setPassword('');
-        setConfirmPassword('');
         onSuccess(data.token, data.username);
       } else {
-        setError(data.message || 'Server error');
+        setError(data.message || 'Login failed');
       }
     } catch (err: any) {
       setError(err.message || 'Network error');
@@ -64,7 +45,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 360 }}>
       <TextField
-        id="register-username"
+        id="login-username"
         label="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
@@ -73,7 +54,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
       />
 
       <TextField
-        id="register-password"
+        id="login-password"
         label="Password"
         type="password"
         value={password}
@@ -82,24 +63,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         size="small"
       />
 
-      <TextField
-        id="register-confirm-password"
-        label="Confirm Password"
-        type="password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        variant="filled"
-        size="small"
-      />
-
-      <Button className="submit-button" type="submit" variant="contained" color="primary" disabled={loading}>
-        {loading ? 'Registering...' : 'Register'}
+      <Button className="login-button" type="submit" variant="contained" color="primary" disabled={loading}>
+        {loading ? 'Logging in...' : 'Login'}
       </Button>
 
-      {responseMessage && <Alert className="success-message" severity="success">{responseMessage}</Alert>}
       {error && <Alert className="error-message" severity="error">{error}</Alert>}
     </Box>
   );
 };
 
-export default RegisterForm;
+export default LoginForm;

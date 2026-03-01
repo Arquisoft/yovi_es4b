@@ -9,6 +9,7 @@ services:
       - webapp
       - users
       - gamey
+      - auth
     networks:
       - monitor-net
 
@@ -30,6 +31,33 @@ services:
     build: ./gamey
     container_name: gamey
     image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
+    networks:
+      - monitor-net
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - monitor-net
+
+  auth:
+    build: ./auth_service
+    container_name: auth
+    image: ghcr.io/arquisoft/yovi_es4b-auth:latest
+    environment:
+      - MONGO_AUTH_DB=${MONGO_AUTH_DB:-mongodb://mongo:27017/auth}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES=${JWT_EXPIRES:-1h}
+      - PORT=3500
+    ports:
+      - "3500:3500"
+    depends_on:
+      - mongo
     networks:
       - monitor-net
 
@@ -56,3 +84,5 @@ services:
 networks:
   monitor-net:
     driver: bridge
+volumes:
+  mongo-data:

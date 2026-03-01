@@ -10,6 +10,11 @@ const proxyRoutes = [
     stripPrefix: '/api',
   },
   {
+    mountPath: '/auth',
+    target: process.env.AUTH_SERVICE_URL ?? 'http://auth:3500',
+    stripPrefix: '/auth',
+  },
+  {
     mountPath: '/users',
     target: process.env.USERS_SERVICE_URL ?? 'http://users:3000',
     stripPrefix: '/users',
