@@ -1,5 +1,4 @@
 import React from 'react';
-import { cellClassName } from '../gameyUi';
 import { Box, Typography, Button, Paper } from '@mui/material';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 

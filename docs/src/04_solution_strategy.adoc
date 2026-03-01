@@ -32,3 +32,98 @@ See https://docs.arc42.org/section-4/[Solution Strategy] in the arc42 documentat
 
 ****
 endif::arc42help[]
+
+This section summarizes the architectural decisions that guide the system and explains how they support the main quality goals.
+
+=== 4.1 Technology Decisions
+
+* `Frontend`: React + TypeScript.
++
+Reason: fast development, maintainability through static typing, and a broad ecosystem.
+
+* `Application Backend`: Node.js + Express (with TypeScript in the application layer where applicable).
++
+Reason: agile REST API development and a mature ecosystem.
+
+* `Game Engine Service`: Rust + Axum.
++
+Reason: alignment with assignment constraints and clear separation of game-domain logic in a specialized service.
+
+* `Containerization`: Docker + Docker Compose.
++
+Reason: reproducible environments and consistent service integration.
+
+* `Monitoring`: Prometheus + Grafana.
++
+Reason: baseline observability through service-level metrics.
+
+* `Deployment Target`: Azure.
++
+Reason: academic availability and prior team experience.
+
+=== 4.2 Top-Level Decomposition Decision
+
+The architecture is decomposed into four main building blocks:
+
+1. `Webapp (Frontend)`
++
+Responsibility: user interaction and game state visualization.
++
+Architectural role: system client.
+
+2. `Users Service (Application API)`
++
+Responsibility: public API, user/game/history management, and use-case orchestration.
++
+Architectural role: single entry point for frontend clients.
+
+3. `Gamey Service (Game Engine)`
++
+Responsibility: move validation, game rules, and bot move calculation.
++
+Architectural role: internal domain service invoked by `Users Service`.
+
+4. `Persistence Layer (Database)`
++
+Responsibility: storage of users, matches, statistics, and history.
++
+Architectural role: persistence dependency used by `Users Service`.
+
+==== Communication Between Subsystems
+
+Communication follows the pattern `Webapp -> Users Service -> Gamey Service`.
+
+* `Webapp -> Users Service`: HTTP/REST + JSON (public API).
+* `Users Service -> Gamey Service`: HTTP/REST + JSON (internal domain API).
+* `Users Service <-> Database`: persistence operations.
+
+The `Users -> Gamey` interaction is synchronous for move validation/calculation, and the backend returns a normalized game state to the frontend.
+
+=== 4.3 Decisions to Achieve Quality Goals
+
+[cols="1,3",options="header"]
+|===
+|Quality Goal |Architectural Decision
+
+|Usability
+|React UI with straightforward navigation, clear loading/error feedback, and input validation.
+
+|Performance
+|Critical game logic isolated in `Gamey` (Rust), with a lightweight application API in `Users`.
+
+|Testability
+|Unit tests per service, integration tests across services, and E2E tests for key user flows.
+
+|Maintainability
+|Clear separation of responsibilities (`webapp`, `users`, `gamey`), explicit API contracts, and CI with linting and tests.
+
+|Availability and Reliability
+|Containerized execution, baseline monitoring with Prometheus/Grafana, and cloud deployment strategy.
+|===
+
+=== 4.4 Organizational Decisions
+
+* Central GitHub repository for source code and collaboration.
+* Task tracking and technical discussion through GitHub Issues.
+* Periodic team meetings for progress review and task distribution.
+* Decision and meeting traceability through documented records (e.g., team wiki).
