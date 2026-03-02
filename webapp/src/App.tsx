@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useGamey } from './useGamey';
 import { useAuth } from './hooks/useAuth';
 import LoginView from './views/LoginView';
@@ -8,6 +8,8 @@ import GameView from './views/GameView';
 import { Button, Typography, Box } from '@mui/material';
 
 function App() {
+  const auth = useAuth();
+
   const {
     boardSize,
     mode,
@@ -23,15 +25,17 @@ function App() {
     refreshCurrentGame,
     resignCurrentGame,
     playCell,
-  } = useGamey();
-
-  const auth = useAuth();
+  } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'config' | 'game'>('config');
 
-  useEffect(() => {
-    if (game) setView('game');
-  }, [game]);
+  async function handleCreateNewGame() {
+    const created = await createNewGame();
+
+    if (created) {
+      setView('game');
+    }
+  }
 
   // If auth is still verifying the token, show nothing
   if (auth.loading) return null;
@@ -79,7 +83,7 @@ function App() {
           loading={loading}
           setMode={setMode}
           updateBoardSize={updateBoardSize}
-          createNewGame={createNewGame}
+          createNewGame={handleCreateNewGame}
           onBack={() => setView('login')}
         />
       )}
@@ -102,3 +106,4 @@ function App() {
 }
 
 export default App;
+
