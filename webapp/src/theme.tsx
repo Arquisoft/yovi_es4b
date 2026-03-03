@@ -90,6 +90,26 @@ export const uiSx = {
     letterSpacing: 1,
     fontSize: { xs: '1.9rem', sm: '2.3rem' },
   } satisfies SxProps<Theme>,
+  appHeaderUserRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 2,
+    flexWrap: 'wrap',
+  } satisfies SxProps<Theme>,
+  appHeaderTitleSecondary: {
+    textAlign: 'left',
+    fontWeight: 800,
+    letterSpacing: 1,
+    fontSize: { xs: '1.6rem', sm: '2rem' },
+    lineHeight: 1.2,
+  } satisfies SxProps<Theme>,
+  appHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
+    ml: 'auto',
+  } satisfies SxProps<Theme>,
   appRoot: {
     width: '100%',
     maxWidth: 920,
@@ -127,6 +147,9 @@ export const uiSx = {
     flexDirection: 'column',
     gap: 2,
     width: 360,
+  } satisfies SxProps<Theme>,
+  authTabs: {
+    mb: 2,
   } satisfies SxProps<Theme>,
   configRow: {
     display: 'flex',

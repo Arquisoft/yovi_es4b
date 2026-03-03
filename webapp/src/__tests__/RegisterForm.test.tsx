@@ -6,39 +6,44 @@ import '@testing-library/jest-dom'
 
 
 describe('RegisterForm', () => {
+  const onSuccess = vi.fn()
+
   afterEach(() => {
     vi.restoreAllMocks()
+    onSuccess.mockReset()
   })
 
   test('shows validation error when username is empty', async () => {
-    render(<RegisterForm />)
+    render(<RegisterForm onSuccess={onSuccess} />)
     const user = userEvent.setup()
 
     await waitFor(async () => {
-      await user.click(screen.getByRole('button', { name: /lets go!/i }))
-      expect(screen.getByText(/please enter a username/i)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: /register/i }))
+      expect(screen.getByText(/please enter a username and password/i)).toBeInTheDocument()
     })
   })
 
-  test('submits username and displays response', async () => {
+  test('submits username/password and displays response', async () => {
     const user = userEvent.setup()
 
     // Mock fetch to resolve automatically
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ message: 'Hello Pablo! Welcome to the course!' }),
+      json: async () => ({ message: 'User pablo registered successfully', token: 'fake-token', username: 'pablo' }),
     } as Response)
 
-    render(<RegisterForm />)
+    render(<RegisterForm onSuccess={onSuccess} />)
 
     // Wrap interaction + assertion inside waitFor
     await waitFor(async () => {
-      await user.type(screen.getByLabelText(/whats your name\?/i), 'Pablo')
-      await user.click(screen.getByRole('button', { name: /lets go!/i }))
+      await user.type(screen.getByLabelText(/^username$/i), 'Pablo')
+      await user.type(screen.getByLabelText(/^password$/i), 'secret123')
+      await user.type(screen.getByLabelText(/confirm password/i), 'secret123')
+      await user.click(screen.getByRole('button', { name: /register/i }))
 
       // Response message should appear
       expect(
-        screen.getByText(/hello pablo! welcome to the course!/i)
+        screen.getByText(/registered successfully/i)
       ).toBeInTheDocument()
     })
   })

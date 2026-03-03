@@ -3,7 +3,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-building-block-view]]
 
 
-== Building Block View
+== 5. Building Block View
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -58,27 +58,31 @@ Here you describe the decomposition of the overall system using the following wh
    Depending on your choice of tool this list could be sub-chapters (in text files), sub-pages (in a Wiki) or nested elements (in a modeling tool).
 
 
- * (optional:) important interfaces, that are not explained in the black box templates of a building block, but are very important for understanding the white box.
+ * (optional:) important interfaces, that are not explained in the black box templates of a building block,but are very important for understanding the white box.
 Since there are so many ways to specify interfaces why do not provide a specific template for them.
- In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
- restrictions, versions, qualities, necessary compatibilities and many things more.
+In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
+restrictions, versions, qualities, necessary compatibilities and many things more.
 In the best case you will get away with examples or simple signatures.
 
 ****
 endif::arc42help[]
 
-_**<Overview Diagram>**_
+image::05_level1_yovi.png["General View - System Boundary"]
 
 Motivation::
 
-_<text explanation>_
+This first view shows the system at its highest abstraction level.
+It defines the system boundary (`Yovi`) and the external actor (`Usuario`) before introducing internal decomposition.
+This helps stakeholders understand scope and ownership before going into technical details.
 
 
 Contained Building Blocks::
-_<Description of contained building block (black boxes)>_
++
+* `Yovi`: Main system boundary that contains the application internals, detailed in the next levels.
 
 Important Interfaces::
-_<Description of important interfaces>_
++
+* `Usuario -> Yovi`: Primary interaction interface between the end user and the system.
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -102,53 +106,9 @@ Its headline is the name of the black box.
 ****
 endif::arc42help[]
 
-==== <Name black box 1>
+==== Yovi
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you describe <black box 1>
-according the the following black box template:
-
-* Purpose/Responsibility
-* Interface(s), when they are not extracted as separate paragraphs. This interfaces may include qualities and performance characteristics.
-* (Optional) Quality-/Performance characteristics of the black box, e.g.availability, run time behavior, ....
-* (Optional) directory/file location
-* (Optional) Fulfilled requirements (if you need traceability to requirements).
-* (Optional) Open issues/problems/risks
-
-****
-endif::arc42help[]
-
-_<Purpose/Responsibility>_
-
-_<Interface(s)>_
-
-_<(Optional) Quality/Performance Characteristics>_
-
-_<(Optional) Directory/File Location>_
-
-_<(Optional) Fulfilled Requirements>_
-
-_<(optional) Open Issues/Problems/Risks>_
-
-
-
-
-==== <Name black box 2>
-
-_<black box template>_
-
-==== <Name black box n>
-
-_<black box template>_
-
-
-==== <Name interface 1>
-
-...
-
-==== <Name interface m>
+System boundary that provides gameplay capabilities to the user and is internally decomposed in the following levels.
 
 
 
@@ -165,7 +125,7 @@ Leave out normal, simple, boring or standardized parts of your system
 ****
 endif::arc42help[]
 
-==== White Box _<building block 1>_
+==== White Box _Yovi_
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -174,19 +134,24 @@ ifdef::arc42help[]
 ****
 endif::arc42help[]
 
-_<white box template>_
+image::05_level2_yovi.png["Level 2 - Yovi Main Decomposition"]
 
-==== White Box _<building block 2>_
+Motivation::
+Level 2 decomposes `Yovi` into its main runtime building blocks while keeping implementation details hidden.
+This view clarifies responsibilities between presentation, backend logic, and persistence.
 
+Contained Building Blocks::
++
+* `WebApp`: Frontend used by the player for interaction.
+* `Backend`: Server-side component that exposes business operations.
+* `BBDD`: Persistent storage used by backend services.
 
-_<white box template>_
+Important Interfaces::
++
+* `Usuario -> WebApp`: User interaction interface.
+* `WebApp -> Backend`: HTTP/JSON application interface.
+* `Backend -> BBDD`: Persistence access interface.
 
-...
-
-==== White Box _<building block m>_
-
-
-_<white box template>_
 
 
 
@@ -202,7 +167,7 @@ part of arc42 for additional levels.
 ****
 endif::arc42help[]
 
-==== White Box <_building block x.1_>
+==== White Box _Backend_
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -211,15 +176,22 @@ Specifies the internal structure of _building block x.1_.
 ****
 endif::arc42help[]
 
-_<white box template>_
+image::05_level3_yovi.png["Level 3 - Backend Internal Decomposition"]
+
+Motivation::
+Level 3 details the internal structure of the backend component.
+It isolates the key business services and their collaboration for user and gameplay operations.
+
+Contained Building Blocks::
++
+* `User`: Service responsible for user-related operations.
+* `Gamey`: Service responsible for game engine and game logic.
+* `BBDD`: Shared persistence component used by backend services.
+
+Important Interfaces::
++
+* `User <--> Gamey`: Internal service-to-service interface for game/user data exchange.
+* `User -> BBDD`: User data persistence interface.
+* `Gamey -> BBDD`: Game state persistence interface.
 
 
-==== White Box <_building block x.2_>
-
-_<white box template>_
-
-
-
-==== White Box <_building block y.1_>
-
-_<white box template>_
