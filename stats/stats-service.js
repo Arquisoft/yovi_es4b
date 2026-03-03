@@ -73,6 +73,12 @@ function validateFinishedMatchPayload(payload) {
     return 'players must be a non-empty array';
   }
 
+  if (payload.finalBoard !== undefined && payload.finalBoard !== null) {
+    if (typeof payload.finalBoard !== 'object' || Array.isArray(payload.finalBoard)) {
+      return 'finalBoard must be an object';
+    }
+  }
+
   for (const player of payload.players) {
     if (!player || typeof player !== 'object') {
       return 'Each player must be an object';
@@ -127,6 +133,14 @@ function normalizeStats(statsDoc, userId) {
 
 function toOptionalString(value) {
   return typeof value === 'string' ? value : null;
+}
+
+function toOptionalObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value;
 }
 
 // --- Conexion a Mongo e indices ---
@@ -197,6 +211,7 @@ app.post('/internal/v1/matches/finished', requireServiceToken, async (req, res) 
   const mode = toOptionalString(req.body.mode);
   const reason = toOptionalString(req.body.reason);
   const winnerId = toOptionalString(req.body.winnerId);
+  const finalBoard = toOptionalObject(req.body.finalBoard);
 
   if (Number.isNaN(endedAt.getTime())) {
     return res.status(400).json({ message: 'endedAt must be a valid date' });
@@ -220,6 +235,7 @@ app.post('/internal/v1/matches/finished', requireServiceToken, async (req, res) 
         mode,
         reason,
         winnerId,
+        finalBoard,
         endedAt,
         createdAt: new Date(),
       };
@@ -255,9 +271,6 @@ app.post('/internal/v1/matches/finished', requireServiceToken, async (req, res) 
         {
           $setOnInsert: {
             userId,
-            totalGames: 0,
-            victories: 0,
-            defeats: 0,
           },
           $set: { updatedAt: new Date() },
           $unset: {
@@ -300,3 +313,4 @@ async function start() {
 }
 
 start();
+

@@ -7,9 +7,11 @@ use crate::{Coordinates, GameAction, GameStatus, GameY, Movement, PlayerId, YEN}
 use axum::{
     Json,
     extract::{Path, State},
+    http::HeaderMap,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::warn;
 
 /// Supported game modes for the HTTP API.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -72,6 +74,24 @@ pub struct GameParams {
     game_id: String,
 }
 
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct FinishedMatchPlayer {
+    user_id: String,
+    result: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct FinishedMatchRequest {
+    game_id: String,
+    mode: Option<String>,
+    reason: Option<String>,
+    winner_id: Option<String>,
+    final_board: Option<YEN>,
+    players: Vec<FinishedMatchPlayer>,
+}
+
 /// Creates a new game and stores it in server memory.
 ///
 /// # Route
@@ -84,6 +104,7 @@ pub struct GameParams {
 pub async fn create_game(
     State(state): State<AppState>,
     Path(params): Path<ApiVersionParams>,
+    headers: HeaderMap,
     Json(request): Json<CreateGameRequest>,
 ) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
     check_api_version(&params.api_version)?;
@@ -99,6 +120,9 @@ pub async fn create_game(
     let session = GameSession {
         game: GameY::new(request.size),
         bot_id: bot_id.clone(),
+        player0_user_id: read_header_string(&headers, "x-user-id"),
+        player1_user_id: read_header_string(&headers, "x-opponent-user-id"),
+        stats_reported: false,
     };
 
     let game_id = state.new_game_id();
@@ -146,93 +170,91 @@ pub async fn play_move(
     let games = state.games();
     let mut guard = games.write().await;
 
-    let session = require_game_session_mut(&mut guard, &params)?;
-    ensure_game_not_finished(&session.game, &params.api_version)?;
+    let pending_report: Option<FinishedMatchRequest>;
 
-    validate_coordinates(&request.coords, session.game.board_size()).map_err(|msg| {
-        error_response(
-            &format!("Invalid coordinates: {}", msg),
-            Some(params.api_version.clone()),
-        )
-    })?;
+    let response = {
+        let session = require_game_session_mut(&mut guard, &params)?;
+        ensure_game_not_finished(&session.game, &params.api_version)?;
 
-    let current_player = current_player_or_finished(&session.game, &params.api_version)?;
-
-    if session.bot_id.is_some() && current_player != PlayerId::new(0) {
-        return Err(error_response(
-            "Human moves are only allowed on player 0 turn in human_vs_bot mode",
-            Some(params.api_version.clone()),
-        ));
-    }
-
-    session
-        .game
-        .add_move(Movement::Placement {
-            player: current_player,
-            coords: request.coords,
-        })
-        .map_err(|e| {
+        validate_coordinates(&request.coords, session.game.board_size()).map_err(|msg| {
             error_response(
-                &format!("Could not apply move: {}", e),
+                &format!("Invalid coordinates: {}", msg),
                 Some(params.api_version.clone()),
             )
         })?;
 
-    if let Some(bot_id) = &session.bot_id
-        && !session.game.check_game_over()
-    {
-        let bot = match bots.find(bot_id) {
-            Some(bot) => bot,
-            None => {
-                let available_bots = bots.names().join(", ");
-                return Err(bot_not_found_error(
-                    &params.api_version,
-                    bot_id,
-                    &available_bots,
-                ));
-            }
-        };
+        let current_player = current_player_or_finished(&session.game, &params.api_version)?;
 
-        let bot_coords = match bot.choose_move(&session.game) {
-            Some(coords) => coords,
-            None => {
-                return Err(error_response(
-                    "No valid moves available for the bot",
-                    Some(params.api_version.clone()),
-                ));
-            }
-        };
-
-        let bot_player = match session.game.next_player() {
-            Some(player) => player,
-            None => {
-                return Ok(Json(build_game_state_response(
-                    &params.api_version,
-                    &params.game_id,
-                    session,
-                )));
-            }
-        };
+        if session.bot_id.is_some() && current_player != PlayerId::new(0) {
+            return Err(error_response(
+                "Human moves are only allowed on player 0 turn in human_vs_bot mode",
+                Some(params.api_version.clone()),
+            ));
+        }
 
         session
             .game
             .add_move(Movement::Placement {
-                player: bot_player,
-                coords: bot_coords,
+                player: current_player,
+                coords: request.coords,
             })
             .map_err(|e| {
                 error_response(
-                    &format!("Could not apply bot move: {}", e),
+                    &format!("Could not apply move: {}", e),
                     Some(params.api_version.clone()),
                 )
             })?;
-    }
 
-    Ok(Json(build_game_state_response(
-        &params.api_version,
-        &params.game_id,
-        session,
-    )))
+        if let Some(bot_id) = &session.bot_id
+            && !session.game.check_game_over()
+        {
+            let bot = match bots.find(bot_id) {
+                Some(bot) => bot,
+                None => {
+                    let available_bots = bots.names().join(", ");
+                    return Err(bot_not_found_error(
+                        &params.api_version,
+                        bot_id,
+                        &available_bots,
+                    ));
+                }
+            };
+
+            let bot_coords = match bot.choose_move(&session.game) {
+                Some(coords) => coords,
+                None => {
+                    return Err(error_response(
+                        "No valid moves available for the bot",
+                        Some(params.api_version.clone()),
+                    ));
+                }
+            };
+
+            if let Some(bot_player) = session.game.next_player() {
+                session
+                    .game
+                    .add_move(Movement::Placement {
+                        player: bot_player,
+                        coords: bot_coords,
+                    })
+                    .map_err(|e| {
+                        error_response(
+                            &format!("Could not apply bot move: {}", e),
+                            Some(params.api_version.clone()),
+                        )
+                    })?;
+            }
+        }
+
+        pending_report = prepare_stats_report_if_needed(&params.game_id, session);
+
+        build_game_state_response(&params.api_version, &params.game_id, session)
+    };
+
+    drop(guard);
+    report_finished_match_if_needed(pending_report).await;
+
+    Ok(Json(response))
 }
 
 /// Resigns the current game.
@@ -251,33 +273,165 @@ pub async fn resign_game(
     let games = state.games();
     let mut guard = games.write().await;
 
-    let session = require_game_session_mut(&mut guard, &params)?;
-    ensure_game_not_finished(&session.game, &params.api_version)?;
+    let pending_report: Option<FinishedMatchRequest>;
 
-    let resigning_player = match (&session.bot_id, session.game.next_player()) {
-        (Some(_), _) => PlayerId::new(0),
-        (None, Some(player)) => player,
-        (None, None) => return Err(game_finished_error(&params.api_version)),
+    let response = {
+        let session = require_game_session_mut(&mut guard, &params)?;
+        ensure_game_not_finished(&session.game, &params.api_version)?;
+
+        let resigning_player = match (&session.bot_id, session.game.next_player()) {
+            (Some(_), _) => PlayerId::new(0),
+            (None, Some(player)) => player,
+            (None, None) => return Err(game_finished_error(&params.api_version)),
+        };
+
+        session
+            .game
+            .add_move(Movement::Action {
+                player: resigning_player,
+                action: GameAction::Resign,
+            })
+            .map_err(|e| {
+                error_response(
+                    &format!("Could not resign game: {}", e),
+                    Some(params.api_version.clone()),
+                )
+            })?;
+
+        pending_report = prepare_stats_report_if_needed(&params.game_id, session);
+
+        build_game_state_response(&params.api_version, &params.game_id, session)
     };
 
-    session
-        .game
-        .add_move(Movement::Action {
-            player: resigning_player,
-            action: GameAction::Resign,
-        })
-        .map_err(|e| {
-            error_response(
-                &format!("Could not resign game: {}", e),
-                Some(params.api_version.clone()),
-            )
-        })?;
+    drop(guard);
+    report_finished_match_if_needed(pending_report).await;
 
-    Ok(Json(build_game_state_response(
-        &params.api_version,
-        &params.game_id,
-        session,
-    )))
+    Ok(Json(response))
+}
+
+fn read_header_string(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+fn normalize_identifier(value: Option<String>) -> Option<String> {
+    value
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+fn mode_name(session: &GameSession) -> String {
+    match &session.bot_id {
+        Some(_) => "human_vs_bot".to_string(),
+        None => "human_vs_human".to_string(),
+    }
+}
+
+fn player0_id(session: &GameSession) -> String {
+    normalize_identifier(session.player0_user_id.clone()).unwrap_or_else(|| "player-0".to_string())
+}
+
+fn player1_id(session: &GameSession) -> String {
+    if let Some(id) = normalize_identifier(session.player1_user_id.clone()) {
+        return id;
+    }
+
+    if let Some(bot_id) = &session.bot_id {
+        return format!("bot:{}", bot_id);
+    }
+
+    "player-1".to_string()
+}
+
+fn prepare_stats_report_if_needed(
+    game_id: &str,
+    session: &mut GameSession,
+) -> Option<FinishedMatchRequest> {
+    if session.stats_reported {
+        return None;
+    }
+
+    let winner = match session.game.status() {
+        GameStatus::Finished { winner } => winner.id(),
+        GameStatus::Ongoing { .. } => return None,
+    };
+
+    let p0 = player0_id(session);
+    let p1 = player1_id(session);
+
+    let p0_result = if winner == 0 { "win" } else { "loss" };
+    let p1_result = if winner == 1 { "win" } else { "loss" };
+
+    let winner_user_id = if winner == 0 { p0.clone() } else { p1.clone() };
+    let final_board: YEN = (&session.game).into();
+
+    session.stats_reported = true;
+
+    Some(FinishedMatchRequest {
+        game_id: game_id.to_string(),
+        mode: Some(mode_name(session)),
+        reason: None,
+        winner_id: Some(winner_user_id),
+        final_board: Some(final_board),
+        players: vec![
+            FinishedMatchPlayer {
+                user_id: p0,
+                result: p0_result.to_string(),
+            },
+            FinishedMatchPlayer {
+                user_id: p1,
+                result: p1_result.to_string(),
+            },
+        ],
+    })
+}
+
+async fn report_finished_match_if_needed(pending_report: Option<FinishedMatchRequest>) {
+    let Some(payload) = pending_report else {
+        return;
+    };
+
+    let stats_url =
+        std::env::var("STATS_SERVICE_URL").unwrap_or_else(|_| "http://stats:3001".to_string());
+    let internal_token = std::env::var("STATS_INTERNAL_TOKEN")
+        .unwrap_or_else(|_| "stats-internal-token".to_string());
+
+    let endpoint = format!(
+        "{}/internal/v1/matches/finished",
+        stats_url.trim_end_matches('/')
+    );
+
+    let client = reqwest::Client::new();
+    match client
+        .post(&endpoint)
+        .header("x-service-token", internal_token)
+        .json(&payload)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                warn!(
+                    "Failed to report finished game {} to stats. status={} body={}",
+                    payload.game_id, status, body
+                );
+            }
+        }
+        Err(error) => {
+            warn!(
+                "Could not report finished game {} to stats: {}",
+                payload.game_id, error
+            );
+        }
+    }
 }
 
 fn default_board_size() -> u32 {
@@ -329,7 +483,11 @@ fn current_player_or_finished(
         .ok_or_else(|| game_finished_error(api_version))
 }
 
-fn bot_not_found_error(api_version: &str, bot_id: &str, available_bots: &str) -> Json<ErrorResponse> {
+fn bot_not_found_error(
+    api_version: &str,
+    bot_id: &str,
+    available_bots: &str,
+) -> Json<ErrorResponse> {
     error_response(
         &format!(
             "Bot not found: {}, available bots: [{}]",
@@ -439,3 +597,4 @@ mod tests {
         assert!(validate_coordinates(&coords, 3).is_err());
     }
 }
+
