@@ -165,4 +165,60 @@ mod tests {
         let chosen_move = bot.choose_move(&game);
         assert!(chosen_move.is_some());
     }
+
+    #[test]
+    fn test_minimax_bot_evaluate_win_and_loss() {
+        let mut game = GameY::new(3);
+        // create finished position where player 0 wins
+        let moves = vec![
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 2) },
+            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(2, 0, 0) },
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 1, 1) },
+            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(1, 1, 0) },
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 2, 0) },
+        ];
+        for mv in moves {
+            game.add_move(mv).unwrap();
+        }
+        assert!(matches!(game.status(), crate::GameStatus::Finished { winner } if *winner == crate::PlayerId::new(0)));
+
+        let win_score = MinimaxBot::evaluate_board(&game, crate::PlayerId::new(0));
+        let lose_score = MinimaxBot::evaluate_board(&game, crate::PlayerId::new(1));
+        assert!(win_score >= 1000.0);
+        assert!(lose_score <= -1000.0);
+    }
+
+    #[test]
+    fn test_minimax_bot_returns_none_on_full_board() {
+        let bot = MinimaxBot::default();
+        let mut game = GameY::new(2);
+        let fills = vec![
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(1, 0, 0) },
+            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(0, 1, 0) },
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 1) },
+        ];
+        for mv in fills {
+            game.add_move(mv).unwrap();
+        }
+        assert!(game.available_cells().is_empty());
+        assert!(bot.choose_move(&game).is_none());
+    }
+
+    #[test]
+    fn test_minimax_bot_prefers_winning_move() {
+        let bot = MinimaxBot::default();
+        let mut game = GameY::new(3);
+        let moves = vec![
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 2) },
+            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(2, 0, 0) },
+            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 1, 1) },
+            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(1, 1, 0) },
+        ];
+        for mv in moves {
+            game.add_move(mv).unwrap();
+        }
+
+        let chosen = bot.choose_move(&game).unwrap();
+        assert_eq!(chosen, Coordinates::new(0, 2, 0));
+    }
 }
