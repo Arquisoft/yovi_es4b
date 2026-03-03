@@ -5,6 +5,8 @@ export type PlayerStatsSummary = {
   updatedAt: string;
 };
 
+export type BotDifficulty = 'easy' | 'medium' | 'hard';
+
 export type MatchHistoryItem = {
   gameId: string;
   result: 'win' | 'loss';

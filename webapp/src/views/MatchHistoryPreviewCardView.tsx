@@ -5,7 +5,7 @@ import type { MatchHistoryItem } from './statsTypes';
 
 type Props = {
   matches: MatchHistoryItem[];
-  onBack: () => void;
+  onViewMoreMatches: () => void;
 };
 
 function modeLabel(mode: MatchHistoryItem['mode']) {
@@ -16,15 +16,15 @@ function resultLabel(result: MatchHistoryItem['result']) {
   return result === 'win' ? 'Victoria' : 'Derrota';
 }
 
-const HistoryView: React.FC<Props> = ({ matches, onBack }) => {
+const MatchHistoryPreviewCardView: React.FC<Props> = ({ matches, onViewMoreMatches }) => {
+  const visibleMatches = matches.slice(0, 3);
+
   return (
-    <Paper sx={uiSx.historyFullscreenCard}>
-      <Box sx={uiSx.historyHeader}>
-        <Typography variant="h5" sx={uiSx.dashboardCardTitle}>
-          Historial completo
-        </Typography>
-        <Button onClick={onBack}>Volver al inicio</Button>
-      </Box>
+    <Paper sx={uiSx.dashboardHistoryCard}>
+      <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
+        Historial de partidas
+      </Typography>
+      <Box sx={uiSx.dashboardCardHint}>Vista ejemplo de `player_matches`.</Box>
 
       <TableContainer>
         <Table size="small">
@@ -38,7 +38,7 @@ const HistoryView: React.FC<Props> = ({ matches, onBack }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {matches.map((match) => (
+            {visibleMatches.map((match) => (
               <TableRow key={`${match.gameId}-${match.endedAt}`}>
                 <TableCell>{match.gameId}</TableCell>
                 <TableCell>{resultLabel(match.result)}</TableCell>
@@ -50,8 +50,14 @@ const HistoryView: React.FC<Props> = ({ matches, onBack }) => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Box sx={uiSx.historyFooter}>
+        <Button variant="text" onClick={onViewMoreMatches}>
+          Ver mas partidas
+        </Button>
+      </Box>
     </Paper>
   );
 };
 
-export default HistoryView;
+export default MatchHistoryPreviewCardView;

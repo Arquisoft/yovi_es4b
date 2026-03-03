@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { uiSx } from '../theme';
+import playIcon from '../assets/play-button-svgrepo-com (1).svg';
+import statsIcon from '../assets/stats-graph-svgrepo-com.svg';
+import logOutIcon from '../assets/logout-svgrepo-com.svg';
 
 type Props = {
   onPlayBotEasy: () => void;
   onPlayHuman: () => void;
+  onOpenStats: () => void;
   onLogout: () => void;
 };
 
-const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onLogout }) => {
+const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onOpenStats, onLogout }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,7 +23,10 @@ const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onLogout }) 
         onMouseLeave={() => setOpen(false)}
       >
         <Box component="button" type="button" sx={uiSx.sidebarItem(open)}>
-          Jugar
+          <Box component="span" sx={uiSx.sidebarItemContent}>
+            <Box component="img" src={playIcon} alt="" aria-hidden sx={uiSx.sidebarItemIcon} />
+            <Box component="span">Jugar</Box>
+          </Box>
         </Box>
 
         <Box sx={uiSx.sidebarSubmenu(open)}>
@@ -42,9 +49,19 @@ const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onLogout }) 
         </Box>
       </Box>
 
+      <Box component="button" type="button" sx={uiSx.sidebarItem(false)} onClick={onOpenStats}>
+        <Box component="span" sx={uiSx.sidebarItemContent}>
+          <Box component="img" src={statsIcon} alt="" aria-hidden sx={uiSx.sidebarItemIcon} />
+          <Box component="span">Estadisticas</Box>
+        </Box>
+      </Box>
+
       <Box sx={uiSx.sidebarBottom}>
         <Box component="button" type="button" sx={uiSx.sidebarItem(false)} onClick={onLogout}>
-          Logout
+          <Box component="span" sx={uiSx.sidebarItemContent}>
+            <Box component="img" src={logOutIcon} alt="" aria-hidden sx={uiSx.sidebarItemIcon} />
+            <Box component="span">Logout</Box>
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -52,3 +69,5 @@ const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onLogout }) 
 };
 
 export default SidebarView;
+
+

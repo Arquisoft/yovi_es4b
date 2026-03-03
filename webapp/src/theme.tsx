@@ -84,7 +84,7 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          fontWeight: 600,
+          fontWeight: 700,
           textTransform: 'none',
           minWidth: 148,
           height: 40,
@@ -134,7 +134,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           color: uiColors.text.secondary,
-          fontWeight: 600,
+          fontWeight: 700,
           '&.Mui-selected': {
             color: uiColors.accent.light,
           },
@@ -190,12 +190,19 @@ export const uiSx = {
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
+    px: { xs: 1.2, md: 1.8 },
+    py: { xs: 1, md: 1.3 },
+    gap: 1.5,
   } satisfies SxProps<Theme>,
   appHeader: {
     width: '100%',
     borderBottom: `1px solid ${uiColors.border.soft}`,
-    py: 2,
-    px: 2,
+    border: `1px solid ${uiColors.border.faint}`,
+    borderRadius: 2.2,
+    backgroundColor: 'rgba(16, 33, 58, 0.72)',
+    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
+    py: 1.9,
+    px: 2.2,
   } satisfies SxProps<Theme>,
   appHeaderTitle: {
     textAlign: 'center',
@@ -237,6 +244,27 @@ export const uiSx = {
     gap: 2,
     ml: 'auto',
   } satisfies SxProps<Theme>,
+  appHeaderUserBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 0.7,
+    px: 1.1,
+    py: 0.45,
+    borderRadius: 1.2,
+    border: `1px solid ${uiColors.border.soft}`,
+    backgroundColor: 'rgba(89, 195, 255, 0.06)',
+  } satisfies SxProps<Theme>,
+  appHeaderUserText: {
+    fontSize: '0.92rem',
+    letterSpacing: 0.2,
+    color: 'text.secondary',
+    lineHeight: 1.2,
+  } satisfies SxProps<Theme>,
+  appHeaderUserName: {
+    fontWeight: 800,
+    color: 'text.primary',
+    letterSpacing: 0.25,
+  } satisfies SxProps<Theme>,
   appRoot: {
     width: '100%',
     maxWidth: 920,
@@ -251,12 +279,14 @@ export const uiSx = {
     flex: 1,
     minHeight: 0,
     flexDirection: { xs: 'column', md: 'row' },
+    gap: 2,
+    pb: 0.6,
   } satisfies SxProps<Theme>,
   appMain: {
     flex: 1,
     width: '100%',
-    px: { xs: 2, md: 3 },
-    py: 4,
+    px: { xs: 2.1, md: 3.4 },
+    py: { xs: 2.2, md: 2.8 },
     minWidth: 0,
     maxWidth: 'none',
   } satisfies SxProps<Theme>,
@@ -268,6 +298,7 @@ export const uiSx = {
     borderRight: { xs: 'none', md: `1px solid ${uiColors.border.faint}` },
     borderBottom: { xs: `1px solid ${uiColors.border.faint}`, md: 'none' },
     backgroundColor: uiColors.bg.sidebar,
+    borderRadius: 2.2,
     display: 'flex',
     flexDirection: 'column',
     gap: 1.5,
@@ -298,6 +329,18 @@ export const uiSx = {
       backgroundColor: uiColors.accent.hoverBg,
     },
   }),
+  sidebarItemContent: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 1,
+  } satisfies SxProps<Theme>,
+  sidebarItemIcon: {
+    width: 20,
+    height: 20,
+    display: 'block',
+    objectFit: 'contain',
+    flexShrink: 0,
+  } satisfies SxProps<Theme>,
   sidebarSubmenu: (open: boolean): SxProps<Theme> => ({
     position: { xs: 'static', md: 'absolute' },
     left: { md: '100%' },
@@ -362,14 +405,16 @@ export const uiSx = {
   } satisfies SxProps<Theme>,
   dashboardShell: {
     width: '100%',
+    maxWidth: 1160,
+    mx: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 2.4,
   } satisfies SxProps<Theme>,
   dashboardTopRow: {
     display: 'grid',
     gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-    gap: 2,
+    gap: 2.3,
     alignItems: 'stretch',
   } satisfies SxProps<Theme>,
   dashboardCard: {
@@ -381,9 +426,46 @@ export const uiSx = {
     minHeight: 252,
     height: '100%',
   } satisfies SxProps<Theme>,
+  dashboardCardTitle: {
+    position: 'relative',
+    display: 'inline-flex',
+    width: 'fit-content',
+    alignItems: 'center',
+    gap: 0.7,
+    pr: 0.8,
+    pb: 0.85,
+    fontWeight: 800,
+    letterSpacing: 0.35,
+    textShadow: '0 1px 0 rgba(0, 0, 0, 0.18)',
+    '&::before': {
+      content: '""',
+      width: 7,
+      height: 7,
+      borderRadius: '50%',
+      backgroundColor: uiColors.accent.light,
+      boxShadow: `0 0 10px ${uiColors.accent.light}`,
+      opacity: 0.85,
+    },
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 2,
+      borderRadius: 2,
+      background: `linear-gradient(90deg, ${uiColors.accent.light} 0%, rgba(255,255,255,0) 92%)`,
+    },
+  } satisfies SxProps<Theme>,
   dashboardCardHint: {
     color: 'text.secondary',
     fontSize: '0.9rem',
+  } satisfies SxProps<Theme>,
+  dashboardInlineHint: {
+    mt: 1.1,
+    color: 'text.secondary',
+    fontSize: '0.82rem',
+    letterSpacing: 0.15,
   } satisfies SxProps<Theme>,
   dashboardConfigControls: {
     display: 'flex',
@@ -465,7 +547,17 @@ export const uiSx = {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
-    width: 360,
+    width: '100%',
+    maxWidth: 360,
+    mx: 'auto',
+  } satisfies SxProps<Theme>,
+  loginTitle: {
+    fontWeight: 800,
+    letterSpacing: 0.5,
+    fontSize: { xs: '1.6rem', sm: '1.95rem' },
+    textAlign: 'center',
+    color: 'text.primary',
+    textShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
   } satisfies SxProps<Theme>,
   authTabs: {
     mb: 2,
@@ -541,3 +633,7 @@ export const uiSx = {
 };
 
 export default theme;
+
+
+
+

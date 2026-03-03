@@ -19,7 +19,9 @@ const LoginView: React.FC<Props> = ({ onNext, onAuth }) => {
 
   return (
     <Box sx={uiSx.centeredColumn}>
-      <Typography variant="h5">Welcome to GameY</Typography>
+      <Typography variant="h5" sx={uiSx.loginTitle}>
+        Welcome to GameY
+      </Typography>
 
       <Paper sx={uiSx.panel(520)}>
         <Tabs value={tab} onChange={(_, value) => setTab(value)} centered sx={uiSx.authTabs}>

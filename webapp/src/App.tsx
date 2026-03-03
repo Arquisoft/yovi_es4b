@@ -12,6 +12,7 @@ import HistoryView from './views/HistoryView';
 import type { MatchHistoryItem, PlayerStatsSummary } from './views/statsTypes';
 import { uiSx } from './theme';
 
+//estadisticas de ejemplo, para mostrar en el dashboard y la historia, ya que no esta conectadad todavia a la bd
 const DEMO_PLAYER_STATS: PlayerStatsSummary = {
   totalGames: 24,
   victories: 15,
@@ -27,6 +28,8 @@ const DEMO_MATCHES: MatchHistoryItem[] = [
   { gameId: 'game-237', result: 'loss', mode: 'human_vs_bot', winnerId: 'bot:random_bot', endedAt: '2026-03-03T16:58:00Z' },
   { gameId: 'game-236', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T16:22:00Z' },
 ];
+
+type BotDifficulty = 'easy' | 'medium' | 'hard';
 
 function App() {
   const auth = useAuth();
@@ -49,9 +52,11 @@ function App() {
   } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game'>('dashboard');
+  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('easy');
 
   async function handleCreateNewGame() {
-    const created = await createNewGame();
+    const botId = mode === 'human_vs_bot' && botDifficulty === 'easy' ? 'random_bot' : undefined;
+    const created = await createNewGame({ botId });
 
     if (created) {
       setView('game');
@@ -59,6 +64,11 @@ function App() {
   }
 
   async function handleSidebarPlay(nextMode: GameMode) {
+    setMode(nextMode);
+    if (nextMode === 'human_vs_bot') {
+      setBotDifficulty('easy');
+    }
+
     const created = await createNewGame({ mode: nextMode });
     if (created) {
       setView('game');
@@ -93,12 +103,24 @@ function App() {
             GAME Y
           </Typography>
 
-          <Typography variant="body1">Hello, {auth.username}!</Typography>
+          <Box sx={uiSx.appHeaderUserBadge}>
+            <Typography component="span" sx={uiSx.appHeaderUserText}>
+              Hello,
+            </Typography>
+            <Typography component="span" sx={uiSx.appHeaderUserName}>
+              {auth.username}
+            </Typography>
+          </Box>
         </Box>
       </Box>
 
       <Box sx={uiSx.appBody}>
-        <SidebarView onPlayBotEasy={() => handleSidebarPlay('human_vs_bot')} onPlayHuman={() => handleSidebarPlay('human_vs_human')} onLogout={auth.logout} />
+        <SidebarView
+          onPlayBotEasy={() => handleSidebarPlay('human_vs_bot')}
+          onPlayHuman={() => handleSidebarPlay('human_vs_human')}
+          onOpenStats={() => setView('history')}
+          onLogout={auth.logout}
+        />
 
         <Box sx={uiSx.appMain}>
           {error && (
@@ -113,8 +135,10 @@ function App() {
             <DashboardView
               boardSize={boardSize}
               mode={mode}
+              botDifficulty={botDifficulty}
               loading={loading}
               setMode={setMode}
+              setBotDifficulty={setBotDifficulty}
               updateBoardSize={updateBoardSize}
               createNewGame={handleCreateNewGame}
               playerStats={DEMO_PLAYER_STATS}
@@ -145,4 +169,3 @@ function App() {
 }
 
 export default App;
-
