@@ -47,8 +47,10 @@ export function useGamey(userId?: string) {
     setBoardSize(Math.max(1, value));
   }
 
-  async function createNewGame() {
-    return runRequest(createGame({ size: boardSize, mode }, userId));
+  async function createNewGame(next?: { mode?: GameMode; size?: number }) {
+    const nextMode = next?.mode ?? mode;
+    const nextSize = next?.size ?? boardSize;
+    return runRequest(createGame({ size: nextSize, mode: nextMode }, userId));
   }
 
   async function refreshCurrentGame() {

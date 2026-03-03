@@ -1,9 +1,5 @@
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.5;
-  font-weight: 400;
-  color: #111827;
-  background-color: #f3f4f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,29 +14,4 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-
-  /* small helpers to center content before MUI mounts */
-  #root { display: flex; justify-content: center; }
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.9rem;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid #94a3b8;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-family: inherit;
-  background-color: #f8fafc;
-  color: #0f172a;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }

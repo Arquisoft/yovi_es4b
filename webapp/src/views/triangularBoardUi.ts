@@ -1,11 +1,12 @@
 import type { BoardCell } from '../gameyUi';
+import { uiColors } from '../theme';
 
 export const BOARD_CELL_UI = {
   emptySymbol: '.',
   colors: {
-    empty: '#e8e2d6',
-    human: '#4caf50',
-    opponent: '#ff5252',
+    empty: uiColors.board.empty,
+    human: uiColors.board.human,
+    opponent: uiColors.board.opponent,
   },
 } as const;
 
