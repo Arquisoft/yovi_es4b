@@ -4,7 +4,9 @@
   "private": true,
   "main": "gateway-service.js",
   "scripts": {
-    "start": "node gateway-service.js"
+    "start": "node gateway-service.js",
+    "test": "node --test",
+    "test:coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
   },
   "dependencies": {
     "express": "^5.2.1",
