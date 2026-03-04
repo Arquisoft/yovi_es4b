@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import LoginForm from '../LoginForm';
 import RegisterForm from '../RegisterForm';
 import { Box, Typography, Paper, Tabs, Tab } from '@mui/material';
+import { uiSx } from '../theme';
 
 type Props = {
   onNext: () => void;
@@ -17,11 +18,13 @@ const LoginView: React.FC<Props> = ({ onNext, onAuth }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', width: '100%' }}>
-      <Typography variant="h5">Welcome to GameY</Typography>
+    <Box sx={uiSx.centeredColumn}>
+      <Typography variant="h5" sx={uiSx.loginTitle}>
+        Welcome to GameY
+      </Typography>
 
-      <Paper sx={{ p: 3, width: '100%', maxWidth: 520 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} centered sx={{ mb: 2 }}>
+      <Paper sx={uiSx.panel(520)}>
+        <Tabs value={tab} onChange={(_, value) => setTab(value)} centered sx={uiSx.authTabs}>
           <Tab label="Login" />
           <Tab label="Register" />
         </Tabs>
