@@ -25,26 +25,25 @@ describe('RegisterForm', () => {
 
   test('submits username/password and displays response', async () => {
     const user = userEvent.setup()
+    const payload = { message: 'User pablo registered successfully', token: 'fake-token', username: 'pablo' }
 
     // Mock fetch to resolve automatically
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ message: 'User pablo registered successfully', token: 'fake-token', username: 'pablo' }),
+      status: 201,
+      text: async () => JSON.stringify(payload),
     } as Response)
 
     render(<RegisterForm onSuccess={onSuccess} />)
 
-    // Wrap interaction + assertion inside waitFor
-    await waitFor(async () => {
-      await user.type(screen.getByLabelText(/^username$/i), 'Pablo')
-      await user.type(screen.getByLabelText(/^password$/i), 'secret123')
-      await user.type(screen.getByLabelText(/confirm password/i), 'secret123')
-      await user.click(screen.getByRole('button', { name: /register/i }))
+    await user.type(screen.getByLabelText(/^username$/i), 'Pablo')
+    await user.type(screen.getByLabelText(/^password$/i), 'secret123')
+    await user.type(screen.getByLabelText(/confirm password/i), 'secret123')
+    await user.click(screen.getByRole('button', { name: /register/i }))
 
-      // Response message should appear
-      expect(
-        screen.getByText(/registered successfully/i)
-      ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/registered successfully/i)).toBeInTheDocument()
     })
+    expect(onSuccess).toHaveBeenCalledWith('fake-token', 'pablo')
   })
 })

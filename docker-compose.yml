@@ -1,4 +1,41 @@
 services:
+  mongo-auth:
+    image: mongo:6.0
+    container_name: mongo-auth
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-auth-data:/data/db
+    networks:
+      - monitor-net
+
+  mongo-stats:
+    image: mongo:6.0
+    container_name: mongo-stats
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-stats-data:/data/db
+    networks:
+      - monitor-net
+
+  stats:
+    build: ./stats
+    container_name: stats
+    image: ghcr.io/arquisoft/yovi_es4b-stats:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGO_URL=mongodb://mongo-stats:27017
+      - MONGO_DB_NAME=yovi_stats
+      - STATS_INTERNAL_TOKEN=stats-internal-token
+    depends_on:
+      - mongo-stats
+    networks:
+      - monitor-net
+
   gateway:
     build: ./gateway
     container_name: gateway
@@ -9,6 +46,7 @@ services:
       - webapp
       - users
       - gamey
+      - stats
       - auth
     networks:
       - monitor-net
@@ -31,17 +69,9 @@ services:
     build: ./gamey
     container_name: gamey
     image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
-    networks:
-      - monitor-net
-
-  mongo:
-    image: mongo:6.0
-    container_name: mongo
-    restart: unless-stopped
-    volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
+    environment:
+      - STATS_SERVICE_URL=http://stats:3001
+      - STATS_INTERNAL_TOKEN=stats-internal-token
     networks:
       - monitor-net
 
@@ -50,14 +80,14 @@ services:
     container_name: auth
     image: ghcr.io/arquisoft/yovi_es4b-auth:latest
     environment:
-      - MONGO_AUTH_DB=${MONGO_AUTH_DB:-mongodb://mongo:27017/auth}
+      - MONGO_AUTH_DB=${MONGO_AUTH_DB:-mongodb://mongo-auth:27017/auth}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES=${JWT_EXPIRES:-1h}
       - PORT=3500
     ports:
       - "3500:3500"
     depends_on:
-      - mongo
+      - mongo-auth
     networks:
       - monitor-net
 
@@ -84,5 +114,7 @@ services:
 networks:
   monitor-net:
     driver: bridge
+
 volumes:
-  mongo-data:
+  mongo-auth-data:
+  mongo-stats-data:

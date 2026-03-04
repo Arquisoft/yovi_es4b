@@ -17,7 +17,7 @@ function toErrorMessage(error: unknown): string {
   return 'Unexpected error';
 }
 
-export function useGamey() {
+export function useGamey(userId?: string) {
   const [boardSize, setBoardSize] = useState(7);
   const [mode, setMode] = useState<GameMode>('human_vs_bot');
   const [game, setGame] = useState<GameStateResponse | null>(null);
@@ -28,14 +28,16 @@ export function useGamey() {
   const canPlayCell = useMemo(() => (game ? canHumanPlay(game) : false), [game]);
   const statusText = useMemo(() => (game ? gameStatusText(game) : ''), [game]);
 
-  async function runRequest(request: Promise<GameStateResponse>) {
+  async function runRequest(request: Promise<GameStateResponse>): Promise<boolean> {
     setLoading(true);
     setError(null);
     try {
       const nextGame = await request;
       setGame(nextGame);
+      return true;
     } catch (requestError: unknown) {
       setError(toErrorMessage(requestError));
+      return false;
     } finally {
       setLoading(false);
     }
@@ -45,8 +47,21 @@ export function useGamey() {
     setBoardSize(Math.max(1, value));
   }
 
-  async function createNewGame() {
-    await runRequest(createGame({ size: boardSize, mode }));
+  async function createNewGame(next?: { mode?: GameMode; size?: number; botId?: string }) {
+    const nextMode = next?.mode ?? mode;
+    const nextSize = next?.size ?? boardSize;
+    const nextBotId = next?.botId;
+
+    return runRequest(
+      createGame(
+        {
+          size: nextSize,
+          mode: nextMode,
+          ...(nextBotId ? { bot_id: nextBotId } : {}),
+        },
+        userId,
+      ),
+    );
   }
 
   async function refreshCurrentGame() {
@@ -60,14 +75,14 @@ export function useGamey() {
     if (!game) {
       return;
     }
-    await runRequest(resignGame(game.game_id));
+    await runRequest(resignGame(game.game_id, userId));
   }
 
   async function playCell(coords: Coordinates) {
     if (!game || !canPlayCell || loading) {
       return;
     }
-    await runRequest(playMove(game.game_id, { coords }));
+    await runRequest(playMove(game.game_id, { coords }, userId));
   }
 
   return {
@@ -87,3 +102,4 @@ export function useGamey() {
     playCell,
   };
 }
+
