@@ -1,4 +1,4 @@
-use crate::{GameY, YBotRegistry};
+﻿use crate::{GameY, YBotRegistry};
 use std::{
     collections::HashMap,
     sync::{
@@ -13,6 +13,9 @@ use tokio::sync::RwLock;
 pub struct GameSession {
     pub game: GameY,
     pub bot_id: Option<String>,
+    pub player0_user_id: Option<String>,
+    pub player1_user_id: Option<String>,
+    pub stats_reported: bool,
 }
 
 /// Shared application state for the bot server.
