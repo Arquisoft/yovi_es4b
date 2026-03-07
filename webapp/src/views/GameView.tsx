@@ -33,22 +33,22 @@ const GameView: React.FC<Props> = ({
   return (
     <Box sx={uiSx.centeredColumn}>
       <Typography variant="h5">Partida {game.game_id}</Typography>
-<<<<<<< HEAD
-      <Typography variant="body2" color="text.secondary">{statusText}</Typography>
-      {game.bot_id && (
-        <Typography variant="body2" color="text.secondary">
-          Bot: {
-            {
-              random_bot: 'muy fácil',
-              biased_random_bot: 'fácil',
-              greedy_bot: 'medio',
-              minimax_bot: 'difícil',
-            }[game.bot_id as string] || game.bot_id
-          }
-        </Typography>
-      )}
-=======
->>>>>>> master
+<Typography variant="body2" color="text.secondary">
+  {statusText}
+</Typography>
+
+{game.bot_id && (
+  <Typography variant="body2" color="text.secondary">
+    Bot: {
+      {
+        random_bot: 'muy fácil',
+        biased_random_bot: 'fácil',
+        greedy_bot: 'medio',
+        minimax_bot: 'difícil',
+      }[game.bot_id as string] || game.bot_id
+    }
+  </Typography>
+)}
 
       <Typography variant="body2" color="text.secondary">
         {statusText}
