@@ -19,7 +19,8 @@ function toErrorMessage(error: unknown): string {
 
 export function useGamey() {
   const [boardSize, setBoardSize] = useState(7);
-  const [mode, setMode] = useState<GameMode>('human_vs_bot');
+  // start with the easiest bot selected by default
+  const [mode, setMode] = useState<GameMode>('bot_muy_facil');
   const [game, setGame] = useState<GameStateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,8 @@ export function useGamey() {
   }
 
   async function createNewGame() {
+    // `createGame` already understands our extended GameMode and will
+    // translate it into the appropriate API payload.
     await runRequest(createGame({ size: boardSize, mode }));
   }
 

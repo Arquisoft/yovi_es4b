@@ -1,4 +1,15 @@
-export type GameMode = 'human_vs_human' | 'human_vs_bot';
+// A broader set of values used by the UI.  The server only understands
+// `human_vs_human` or `human_vs_bot` but we expose additional choices so the
+// user can pick a difficulty.  `useGamey` will translate these into the
+// appropriate payload (mode + optional bot_id) when calling the API.
+export type GameMode =
+  | 'human_vs_human'
+  | 'human_vs_bot'          // legacy/default "very easy" random bot
+  | 'bot_muy_facil'         // random bot (same as human_vs_bot)
+  | 'bot_facil'             // biased_random bot
+  | 'bot_medio'             // greedy bot
+  | 'bot_dificil';          // minimax bot
+
 
 export interface Coordinates {
   x: number;
@@ -91,10 +102,45 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function createGame(request: CreateGameRequest = {}): Promise<GameStateResponse> {
-  const body = {
+  // convert our UI-oriented mode values into what the backend expects.
+  let apiMode: 'human_vs_human' | 'human_vs_bot' = 'human_vs_bot';
+  let botId: string | undefined = request.bot_id;
+
+  switch (request.mode) {
+    case 'human_vs_human':
+      apiMode = 'human_vs_human';
+      break;
+    case 'human_vs_bot':
+      apiMode = 'human_vs_bot';
+      break;
+    case 'bot_muy_facil':
+      apiMode = 'human_vs_bot';
+      botId = 'random_bot';
+      break;
+    case 'bot_facil':
+      apiMode = 'human_vs_bot';
+      botId = 'biased_random_bot';
+      break;
+    case 'bot_medio':
+      apiMode = 'human_vs_bot';
+      botId = 'greedy_bot';
+      break;
+    case 'bot_dificil':
+      apiMode = 'human_vs_bot';
+      botId = 'minimax_bot';
+      break;
+    default:
+      if (request.mode) {
+        // unknown but preserve value, server will error if invalid
+        apiMode = request.mode as 'human_vs_bot';
+      }
+      break;
+  }
+
+  const body: any = {
     size: request.size ?? 7,
-    mode: request.mode ?? 'human_vs_bot',
-    ...(request.bot_id ? { bot_id: request.bot_id } : {}),
+    mode: apiMode,
+    ...(botId ? { bot_id: botId } : {}),
   };
 
   return requestJson<GameStateResponse>('/v1/games', {

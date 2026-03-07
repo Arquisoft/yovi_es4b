@@ -49,8 +49,11 @@ const ConfigView: React.FC<Props> = ({
             size="small"
             variant="filled"
           >
-            <MenuItem value="human_vs_bot">Human vs Bot</MenuItem>
-            <MenuItem value="human_vs_human">Human vs Human</MenuItem>
+            <MenuItem value="bot_muy_facil">Bot muy fácil (aleatorio)</MenuItem>
+            <MenuItem value="bot_facil">Bot fácil (biased random)</MenuItem>
+            <MenuItem value="bot_medio">Bot medio (greedy)</MenuItem>
+            <MenuItem value="bot_dificil">Bot difícil (minimax)</MenuItem>
+            <MenuItem value="human_vs_human">Humano vs Humano</MenuItem>
           </TextField>
 
           <Box sx={{ display: 'flex', gap: 1 }}>

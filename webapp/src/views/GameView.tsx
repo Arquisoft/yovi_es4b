@@ -35,6 +35,18 @@ const GameView: React.FC<Props> = ({
     <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
       <Typography variant="h5">Partida {game.game_id}</Typography>
       <Typography variant="body2" color="text.secondary">{statusText}</Typography>
+      {game.bot_id && (
+        <Typography variant="body2" color="text.secondary">
+          Bot: {
+            {
+              random_bot: 'muy fácil',
+              biased_random_bot: 'fácil',
+              greedy_bot: 'medio',
+              minimax_bot: 'difícil',
+            }[game.bot_id as string] || game.bot_id
+          }
+        </Typography>
+      )}
 
       <Paper sx={{ p: 2, width: '100%', maxWidth: 760 }}>
         <Box sx={{ display: 'flex', gap: 1, mb: 1, justifyContent: 'center' }}>

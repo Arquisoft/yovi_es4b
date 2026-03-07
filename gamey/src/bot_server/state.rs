@@ -94,4 +94,5 @@ mod tests {
         // Both Arcs should point to the same registry
         assert_eq!(bots1.names(), bots2.names());
     }
+
 }
