@@ -1,27 +1,39 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const port = Number(process.env.PORT ?? 8080);
+const DEFAULT_PORT = Number(process.env.PORT ?? 8080);
 
-const proxyRoutes = [
-  {
-    mountPath: '/api',
-    target: process.env.GAMEY_SERVICE_URL ?? 'http://gamey:4000',
-    stripPrefix: '/api',
-  },
-  {
-    mountPath: '/users',
-    target: process.env.USERS_SERVICE_URL ?? 'http://users:3000',
-    stripPrefix: '/users',
-  },
-  {
-    mountPath: '/',
-    target: process.env.WEBAPP_SERVICE_URL ?? 'http://webapp:80',
-  },
-];
+function getProxyRoutes(env = process.env) {
+  return [
+    {
+      mountPath: '/api',
+      target: env.GAMEY_SERVICE_URL ?? 'http://gamey:4000',
+      stripPrefix: '/api',
+    },
+    {
+      mountPath: '/auth',
+      target: env.AUTH_SERVICE_URL ?? 'http://auth:3500',
+      stripPrefix: '/auth',
+    },
+    {
+      mountPath: '/users',
+      target: env.USERS_SERVICE_URL ?? 'http://users:3000',
+      stripPrefix: '/users',
+    },
+    {
+      mountPath: '/stats',
+      target: env.STATS_SERVICE_URL ?? 'http://stats:3001',
+      stripPrefix: '/stats',
+    },
+    {
+      mountPath: '/',
+      target: env.WEBAPP_SERVICE_URL ?? 'http://webapp:80',
+    },
+  ];
+}
 
-function buildProxy({ target, stripPrefix }) {
-  return createProxyMiddleware({
+function buildProxy({ target, stripPrefix }, proxyFactory = createProxyMiddleware) {
+  return proxyFactory({
     target,
     changeOrigin: true,
     ws: true,
@@ -37,16 +49,36 @@ function buildProxy({ target, stripPrefix }) {
   });
 }
 
-const app = express();
+function createApp({ env = process.env, proxyFactory = createProxyMiddleware } = {}) {
+  const app = express();
+  const proxyRoutes = getProxyRoutes(env);
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok' });
+  });
 
-for (const route of proxyRoutes) {
-  app.use(route.mountPath, buildProxy(route));
+  for (const route of proxyRoutes) {
+    app.use(route.mountPath, buildProxy(route, proxyFactory));
+  }
+
+  return { app, proxyRoutes };
 }
 
-app.listen(port, () => {
-  console.log(`Gateway listening at http://localhost:${port}`);
-});
+function start({ port = DEFAULT_PORT, env = process.env } = {}) {
+  const { app } = createApp({ env });
+
+  return app.listen(port, () => {
+    console.log(`Gateway listening at http://localhost:${port}`);
+  });
+}
+
+if (require.main === module) {
+  start();
+}
+
+module.exports = {
+  buildProxy,
+  createApp,
+  getProxyRoutes,
+  start,
+};

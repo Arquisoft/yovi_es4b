@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // A broader set of values used by the UI.  The server only understands
 // `human_vs_human` or `human_vs_bot` but we expose additional choices so the
 // user can pick a difficulty.  `useGamey` will translate these into the
@@ -10,6 +11,9 @@ export type GameMode =
   | 'bot_medio'             // greedy bot
   | 'bot_dificil';          // minimax bot
 
+=======
+﻿export type GameMode = 'human_vs_human' | 'human_vs_bot';
+>>>>>>> master
 
 export interface Coordinates {
   x: number;
@@ -51,6 +55,17 @@ interface ApiErrorResponse {
 
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
 
+function withUserIdHeader(baseHeaders: Record<string, string>, userId?: string): Record<string, string> {
+  if (!userId || userId.trim().length === 0) {
+    return baseHeaders;
+  }
+
+  return {
+    ...baseHeaders,
+    'x-user-id': userId.trim(),
+  };
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${GAMEY_API_URL}${path}`;
   const response = await fetch(url, init);
@@ -80,7 +95,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
         ? payload.message
         : raw.trim().length > 0
           ? raw
-        : `Request failed with status ${response.status}`;
+          : `Request failed with status ${response.status}`;
     throw new Error(message);
   }
 
@@ -101,6 +116,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+<<<<<<< HEAD
 export async function createGame(request: CreateGameRequest = {}): Promise<GameStateResponse> {
   // convert our UI-oriented mode values into what the backend expects.
   let apiMode: 'human_vs_human' | 'human_vs_bot' = 'human_vs_bot';
@@ -138,6 +154,10 @@ export async function createGame(request: CreateGameRequest = {}): Promise<GameS
   }
 
   const body: any = {
+=======
+export async function createGame(request: CreateGameRequest = {}, userId?: string): Promise<GameStateResponse> {
+  const body = {
+>>>>>>> master
     size: request.size ?? 7,
     mode: apiMode,
     ...(botId ? { bot_id: botId } : {}),
@@ -145,7 +165,7 @@ export async function createGame(request: CreateGameRequest = {}): Promise<GameS
 
   return requestJson<GameStateResponse>('/v1/games', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withUserIdHeader({ 'Content-Type': 'application/json' }, userId),
     body: JSON.stringify(body),
   });
 }
@@ -156,16 +176,17 @@ export async function getGame(gameId: string): Promise<GameStateResponse> {
   });
 }
 
-export async function playMove(gameId: string, move: MoveRequest): Promise<GameStateResponse> {
+export async function playMove(gameId: string, move: MoveRequest, userId?: string): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}/moves`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withUserIdHeader({ 'Content-Type': 'application/json' }, userId),
     body: JSON.stringify(move),
   });
 }
 
-export async function resignGame(gameId: string): Promise<GameStateResponse> {
+export async function resignGame(gameId: string, userId?: string): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}/resign`, {
     method: 'POST',
+    headers: withUserIdHeader({}, userId),
   });
 }

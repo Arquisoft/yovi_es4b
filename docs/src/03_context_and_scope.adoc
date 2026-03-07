@@ -13,7 +13,7 @@ Motivation: clear context and scope prevent misunderstandings about responsibili
 and deployment requirements.
 === Business Context
 
-[plantuml, target=diagram-name, format=png]
+[plantuml, target=business-context-diagram, format=png]
 ----
 @startuml
 title Business Context Diagram
@@ -23,22 +23,25 @@ actor Player
 actor Bot
 
 package "Docker Compose Environment" {
+    node "Gateway (ngnix)" as Gateway
     node "webapp\n(React + Vite + TS)" as WebApp
     node "users\n(Node.js + Express)" as Users
     node "gamey\n(Rust Engine + Bot Service)" as Gamey
-    database "Base de Datos" as DB
+    database "Base de Datos de Usuarios \n(Autenticación)" as UserDB
+    database "Base de Datos de Partidas" as GameDB
 }
 
 ' Relaciones de actores
-Player --> WebApp : Access via web-browser\nPlay games\nView stats
+Player --> Gateway : Access via web-browser\nPlay games\nView stats
+Gateway --> WebApp : FrontEnd
 Administrator --> Users : User management\nSystem monitoring
 Bot --> Gamey : View user stats\nPlay games
 
 ' Internal services interactions
-WebApp --> Users : Authentication\n User management
-WebApp --> Gamey : Request games\nCheck game status
-Users --> DB : CRUD users
-Gamey --> DB : Save games\nQuery statistics
+Gateway --> Users : Authentication\n User management
+Gateway --> Gamey : Request games\nCheck game status
+Users --> UserDB : User authetication
+Gamey --> GameDB : Save games\nQuery statistics
 @enduml
 ----
 
@@ -73,55 +76,53 @@ endif::arc42help[]
 
 
 === Technical Context
-[plantuml, target=diagram-name, format=png]
+[plantuml, target=technical-context-diagram, format=png]
 ----
 @startuml
-title Technical Context - Deployment & Interfaces (Simplified + Monitoring)
+title Technical Context - Deployment & Interfaces
 
 actor "Player (Browser)" as Browser
 actor "Administrator" as Admin
 actor "External Bot" as ExternalBot
 
 package "Docker Compose Environment" {
-    node "Reverse Proxy\n(nginx) - optional\nports: 80/443" as Proxy
-    node "webapp\n(React + Vite + TypeScript)\nports: 80 (prod) / 5173 (dev)" as WebApp
-    node "users\n(Node.js + Express)\nport: 3000" as Users
-    node "gamey\n(Rust engine + Bot service)\nport: 4000" as Gamey
-    database "Database\n(Postgres / Mongo)\nports: 5432 / 27017" as DB
+
+    node "Gateway\n(nginx)\nports: 80/443" as Gateway
+    node "WebApp\n(React + Vite + TypeScript)\nports: 80 (prod) / 5173 (dev)" as WebApp
+    node "Users\n(Node.js + Express)\nport: 3000" as Users
+    node "Gamey\n(Rust engine + Bot service)\nport: 4000" as Gamey
+
+    database "User Authentication DB\n(MongoDB)\nport: 27017" as UserDB
+    database "Game Stats DB\n(MongoDB)\nport: 27017" as GameDB
 
     node "Prometheus\nSystem Monitoring\nport: 9090" as Prometheus
-    node "Grafana\nDashboards\nhost port: 9091 " as Grafana
+    node "Grafana\nDashboards\nhost port: 9091" as Grafana
 }
 
 ' --- External interactions ---
-Browser --> Proxy : HTTPS (443) / HTTP (80)
+Browser --> Gateway : HTTPS (443) / HTTP (80)
 Browser --> WebApp : HTTP (dev 5173)
 Admin --> Users : HTTPS (3000) - admin API
 ExternalBot --> Gamey : HTTPS JSON (4000) - bot API
 
 ' --- Internal service communication ---
-Proxy --> WebApp : HTTP (internal)
-WebApp --> Users : HTTP JSON (REST)
-WebApp --> Gamey : HTTP JSON (REST)
-Users --> DB : TCP (DB driver)
-Gamey --> DB : TCP (DB driver)
+Gateway --> WebApp : HTTP (internal)
+Gateway --> Users : HTTP JSON (REST)
+Gateway --> Gamey : HTTP JSON (REST)
+Users --> UserDB : TCP (DB driver)
+Gamey --> GameDB : TCP (DB driver)
 
 ' --- Monitoring ---
 Users --> Prometheus : HTTP /metrics
 Gamey --> Prometheus : HTTP /metrics
 Prometheus --> Grafana : HTTP (data source)
 
-note left of DB
+note left of UserDB
 DB runs in a container with a mounted persistent volume.
 end note
 
-note right of Proxy
-TLS termination and certificate management here.
-In development Vite serves on 5173 directly.
-end note
-
-note bottom
-Internal Docker network; only expose the reverse proxy in production.
+note bottom of Gateway
+Internal Docker network; only expose the Gateway in production.
 end note
 
 @enduml
