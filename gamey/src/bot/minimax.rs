@@ -4,6 +4,7 @@
 //! with alpha-beta pruning to choose optimal moves.
 
 use crate::{Coordinates, GameY, YBot};
+use rand::Rng;
 
 /// A bot that uses the minimax algorithm to choose moves.
 ///
@@ -42,7 +43,7 @@ impl MinimaxBot {
                 // and consider board control
                 let available = board.available_cells().len() as f64;
                 let total = (board.board_size() * (board.board_size() + 1) / 2) as f64;
-                available / total * 100.0
+                available / total * 100.0 + rand::thread_rng().gen_range(0.0..0.01)
             }
         }
     }
