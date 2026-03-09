@@ -124,6 +124,7 @@ function finishedMatchPayload(gameId = 'game-1') {
     gameId,
     endedAt: '2026-03-03T10:00:00.000Z',
     mode: 'human_vs_human',
+    botId: null,
     winnerId: 'alice',
     players: [
       { userId: 'alice', result: 'win' },
@@ -370,6 +371,7 @@ test('stores a finished match and exposes stats/history', async () => {
     assert.equal(history.body.items[0].gameId, 'game-1');
     assert.equal(history.body.items[0].result, 'win');
     assert.equal(history.body.items[0].winnerId, 'alice');
+    assert.equal(history.body.items[0].botId, null);
   });
 });
 

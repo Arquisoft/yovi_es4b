@@ -72,6 +72,37 @@ The `gamey` component is a Rust-based game engine with bot support, built with [
 - `Cargo.toml`: Project manifest with dependencies and metadata.
 - `Dockerfile`: Defines the Docker image for the gamey service.
 
+### Auth Service
+
+A new microservice lives under `auth_service/`. It provides user registration and login using
+JSON Web Tokens (JWT) and persists accounts in MongoDB. This allows sessions to be
+authenticated across the platform.
+
+- `auth-service.js`: main application file, implements `/register`, `/login`, and a
+  protected `/me` endpoint.
+- `models/user.js`: Mongoose schema for users (username + passwordHash).
+- `package.json` / `package-lock.json`: npm configuration.
+- `Dockerfile`: builds the Node.js image for the service.
+- `__tests__/auth-service.test.js`: unit tests using Supertest.
+
+#### API endpoints
+
+| Path           | Method | Description                       | Auth required |
+|---------------|--------|-----------------------------------|---------------|
+| `/register`   | POST   | Create account (username+password)| no            |
+| `/login`      | POST   | Obtain JWT token                  | no            |
+| `/me`         | GET    | Get current user info             | yes (Bearer)  |
+
+Example request body for `/register`:
+```json
+{ "username": "alice", "password": "P@ssw0rd" }
+```
+
+Successful login returns:
+```json
+{ "token": "<jwt>", "expires_in": "XXh" }
+```
+
 ## Running the Project
 
 You can run this project using Docker (recommended) or locally without Docker.

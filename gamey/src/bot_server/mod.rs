@@ -30,7 +30,7 @@ pub use choose::MoveResponse;
 pub use error::ErrorResponse;
 pub use version::*;
 
-use crate::{GameYError, RandomBot, BiasedRandomBot, YBotRegistry};
+use crate::{GameYError, RandomBot, BiasedRandomBot, GreedyBot, MinimaxBot, YBotRegistry};
 use self::state::AppState;
 
 /// Creates the Axum router with the given state.
@@ -62,7 +62,9 @@ pub fn create_router(state: AppState) -> axum::Router {
 pub fn create_default_state() -> AppState {
     let bots = YBotRegistry::new()
         .with_bot(Arc::new(RandomBot))
-        .with_bot(Arc::new(BiasedRandomBot));
+        .with_bot(Arc::new(BiasedRandomBot))
+        .with_bot(Arc::new(GreedyBot))
+        .with_bot(Arc::new(MinimaxBot::default()));
     AppState::new(bots)
 }
 

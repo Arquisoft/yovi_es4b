@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
-import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
 
@@ -21,6 +20,7 @@ vi.mock('../useGamey', () => ({
   useGamey: () => ({
     boardSize: 7,
     mode: 'human_vs_bot' as const,
+    botDifficulty: 'easy' as const,
     game: null,
     error: null,
     loading: false,
@@ -28,11 +28,26 @@ vi.mock('../useGamey', () => ({
     canPlayCell: true,
     statusText: '',
     setMode: vi.fn(),
+    setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
     createNewGame: vi.fn(),
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
     playCell: vi.fn(),
+  }),
+}));
+
+vi.mock('../useStats', () => ({
+  useStats: () => ({
+    playerStats: {
+      totalGames: 0,
+      victories: 0,
+      defeats: 0,
+      updatedAt: null,
+    },
+    matches: [],
+    loading: false,
+    error: null,
   }),
 }));
 

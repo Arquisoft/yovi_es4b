@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { buildFallbackRow, getBoardCellColor, isBoardCellPlayable } from '../views/triangularBoardUi';
+import { buildFallbackRow, getBoardCellColor, isBoardCellPlayable } from '../components/board/triangularBoardUi';
 
 describe('triangularBoardUi helpers', () => {
   test('returns correct color for empty, human, and opponent cells', () => {

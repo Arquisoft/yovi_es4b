@@ -24,7 +24,7 @@ Authentication micro-service for the Yovi GameY platform.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3500` | HTTP listen port |
-| `MONGO_URL` | `mongodb://mongo:27017/auth` | MongoDB connection string |
+| `MONGO_AUTH_DB` | `mongodb://mongo-auth:27017/auth` | MongoDB connection string |
 | `JWT_SECRET` | `change_this_secret` | Secret key for signing JWTs |
 | `JWT_EXPIRES` | `1h` | Token expiry (e.g. `1h`, `7d`) |
 
@@ -48,7 +48,7 @@ npm run test:coverage   # with coverage report
 ```bash
 docker build -t auth-service .
 docker run -p 3500:3500 \
-  -e MONGO_URL=mongodb://mongo:27017/auth \
+  -e MONGO_AUTH_DB=mongodb://mongo-auth:27017/auth \
   -e JWT_SECRET=my_secret \
   auth-service
 ```

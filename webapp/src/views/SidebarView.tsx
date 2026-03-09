@@ -4,15 +4,16 @@ import { uiSx } from '../theme';
 import playIcon from '../assets/play-button-svgrepo-com (1).svg';
 import statsIcon from '../assets/stats-graph-svgrepo-com.svg';
 import logOutIcon from '../assets/logout-svgrepo-com.svg';
+import { botDifficultyOptions, type BotDifficulty } from '../stats/types';
 
 type Props = {
-  onPlayBotEasy: () => void;
+  onPlayBot: (difficulty: BotDifficulty) => void;
   onPlayHuman: () => void;
   onOpenStats: () => void;
   onLogout: () => void;
 };
 
-const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onOpenStats, onLogout }) => {
+const SidebarView: React.FC<Props> = ({ onPlayBot, onPlayHuman, onOpenStats, onLogout }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,15 +34,17 @@ const SidebarView: React.FC<Props> = ({ onPlayBotEasy, onPlayHuman, onOpenStats,
           <Typography component="div" sx={uiSx.sidebarSubmenuTitle}>
             Contra bot
           </Typography>
-          <Box component="button" type="button" sx={uiSx.sidebarOption} onClick={onPlayBotEasy}>
-            Facil
-          </Box>
-          <Typography component="div" sx={uiSx.sidebarOptionDisabled}>
-            Intermedio
-          </Typography>
-          <Typography component="div" sx={uiSx.sidebarOptionDisabled}>
-            Dificil
-          </Typography>
+          {botDifficultyOptions.map((option) => (
+            <Box
+              key={option.value}
+              component="button"
+              type="button"
+              sx={uiSx.sidebarOption}
+              onClick={() => onPlayBot(option.value)}
+            >
+              {option.label}
+            </Box>
+          ))}
           <Box sx={uiSx.sidebarSubmenuDivider} />
           <Box component="button" type="button" sx={uiSx.sidebarOption} onClick={onPlayHuman}>
             Contra humano

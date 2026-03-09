@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import type { BoardCell } from '../gameyUi';
-import { uiSx } from '../theme';
+import type { BoardCell } from '../../gameyUi';
+import { uiSx } from '../../theme';
 import { BOARD_CELL_UI, buildFallbackRow, getBoardCellColor, isBoardCellPlayable } from './triangularBoardUi';
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
   size: number;
 };
 
-const Hex: React.FC<{
+const CellView: React.FC<{
   color?: string;
   onClick?: () => void;
   clickable?: boolean;
@@ -41,12 +41,12 @@ const TriangularBoard: React.FC<Props> = ({ board, playCell, canPlayCell, loadin
               };
 
               return (
-                <Hex
+                <CellView
                   key={cell.key ?? `${rowIndex}-${colIndex}`}
+                  testId={`hex-${cell.key ?? `${rowIndex}-${colIndex}`}`}
+                  clickable={clickable}
                   color={color}
                   onClick={handleClick}
-                  clickable={clickable}
-                  testId={`hex-${cell.key ?? `${rowIndex}-${colIndex}`}`}
                 />
               );
             })}

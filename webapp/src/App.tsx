@@ -2,6 +2,7 @@ import './App.css';
 import { useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
+import { useStats } from './useStats';
 import { useAuth } from './hooks/useAuth';
 import LoginView from './views/LoginView';
 import GameView from './views/GameView';
@@ -9,34 +10,17 @@ import type { GameMode } from './gameyApi';
 import SidebarView from './views/SidebarView';
 import DashboardView from './views/DashboardView';
 import HistoryView from './views/HistoryView';
-import type { MatchHistoryItem, PlayerStatsSummary } from './views/statsTypes';
+import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
 import { uiSx } from './theme';
-
-//estadisticas de ejemplo, para mostrar en el dashboard y la historia, ya que no esta conectadad todavia a la bd
-const DEMO_PLAYER_STATS: PlayerStatsSummary = {
-  totalGames: 24,
-  victories: 15,
-  defeats: 9,
-  updatedAt: '2026-03-03T19:00:00Z',
-};
-
-const DEMO_MATCHES: MatchHistoryItem[] = [
-  { gameId: 'game-241', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T18:34:00Z' },
-  { gameId: 'game-240', result: 'loss', mode: 'human_vs_human', winnerId: 'player-1', endedAt: '2026-03-03T18:11:00Z' },
-  { gameId: 'game-239', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T17:56:00Z' },
-  { gameId: 'game-238', result: 'win', mode: 'human_vs_human', winnerId: 'adri', endedAt: '2026-03-03T17:20:00Z' },
-  { gameId: 'game-237', result: 'loss', mode: 'human_vs_bot', winnerId: 'bot:random_bot', endedAt: '2026-03-03T16:58:00Z' },
-  { gameId: 'game-236', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T16:22:00Z' },
-];
-
-type BotDifficulty = 'easy' | 'medium' | 'hard';
 
 function App() {
   const auth = useAuth();
+  const stats = useStats(auth.username ?? undefined);
 
   const {
     boardSize,
     mode,
+    botDifficulty,
     game,
     error,
     loading,
@@ -44,6 +28,7 @@ function App() {
     canPlayCell,
     statusText,
     setMode,
+    setBotDifficulty,
     updateBoardSize,
     createNewGame,
     refreshCurrentGame,
@@ -52,24 +37,24 @@ function App() {
   } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game'>('dashboard');
-  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('easy');
 
   async function handleCreateNewGame() {
-    const botId = mode === 'human_vs_bot' && botDifficulty === 'easy' ? 'random_bot' : undefined;
-    const created = await createNewGame({ botId });
-
+    const created = await createNewGame();
     if (created) {
       setView('game');
     }
   }
 
-  async function handleSidebarPlay(nextMode: GameMode) {
+  async function handleSidebarPlay(nextMode: GameMode, difficulty?: BotDifficulty) {
     setMode(nextMode);
-    if (nextMode === 'human_vs_bot') {
-      setBotDifficulty('easy');
+    if (nextMode === 'human_vs_bot' && difficulty) {
+      setBotDifficulty(difficulty);
     }
 
-    const created = await createNewGame({ mode: nextMode });
+    const created = await createNewGame({
+      mode: nextMode,
+      botId: nextMode === 'human_vs_bot' && difficulty ? mapDifficultyToBotId(difficulty) : undefined,
+    });
     if (created) {
       setView('game');
     }
@@ -116,7 +101,7 @@ function App() {
 
       <Box sx={uiSx.appBody}>
         <SidebarView
-          onPlayBotEasy={() => handleSidebarPlay('human_vs_bot')}
+          onPlayBot={(difficulty) => handleSidebarPlay('human_vs_bot', difficulty)}
           onPlayHuman={() => handleSidebarPlay('human_vs_human')}
           onOpenStats={() => setView('history')}
           onLogout={auth.logout}
@@ -126,6 +111,12 @@ function App() {
           {error && (
             <Alert severity="error" sx={uiSx.errorText}>
               {error}
+            </Alert>
+          )}
+
+          {stats.error && (
+            <Alert severity="warning" sx={uiSx.errorText}>
+              {stats.error}
             </Alert>
           )}
 
@@ -141,13 +132,13 @@ function App() {
               setBotDifficulty={setBotDifficulty}
               updateBoardSize={updateBoardSize}
               createNewGame={handleCreateNewGame}
-              playerStats={DEMO_PLAYER_STATS}
-              matches={DEMO_MATCHES}
+              playerStats={stats.playerStats}
+              matches={stats.matches}
               onViewMoreMatches={() => setView('history')}
             />
           )}
 
-          {view === 'history' && <HistoryView matches={DEMO_MATCHES} onBack={() => setView('dashboard')} />}
+          {view === 'history' && <HistoryView matches={stats.matches} onBack={() => setView('dashboard')} />}
 
           {view === 'game' && (
             <GameView

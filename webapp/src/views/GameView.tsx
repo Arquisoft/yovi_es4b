@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
-import TriangularBoard from './TriangularBoard';
+import { Box, Button, Typography } from '@mui/material';
+import TriangularBoard from '../components/board/TriangularBoard';
 import { uiSx } from '../theme';
 
 type Props = {
@@ -13,6 +13,13 @@ type Props = {
   resignCurrentGame: () => void;
   playCell: (coords: any) => Promise<void> | void;
   onBack: () => void;
+};
+
+const botLabels: Record<string, string> = {
+  random_bot: 'muy facil',
+  biased_random_bot: 'facil',
+  greedy_bot: 'medio',
+  minimax_bot: 'dificil',
 };
 
 const GameView: React.FC<Props> = ({
@@ -38,6 +45,12 @@ const GameView: React.FC<Props> = ({
         {statusText}
       </Typography>
 
+      {game.bot_id && (
+        <Typography variant="body2" color="text.secondary">
+          Bot: {botLabels[game.bot_id as string] ?? game.bot_id}
+        </Typography>
+      )}
+
       <Box sx={uiSx.gameBoardStage}>
         <Box sx={uiSx.gameBoardBase} />
         <TriangularBoard
@@ -60,9 +73,7 @@ const GameView: React.FC<Props> = ({
             Rendirse
           </Button>
 
-          <Button onClick={onBack}>
-            Volver
-          </Button>
+          <Button onClick={onBack}>Volver</Button>
         </Box>
       </Box>
     </Box>

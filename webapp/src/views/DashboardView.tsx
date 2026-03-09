@@ -5,7 +5,7 @@ import { uiSx } from '../theme';
 import ConfigView from './ConfigView';
 import MatchHistoryPreviewCardView from './MatchHistoryPreviewCardView';
 import PlayerStatsCardView from './PlayerStatsCardView';
-import type { BotDifficulty, MatchHistoryItem, PlayerStatsSummary } from './statsTypes';
+import type { BotDifficulty, MatchHistoryItem, PlayerStatsSummary } from '../stats/types';
 
 type Props = {
   boardSize: number;

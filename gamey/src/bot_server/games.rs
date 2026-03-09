@@ -86,6 +86,7 @@ struct FinishedMatchPlayer {
 struct FinishedMatchRequest {
     game_id: String,
     mode: Option<String>,
+    bot_id: Option<String>,
     reason: Option<String>,
     winner_id: Option<String>,
     final_board: Option<YEN>,
@@ -376,6 +377,7 @@ fn prepare_stats_report_if_needed(
     Some(FinishedMatchRequest {
         game_id: game_id.to_string(),
         mode: Some(mode_name(session)),
+        bot_id: session.bot_id.clone(),
         reason: None,
         winner_id: Some(winner_user_id),
         final_board: Some(final_board),
