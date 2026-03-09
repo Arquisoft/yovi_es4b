@@ -13,7 +13,7 @@ const port = Number(process.env.PORT ?? 3500);
 app.use(express.json());
 app.use(promBundle({ includeMethod: true }));
 
-const MONGO_AUTH_DB = process.env.MONGO_AUTH_DB ?? 'mongodb://mongo:27017/auth';
+const MONGO_AUTH_DB = process.env.MONGO_AUTH_DB ?? 'mongodb://mongo-auth:27017/auth';
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET environment variable is not set');

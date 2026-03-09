@@ -80,7 +80,7 @@ services:
     container_name: auth
     image: ghcr.io/arquisoft/yovi_es4b-auth:latest
     environment:
-      - MONGO_AUTH_DB=${MONGO_AUTH_DB:-mongodb://mongo-auth:27017/auth}
+      - MONGO_AUTH_DB=mongodb://mongo-auth:27017/auth
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES=${JWT_EXPIRES:-1h}
       - PORT=3500

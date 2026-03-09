@@ -9,7 +9,7 @@ let mongoServer
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create()
-  process.env.MONGO_URL = mongoServer.getUri()
+  process.env.MONGO_AUTH_DB = mongoServer.getUri()
   process.env.JWT_SECRET = 'test-secret'
 })
 
