@@ -6,9 +6,10 @@ import '@testing-library/jest-dom';
 import App from '../App';
 import { mapDifficultyToBotId } from '../stats/types';
 
-const { createNewGameSpy, setModeSpy, logoutSpy } = vi.hoisted(() => ({
+const { createNewGameSpy, setModeSpy, setBotDifficultySpy, logoutSpy } = vi.hoisted(() => ({
   createNewGameSpy: vi.fn(),
   setModeSpy: vi.fn(),
+  setBotDifficultySpy: vi.fn(),
   logoutSpy: vi.fn(),
 }));
 
@@ -34,11 +35,17 @@ vi.mock('../hooks/useAuth', () => ({
 vi.mock('../useGamey', () => ({
   useGamey: () => {
     const [mode, setModeState] = React.useState<'human_vs_bot' | 'human_vs_human'>('human_vs_bot');
+    const [botDifficulty, setBotDifficultyState] = React.useState<'very_easy' | 'easy' | 'medium' | 'hard'>('easy');
     const [game, setGame] = React.useState<any>(null);
 
     const setMode = (nextMode: 'human_vs_bot' | 'human_vs_human') => {
       setModeSpy(nextMode);
       setModeState(nextMode);
+    };
+
+    const setBotDifficulty = (nextDifficulty: 'very_easy' | 'easy' | 'medium' | 'hard') => {
+      setBotDifficultySpy(nextDifficulty);
+      setBotDifficultyState(nextDifficulty);
     };
 
     const createNewGame = async (next?: { mode?: 'human_vs_bot' | 'human_vs_human'; botId?: string }) => {
@@ -55,6 +62,7 @@ vi.mock('../useGamey', () => ({
     return {
       boardSize: 7,
       mode,
+      botDifficulty,
       game,
       error: null,
       loading: false,
@@ -62,6 +70,7 @@ vi.mock('../useGamey', () => ({
       canPlayCell: true,
       statusText: 'Turno',
       setMode,
+      setBotDifficulty,
       updateBoardSize: vi.fn(),
       createNewGame,
       refreshCurrentGame: vi.fn(),
@@ -75,6 +84,7 @@ describe('App sidebar actions', () => {
   beforeEach(() => {
     createNewGameSpy.mockClear();
     setModeSpy.mockClear();
+    setBotDifficultySpy.mockClear();
     logoutSpy.mockClear();
   });
 
@@ -91,6 +101,7 @@ describe('App sidebar actions', () => {
     await user.click(within(sidebar).getByRole('button', { name: /^facil$/i }));
 
     await waitFor(() => {
+      expect(setBotDifficultySpy).toHaveBeenCalledWith('easy');
       expect(createNewGameSpy).toHaveBeenCalledWith({ mode: 'human_vs_bot', botId: mapDifficultyToBotId('easy') });
       expect(screen.getByText(/partida bot-game/i)).toBeInTheDocument();
     });
