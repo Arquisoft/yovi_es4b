@@ -88,7 +88,7 @@ describe('App sidebar actions', () => {
     const sidebar = screen.getByRole('complementary');
 
     await user.hover(within(sidebar).getByRole('button', { name: /jugar/i }));
-    await user.click(within(sidebar).getByRole('button', { name: /facil/i }));
+    await user.click(within(sidebar).getByRole('button', { name: /^facil$/i }));
 
     await waitFor(() => {
       expect(createNewGameSpy).toHaveBeenCalledWith({ mode: 'human_vs_bot', botId: mapDifficultyToBotId('easy') });
