@@ -2,6 +2,7 @@ import './App.css';
 import { useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
+import { useStats } from './useStats';
 import { useAuth } from './hooks/useAuth';
 import LoginView from './views/LoginView';
 import GameView from './views/GameView';
@@ -9,28 +10,12 @@ import type { GameMode } from './gameyApi';
 import SidebarView from './views/SidebarView';
 import DashboardView from './views/DashboardView';
 import HistoryView from './views/HistoryView';
-import { mapDifficultyToBotId, type BotDifficulty, type MatchHistoryItem, type PlayerStatsSummary } from './views/statsTypes';
+import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
 import { uiSx } from './theme';
-
-//estadisticas de ejemplo, para mostrar en el dashboard y la historia, ya que no esta conectadad todavia a la bd
-const DEMO_PLAYER_STATS: PlayerStatsSummary = {
-  totalGames: 24,
-  victories: 15,
-  defeats: 9,
-  updatedAt: '2026-03-03T19:00:00Z',
-};
-
-const DEMO_MATCHES: MatchHistoryItem[] = [
-  { gameId: 'game-241', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T18:34:00Z' },
-  { gameId: 'game-240', result: 'loss', mode: 'human_vs_human', winnerId: 'player-1', endedAt: '2026-03-03T18:11:00Z' },
-  { gameId: 'game-239', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T17:56:00Z' },
-  { gameId: 'game-238', result: 'win', mode: 'human_vs_human', winnerId: 'adri', endedAt: '2026-03-03T17:20:00Z' },
-  { gameId: 'game-237', result: 'loss', mode: 'human_vs_bot', winnerId: 'bot:random_bot', endedAt: '2026-03-03T16:58:00Z' },
-  { gameId: 'game-236', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T16:22:00Z' },
-];
 
 function App() {
   const auth = useAuth();
+  const stats = useStats(auth.username ?? undefined);
 
   const {
     boardSize,
@@ -129,6 +114,12 @@ function App() {
             </Alert>
           )}
 
+          {stats.error && (
+            <Alert severity="warning" sx={uiSx.errorText}>
+              {stats.error}
+            </Alert>
+          )}
+
           {view === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
 
           {view === 'dashboard' && (
@@ -141,13 +132,13 @@ function App() {
               setBotDifficulty={setBotDifficulty}
               updateBoardSize={updateBoardSize}
               createNewGame={handleCreateNewGame}
-              playerStats={DEMO_PLAYER_STATS}
-              matches={DEMO_MATCHES}
+              playerStats={stats.playerStats}
+              matches={stats.matches}
               onViewMoreMatches={() => setView('history')}
             />
           )}
 
-          {view === 'history' && <HistoryView matches={DEMO_MATCHES} onBack={() => setView('dashboard')} />}
+          {view === 'history' && <HistoryView matches={stats.matches} onBack={() => setView('dashboard')} />}
 
           {view === 'game' && (
             <GameView

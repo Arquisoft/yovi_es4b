@@ -2,7 +2,14 @@ export type PlayerStatsSummary = {
   totalGames: number;
   victories: number;
   defeats: number;
-  updatedAt: string;
+  updatedAt: string | null;
+};
+
+export const EMPTY_PLAYER_STATS: PlayerStatsSummary = {
+  totalGames: 0,
+  victories: 0,
+  defeats: 0,
+  updatedAt: null,
 };
 
 export type BotDifficulty = 'very_easy' | 'easy' | 'medium' | 'hard';
@@ -25,7 +32,15 @@ export function mapDifficultyToBotId(difficulty: BotDifficulty): string {
 export type MatchHistoryItem = {
   gameId: string;
   result: 'win' | 'loss';
-  mode: 'human_vs_bot' | 'human_vs_human';
-  winnerId: string;
+  mode: 'human_vs_bot' | 'human_vs_human' | null;
+  winnerId: string | null;
+  botId: string | null;
   endedAt: string;
+};
+
+export const botHistoryLabels: Record<string, string> = {
+  random_bot: 'Muy facil',
+  biased_random_bot: 'Facil',
+  greedy_bot: 'Intermedio',
+  minimax_bot: 'Dificil',
 };

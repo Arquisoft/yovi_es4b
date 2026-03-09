@@ -49,6 +49,10 @@ function validateFinishedMatchPayload(payload) {
     }
   }
 
+  if (payload.botId !== undefined && payload.botId !== null && typeof payload.botId !== 'string') {
+    return 'botId must be a string';
+  }
+
   for (const player of payload.players) {
     if (!player || typeof player !== 'object') {
       return 'Each player must be an object';
@@ -220,6 +224,7 @@ function createApp({ internalToken = INTERNAL_TOKEN, playerStatsCollection, play
     const mode = toOptionalString(req.body.mode);
     const reason = toOptionalString(req.body.reason);
     const winnerId = toOptionalString(req.body.winnerId);
+    const botId = toOptionalString(req.body.botId);
     const finalBoard = toOptionalObject(req.body.finalBoard);
 
     if (Number.isNaN(endedAt.getTime())) {
@@ -242,6 +247,7 @@ function createApp({ internalToken = INTERNAL_TOKEN, playerStatsCollection, play
           userId,
           result,
           mode,
+          botId,
           reason,
           winnerId,
           finalBoard,

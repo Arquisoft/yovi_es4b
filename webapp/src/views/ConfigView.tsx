@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 import type { GameMode } from '../gameyApi';
 import { uiSx } from '../theme';
-import { botDifficultyOptions, type BotDifficulty } from './statsTypes';
+import { botDifficultyOptions, type BotDifficulty } from '../stats/types';
 
 type Props = {
   boardSize: number;

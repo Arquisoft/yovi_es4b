@@ -1,5 +1,5 @@
-import type { BoardCell } from '../gameyUi';
-import { uiColors } from '../theme';
+import type { BoardCell } from '../../gameyUi';
+import { uiColors } from '../../theme';
 
 export const BOARD_CELL_UI = {
   emptySymbol: '.',

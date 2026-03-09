@@ -9,7 +9,7 @@ import {
   type GameStateResponse,
 } from './gameyApi';
 import { canHumanPlay, gameStatusText, toBoardCells } from './gameyUi';
-import { mapDifficultyToBotId, type BotDifficulty } from './views/statsTypes';
+import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {

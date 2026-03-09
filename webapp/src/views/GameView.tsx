@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
-import TriangularBoard from './TriangularBoard';
+import TriangularBoard from '../components/board/TriangularBoard';
 import { uiSx } from '../theme';
 
 type Props = {
