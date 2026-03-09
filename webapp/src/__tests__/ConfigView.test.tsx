@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import type React from 'react';
@@ -34,13 +33,29 @@ describe('ConfigView', () => {
     expect(props.updateBoardSize).toHaveBeenLastCalledWith(9);
   });
 
-  test('calls setMode when selecting game mode', async () => {
-    const props = renderConfig({ mode: 'human_vs_bot' });
-    const user = userEvent.setup();
+  test('falls back to board size 1 when the input is not a number', () => {
+    const props = renderConfig();
 
-    await user.click(screen.getByRole('button', { name: /human vs human/i }));
+    const sizeInput = screen.getByRole('spinbutton');
+    fireEvent.change(sizeInput, { target: { value: '' } });
+
+    expect(props.updateBoardSize).toHaveBeenLastCalledWith(1);
+  });
+
+  test('calls setMode when selecting game mode', () => {
+    const props = renderConfig({ mode: 'human_vs_bot' });
+
+    fireEvent.click(screen.getByRole('button', { name: /human vs human/i }));
 
     expect(props.setMode).toHaveBeenCalledWith('human_vs_human');
+  });
+
+  test('calls setMode when switching back to human vs bot', () => {
+    const props = renderConfig({ mode: 'human_vs_human' });
+
+    fireEvent.click(screen.getByRole('button', { name: /human vs bot/i }));
+
+    expect(props.setMode).toHaveBeenCalledWith('human_vs_bot');
   });
 
   test('disables bot difficulty buttons when mode is human_vs_human', () => {
@@ -52,12 +67,25 @@ describe('ConfigView', () => {
     expect(screen.getByRole('button', { name: /dificil/i })).toBeDisabled();
   });
 
-  test('calls createNewGame when create button is enabled', async () => {
-    const props = renderConfig({ mode: 'human_vs_bot', botDifficulty: 'easy', loading: false });
-    const user = userEvent.setup();
+  test('calls setBotDifficulty when selecting a bot difficulty in bot mode', () => {
+    const props = renderConfig({ mode: 'human_vs_bot', botDifficulty: 'easy' });
 
-    await user.click(screen.getByRole('button', { name: /crear partida/i }));
+    fireEvent.click(screen.getByRole('button', { name: /intermedio/i }));
+
+    expect(props.setBotDifficulty).toHaveBeenCalledWith('medium');
+  });
+
+  test('calls createNewGame when create button is enabled', () => {
+    const props = renderConfig({ mode: 'human_vs_bot', botDifficulty: 'easy', loading: false });
+
+    fireEvent.click(screen.getByRole('button', { name: /crear partida/i }));
 
     expect(props.createNewGame).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows loading state on create button and disables it', () => {
+    renderConfig({ loading: true });
+
+    expect(screen.getByRole('button', { name: /cargando/i })).toBeDisabled();
   });
 });

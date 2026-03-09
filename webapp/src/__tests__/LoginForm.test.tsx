@@ -63,4 +63,41 @@ describe('LoginForm', () => {
       expect(onSuccess).not.toHaveBeenCalled();
     });
   });
+
+  test('shows fallback backend error when the response has no message', async () => {
+    const user = userEvent.setup();
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => '{}',
+    } as Response);
+
+    render(<LoginForm onSuccess={onSuccess} />);
+
+    await user.type(screen.getByLabelText(/^username$/i), 'adri');
+    await user.type(screen.getByLabelText(/^password$/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/login failed \(500\)/i)).toBeInTheDocument();
+    });
+  });
+
+  test('shows network error message when fetch rejects', async () => {
+    const user = userEvent.setup();
+
+    global.fetch = vi.fn().mockRejectedValueOnce(new Error('Connection lost'));
+
+    render(<LoginForm onSuccess={onSuccess} />);
+
+    await user.type(screen.getByLabelText(/^username$/i), 'adri');
+    await user.type(screen.getByLabelText(/^password$/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/connection lost/i)).toBeInTheDocument();
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+  });
 });
