@@ -210,5 +210,6 @@ jobs:
             JWT_EXPIRES=${{ secrets.JWT_EXPIRES }}
             MONGO_AUTH_DB=${{ secrets.MONGO_AUTH_DB }}
             EOF
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose down
             docker compose up -d --pull always
