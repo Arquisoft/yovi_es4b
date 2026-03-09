@@ -467,6 +467,65 @@ export const uiSx = {
     fontSize: '0.82rem',
     letterSpacing: 0.15,
   } satisfies SxProps<Theme>,
+  configSectionTitle: {
+    fontSize: '0.76rem',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: 'text.secondary',
+    fontWeight: 700,
+  } satisfies SxProps<Theme>,
+  configToggleButton: (active: boolean): SxProps<Theme> => ({
+    minWidth: { xs: '100%', sm: 108 },
+    height: 34,
+    px: 1.4,
+    borderRadius: 1.4,
+    fontSize: '0.88rem',
+    fontWeight: 700,
+    color: active ? 'text.primary' : 'text.secondary',
+    backgroundColor: active ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+    borderColor: active ? 'primary.light' : 'divider',
+    '&:hover': {
+      backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.12)',
+      borderColor: active ? 'primary.light' : 'primary.main',
+    },
+  }),
+  configGrid: {
+    mt: 0.9,
+    display: 'grid',
+    gap: 1.35,
+  } satisfies SxProps<Theme>,
+  configRow: {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm: '112px 1fr' },
+    gap: 1.1,
+    alignItems: 'center',
+  } satisfies SxProps<Theme>,
+  configRowStart: {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm: '112px 1fr' },
+    gap: 1.1,
+    alignItems: 'start',
+  } satisfies SxProps<Theme>,
+  configRowDivider: {
+    borderTop: '1px solid',
+    borderColor: 'divider',
+    opacity: 0.45,
+    my: 0.4,
+  } satisfies SxProps<Theme>,
+  configOptionGroup: {
+    display: 'flex',
+    flexWrap: { xs: 'wrap', sm: 'nowrap' },
+    gap: 1,
+  } satisfies SxProps<Theme>,
+  configSizeInput: {
+    width: { xs: '100%', sm: 220 },
+  } satisfies SxProps<Theme>,
+  configActions: {
+    mt: 'auto',
+    pt: 0.8,
+    display: 'flex',
+    justifyContent: 'flex-end',
+  } satisfies SxProps<Theme>,
   dashboardConfigControls: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -565,12 +624,6 @@ export const uiSx = {
     borderRadius: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     overflow: 'hidden',
-  } satisfies SxProps<Theme>,
-  configRow: {
-    display: 'flex',
-    gap: 2,
-    alignItems: 'center',
-    flexWrap: 'wrap',
   } satisfies SxProps<Theme>,
   boardContainer: {
     display: 'flex',

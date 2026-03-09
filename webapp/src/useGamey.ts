@@ -54,7 +54,10 @@ export function useGamey(userId?: string) {
   ) {
     const nextMode = next?.mode ?? mode;
     const nextSize = next?.size ?? boardSize;
-    const nextBotId = next?.botId ?? mapDifficultyToBotId(botDifficulty);
+    const nextBotId =
+      nextMode === 'human_vs_bot'
+        ? (next?.botId ?? mapDifficultyToBotId(botDifficulty))
+        : undefined;
 
     // `createGame` ahora solo necesita mode + bot_id opcional
     return runRequest(

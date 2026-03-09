@@ -9,7 +9,7 @@ import type { GameMode } from './gameyApi';
 import SidebarView from './views/SidebarView';
 import DashboardView from './views/DashboardView';
 import HistoryView from './views/HistoryView';
-import type { BotDifficulty, MatchHistoryItem, PlayerStatsSummary } from './views/statsTypes';
+import { mapDifficultyToBotId, type BotDifficulty, type MatchHistoryItem, type PlayerStatsSummary } from './views/statsTypes';
 import { uiSx } from './theme';
 
 //estadisticas de ejemplo, para mostrar en el dashboard y la historia, ya que no esta conectadad todavia a la bd
@@ -66,7 +66,10 @@ function App() {
       setBotDifficulty(difficulty);
     }
 
-    const created = await createNewGame({ mode: nextMode });
+    const created = await createNewGame({
+      mode: nextMode,
+      botId: nextMode === 'human_vs_bot' && difficulty ? mapDifficultyToBotId(difficulty) : undefined,
+    });
     if (created) {
       setView('game');
     }
