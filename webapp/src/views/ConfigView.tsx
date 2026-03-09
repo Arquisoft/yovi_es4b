@@ -2,7 +2,8 @@ import React from 'react';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 import type { GameMode } from '../gameyApi';
 import { uiSx } from '../theme';
-import type { BotDifficulty } from './statsTypes';
+
+type BotDifficulty = 'very_easy' | 'easy' | 'medium' | 'hard';
 
 type Props = {
   boardSize: number;
@@ -26,6 +27,7 @@ const ConfigView: React.FC<Props> = ({
   createNewGame,
 }) => {
   const unavailableBotSelected = mode === 'human_vs_bot' && botDifficulty !== 'easy';
+
   const sectionTitleSx = {
     fontSize: '0.76rem',
     letterSpacing: 0.4,
@@ -33,6 +35,7 @@ const ConfigView: React.FC<Props> = ({
     color: 'text.secondary',
     fontWeight: 700,
   } as const;
+
   const toggleButtonSx = (active: boolean) =>
     ({
       minWidth: { xs: '100%', sm: 108 },
@@ -49,12 +52,14 @@ const ConfigView: React.FC<Props> = ({
         borderColor: active ? 'primary.light' : 'primary.main',
       },
     }) as const;
+
   const rowSx = {
     display: 'grid',
     gridTemplateColumns: { xs: '1fr', sm: '112px 1fr' },
     gap: 1.1,
     alignItems: 'center',
   } as const;
+
   const rowDividerSx = {
     borderTop: '1px solid',
     borderColor: 'divider',
@@ -67,11 +72,12 @@ const ConfigView: React.FC<Props> = ({
       <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
         Configurar partida
       </Typography>
-      <Box sx={uiSx.dashboardCardHint}>Elige parametros y crea una nueva partida.</Box>
+      <Box sx={uiSx.dashboardCardHint}>Elige parámetros y crea una nueva partida.</Box>
 
       <Box sx={{ mt: 0.9, display: 'grid', gap: 1.35 }}>
+        {/* Tamaño */}
         <Box sx={rowSx}>
-          <Typography sx={sectionTitleSx}>Tamano</Typography>
+          <Typography sx={sectionTitleSx}>Tamaño</Typography>
           <TextField
             id="size-input"
             type="number"
@@ -87,6 +93,7 @@ const ConfigView: React.FC<Props> = ({
 
         <Box sx={rowDividerSx} />
 
+        {/* Modo de juego */}
         <Box sx={{ ...rowSx, alignItems: 'start' }}>
           <Typography sx={sectionTitleSx}>Modo</Typography>
           <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: 1 }}>
@@ -109,6 +116,7 @@ const ConfigView: React.FC<Props> = ({
 
         <Box sx={rowDividerSx} />
 
+        {/* Dificultad del Bot */}
         <Box sx={{ ...rowSx, alignItems: 'start' }}>
           <Typography sx={sectionTitleSx}>Bot</Typography>
           <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: 1 }}>
@@ -118,7 +126,7 @@ const ConfigView: React.FC<Props> = ({
               disabled={mode !== 'human_vs_bot'}
               onClick={() => setBotDifficulty('easy')}
             >
-              Facil
+              Fácil
             </Button>
             <Button
               variant="outlined"
@@ -134,7 +142,7 @@ const ConfigView: React.FC<Props> = ({
               disabled={mode !== 'human_vs_bot'}
               onClick={() => setBotDifficulty('hard')}
             >
-              Dificil
+              Difícil
             </Button>
           </Box>
         </Box>
@@ -142,7 +150,7 @@ const ConfigView: React.FC<Props> = ({
 
       {unavailableBotSelected && (
         <Typography sx={uiSx.dashboardInlineHint}>
-          Intermedio y Dificil aun no estan conectados al backend.
+          Intermedio y Difícil aún no están conectados al backend.
         </Typography>
       )}
 

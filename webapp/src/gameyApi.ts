@@ -1,4 +1,4 @@
-﻿export type GameMode = 'human_vs_human' | 'human_vs_bot';
+export type GameMode = 'human_vs_human' | 'human_vs_bot';
 
 export interface Coordinates {
   x: number;
@@ -101,7 +101,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
-export async function createGame(request: CreateGameRequest = {}, userId?: string): Promise<GameStateResponse> {
+export async function createGame(
+  request: CreateGameRequest = {},
+  userId?: string
+): Promise<GameStateResponse> {
   const body = {
     size: request.size ?? 7,
     mode: request.mode ?? 'human_vs_bot',
