@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import type React from 'react';
@@ -62,14 +61,61 @@ describe('GameView', () => {
     expect(boardProps).toHaveTextContent('"loading":false');
   });
 
-  test('calls refresh, resign and back actions from buttons', async () => {
+  test('renders bot label using mapped difficulty name and raw fallback id', () => {
+    const { rerender } = render(
+      <GameView
+        {...buildProps({
+          game: {
+            game_id: 'game-123',
+            game_over: false,
+            bot_id: 'minimax_bot',
+            yen: { players: ['B'], size: 7 },
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/bot: dificil/i)).toBeInTheDocument();
+
+    rerender(
+      <GameView
+        {...buildProps({
+          game: {
+            game_id: 'game-123',
+            game_over: false,
+            bot_id: 'custom_bot',
+            yen: { players: ['B'], size: 7 },
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/bot: custom_bot/i)).toBeInTheDocument();
+  });
+
+  test('passes null human symbol when players are missing', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: {
+            game_id: 'game-123',
+            game_over: false,
+            yen: { size: 7 },
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":null');
+  });
+
+  test('calls refresh, resign and back actions from buttons', () => {
     const props = buildProps();
     render(<GameView {...props} />);
-    const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /refrescar/i }));
-    await user.click(screen.getByRole('button', { name: /rendirse/i }));
-    await user.click(screen.getByRole('button', { name: /volver/i }));
+    fireEvent.click(screen.getByRole('button', { name: /refrescar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /rendirse/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volver/i }));
 
     expect(props.refreshCurrentGame).toHaveBeenCalledTimes(1);
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
@@ -83,6 +129,20 @@ describe('GameView', () => {
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
 
     rerender(<GameView {...buildProps({ loading: false, game: { game_id: 'game-123', game_over: true, yen: { players: ['B'], size: 7 } } })} />);
+    expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
+  });
+
+  test('keeps refresh enabled when the game is over but not loading', () => {
+    render(
+      <GameView
+        {...buildProps({
+          loading: false,
+          game: { game_id: 'game-123', game_over: true, yen: { players: ['B'], size: 7 } },
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /refrescar/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
   });
 });
