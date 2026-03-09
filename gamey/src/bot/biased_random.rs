@@ -248,4 +248,45 @@ mod tests {
             assert!(game.available_cells().contains(&index));
         }
     }
+
+    #[test]
+    fn test_cell_weight_positive_and_varies() {
+        let board_size = 5;
+
+        // ensure no weight is zero or negative on any valid coordinate
+        for x in 0..board_size {
+            for y in 0..board_size {
+                for z in 0..board_size {
+                    if x + y + z == board_size - 1 {
+                        let coords = Coordinates::new(x, y, z);
+                        let w = BiasedRandomBot::cell_weight(&coords, board_size);
+                        assert!(w > 0.0, "weight must be positive");
+                    }
+                }
+            }
+        }
+
+        // weights for two different cells should not always be equal
+        let w1 = BiasedRandomBot::cell_weight(&Coordinates::new(0, 0, 4), board_size);
+        let w2 = BiasedRandomBot::cell_weight(&Coordinates::new(1, 1, 3), board_size);
+        assert!( (w1 - w2).abs() > std::f64::EPSILON, "weights should vary between cells");
+    }
+
+    #[test]
+    fn test_biased_random_bot_edge_bias_statistical() {
+        // a very simple statistical check to catch blatant regressions
+        let bot = BiasedRandomBot;
+        let game = GameY::new(5);
+        let mut edge_moves = 0;
+        for _ in 0..100 {
+            if let Some(coords) = bot.choose_move(&game) {
+                if coords.touches_side_a() || coords.touches_side_b() || coords.touches_side_c() {
+                    edge_moves += 1;
+                }
+            }
+        }
+        // Expect at least half of the moves land on an edge; randomness could make
+        // this fail extremely rarely, but it's unlikely.
+        assert!(edge_moves >= 50, "bot should favour edge cells");
+    }
 }
