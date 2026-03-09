@@ -6,20 +6,21 @@ const { MongoMemoryServer } = await import('mongodb-memory-server')
 const mongoose = await import('mongoose')
 
 let mongoServer
+let app
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create()
   process.env.MONGO_AUTH_DB = mongoServer.getUri()
   process.env.JWT_SECRET = 'test-secret'
+
+  // import app after environment variables are configured
+  app = (await import('../auth-service.js')).default
 })
 
 afterAll(async () => {
   await mongoose.default.disconnect()
   if (mongoServer) await mongoServer.stop()
 })
-
-// Import app AFTER env vars are set so mongoose connects to the in-memory DB
-const app = (await import('../auth-service.js')).default
 
 describe('POST /register', () => {
   it('returns 400 when username or password is missing', async () => {
