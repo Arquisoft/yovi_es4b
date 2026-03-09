@@ -17,8 +17,9 @@ const CellView: React.FC<{
   color?: string;
   onClick?: () => void;
   clickable?: boolean;
-}> = ({ color = BOARD_CELL_UI.colors.empty, onClick, clickable = false }) => {
-  return <Box onClick={clickable ? onClick : undefined} sx={uiSx.boardHex(color, clickable)} />;
+  testId?: string;
+}> = ({ color = BOARD_CELL_UI.colors.empty, onClick, clickable = false, testId }) => {
+  return <Box data-testid={testId} onClick={clickable ? onClick : undefined} sx={uiSx.boardHex(color, clickable)} />;
 };
 
 const TriangularBoard: React.FC<Props> = ({ board, playCell, canPlayCell, loading, humanSymbol, size }) => {
@@ -42,6 +43,7 @@ const TriangularBoard: React.FC<Props> = ({ board, playCell, canPlayCell, loadin
               return (
                 <CellView
                   key={cell.key ?? `${rowIndex}-${colIndex}`}
+                  testId={`hex-${cell.key ?? `${rowIndex}-${colIndex}`}`}
                   clickable={clickable}
                   color={color}
                   onClick={handleClick}
