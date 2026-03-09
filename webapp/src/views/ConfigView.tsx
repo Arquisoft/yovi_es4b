@@ -2,8 +2,7 @@ import React from 'react';
 import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 import type { GameMode } from '../gameyApi';
 import { uiSx } from '../theme';
-
-type BotDifficulty = 'very_easy' | 'easy' | 'medium' | 'hard';
+import { botDifficultyOptions, type BotDifficulty } from './statsTypes';
 
 type Props = {
   boardSize: number;
@@ -26,8 +25,6 @@ const ConfigView: React.FC<Props> = ({
   updateBoardSize,
   createNewGame,
 }) => {
-  const unavailableBotSelected = mode === 'human_vs_bot' && botDifficulty !== 'easy';
-
   const sectionTitleSx = {
     fontSize: '0.76rem',
     letterSpacing: 0.4,
@@ -72,12 +69,11 @@ const ConfigView: React.FC<Props> = ({
       <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
         Configurar partida
       </Typography>
-      <Box sx={uiSx.dashboardCardHint}>Elige parámetros y crea una nueva partida.</Box>
+      <Box sx={uiSx.dashboardCardHint}>Elige parametros y crea una nueva partida.</Box>
 
       <Box sx={{ mt: 0.9, display: 'grid', gap: 1.35 }}>
-        {/* Tamaño */}
         <Box sx={rowSx}>
-          <Typography sx={sectionTitleSx}>Tamaño</Typography>
+          <Typography sx={sectionTitleSx}>Tamano</Typography>
           <TextField
             id="size-input"
             type="number"
@@ -93,7 +89,6 @@ const ConfigView: React.FC<Props> = ({
 
         <Box sx={rowDividerSx} />
 
-        {/* Modo de juego */}
         <Box sx={{ ...rowSx, alignItems: 'start' }}>
           <Typography sx={sectionTitleSx}>Modo</Typography>
           <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: 1 }}>
@@ -116,46 +111,26 @@ const ConfigView: React.FC<Props> = ({
 
         <Box sx={rowDividerSx} />
 
-        {/* Dificultad del Bot */}
         <Box sx={{ ...rowSx, alignItems: 'start' }}>
           <Typography sx={sectionTitleSx}>Bot</Typography>
           <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: 1 }}>
-            <Button
-              variant="outlined"
-              sx={toggleButtonSx(botDifficulty === 'easy')}
-              disabled={mode !== 'human_vs_bot'}
-              onClick={() => setBotDifficulty('easy')}
-            >
-              Fácil
-            </Button>
-            <Button
-              variant="outlined"
-              sx={toggleButtonSx(botDifficulty === 'medium')}
-              disabled={mode !== 'human_vs_bot'}
-              onClick={() => setBotDifficulty('medium')}
-            >
-              Intermedio
-            </Button>
-            <Button
-              variant="outlined"
-              sx={toggleButtonSx(botDifficulty === 'hard')}
-              disabled={mode !== 'human_vs_bot'}
-              onClick={() => setBotDifficulty('hard')}
-            >
-              Difícil
-            </Button>
+            {botDifficultyOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant="outlined"
+                sx={toggleButtonSx(botDifficulty === option.value)}
+                disabled={mode !== 'human_vs_bot'}
+                onClick={() => setBotDifficulty(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
           </Box>
         </Box>
       </Box>
 
-      {unavailableBotSelected && (
-        <Typography sx={uiSx.dashboardInlineHint}>
-          Intermedio y Difícil aún no están conectados al backend.
-        </Typography>
-      )}
-
       <Box sx={{ mt: 'auto', pt: 0.8, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button onClick={createNewGame} disabled={loading || unavailableBotSelected}>
+        <Button onClick={createNewGame} disabled={loading}>
           {loading ? 'Cargando...' : 'Crear partida'}
         </Button>
       </Box>

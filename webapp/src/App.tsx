@@ -9,7 +9,7 @@ import type { GameMode } from './gameyApi';
 import SidebarView from './views/SidebarView';
 import DashboardView from './views/DashboardView';
 import HistoryView from './views/HistoryView';
-import type { MatchHistoryItem, PlayerStatsSummary } from './views/statsTypes';
+import type { BotDifficulty, MatchHistoryItem, PlayerStatsSummary } from './views/statsTypes';
 import { uiSx } from './theme';
 
 //estadisticas de ejemplo, para mostrar en el dashboard y la historia, ya que no esta conectadad todavia a la bd
@@ -29,14 +29,13 @@ const DEMO_MATCHES: MatchHistoryItem[] = [
   { gameId: 'game-236', result: 'win', mode: 'human_vs_bot', winnerId: 'adri', endedAt: '2026-03-03T16:22:00Z' },
 ];
 
-type BotDifficulty = 'easy' | 'medium' | 'hard';
-
 function App() {
   const auth = useAuth();
 
   const {
     boardSize,
     mode,
+    botDifficulty,
     game,
     error,
     loading,
@@ -44,6 +43,7 @@ function App() {
     canPlayCell,
     statusText,
     setMode,
+    setBotDifficulty,
     updateBoardSize,
     createNewGame,
     refreshCurrentGame,
@@ -52,21 +52,18 @@ function App() {
   } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game'>('dashboard');
-  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('easy');
 
   async function handleCreateNewGame() {
-    const botId = mode === 'human_vs_bot' && botDifficulty === 'easy' ? 'random_bot' : undefined;
-    const created = await createNewGame({ botId });
-
+    const created = await createNewGame();
     if (created) {
       setView('game');
     }
   }
 
-  async function handleSidebarPlay(nextMode: GameMode) {
+  async function handleSidebarPlay(nextMode: GameMode, difficulty?: BotDifficulty) {
     setMode(nextMode);
-    if (nextMode === 'human_vs_bot') {
-      setBotDifficulty('easy');
+    if (nextMode === 'human_vs_bot' && difficulty) {
+      setBotDifficulty(difficulty);
     }
 
     const created = await createNewGame({ mode: nextMode });
@@ -116,7 +113,7 @@ function App() {
 
       <Box sx={uiSx.appBody}>
         <SidebarView
-          onPlayBotEasy={() => handleSidebarPlay('human_vs_bot')}
+          onPlayBot={(difficulty) => handleSidebarPlay('human_vs_bot', difficulty)}
           onPlayHuman={() => handleSidebarPlay('human_vs_human')}
           onOpenStats={() => setView('history')}
           onLogout={auth.logout}
