@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Alert } from '@mui/material';
+import { uiSx } from './theme';
 
 interface LoginFormProps {
   onSuccess: (token: string, username: string) => void;
@@ -29,11 +30,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw.trim() ? JSON.parse(raw) : {};
       if (res.ok) {
         onSuccess(data.token, data.username);
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || `Login failed (${res.status})`);
       }
     } catch (err: any) {
       setError(err.message || 'Network error');
@@ -43,14 +45,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 360 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={uiSx.formColumn}>
       <TextField
         id="login-username"
         label="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        variant="filled"
-        size="small"
       />
 
       <TextField
@@ -59,8 +59,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        variant="filled"
-        size="small"
       />
 
       <Button className="login-button" type="submit" variant="contained" color="primary" disabled={loading}>

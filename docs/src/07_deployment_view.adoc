@@ -66,41 +66,8 @@ It consists of independent services communicating over HTTP and running within i
 The deployment view describes the technical infrastructure required to execute the system and the mapping of software building blocks to infrastructure elements.
 
 The following diagram shows the high-level deployment structure in a local environment using containerization.
-_**<Overview Diagram>**_
-@startuml
-node "User Device" {
-  component "Web Browser"
-}
 
-node "Docker Host" {
-
-  node "Docker Network" {
-
-    node "Webapp Container\n(React + Vite)" {
-      component "SPA Frontend"
-    }
-
-    node "Users Service Container\n(Node.js + Express)" {
-      component "Users REST API"
-    }
-
-    node "Gamey Container\n(Rust Engine)" {
-      component "Game Engine API"
-    }
-
-    node "Database Container" {
-      database "User Database"
-    }
-
-  }
-}
-
-"Web Browser" --> "SPA Frontend" : HTTP
-"SPA Frontend" --> "Users REST API" : HTTP /createuser
-"SPA Frontend" --> "Game Engine API" : HTTP
-"Users REST API" --> "User Database" : DB connection
-
-@enduml
+image::07_diagram_1.png[]
 
 Motivation::
 
@@ -159,25 +126,7 @@ This level provides a more detailed view of selected infrastructure elements.
 
 ==== _<Webapp Container>_
 
-
-@startuml
-node "Webapp Container" {
-  component "React SPA"
-  component "UI Components"
-  component "API Client Module"
-}
-
-node "External Services" {
-  component "Users REST API"
-  component "Game Engine API"
-}
-
-"React SPA" --> "UI Components"
-"React SPA" --> "API Client Module"
-"API Client Module" --> "Users REST API" : HTTP
-"API Client Module" --> "Game Engine API" : HTTP
-
-@enduml
+image::07_diagram_2.png[]
 
 The Webapp container:
 
@@ -193,24 +142,8 @@ The Webapp container:
 
 ==== _<Users Service Container>_
 
-@startuml
-node "Users Service Container" {
-  component "Express Server"
-  component "User Controller"
-  component "User Service"
-  component "Persistence Layer"
-}
+image::07_diagram_3.png[]
 
-node "Database Container" {
-  database "User Database"
-}
-
-"Express Server" --> "User Controller"
-"User Controller" --> "User Service"
-"User Service" --> "Persistence Layer"
-"Persistence Layer" --> "User Database"
-
-@enduml
 The Users Service container:
 
  - Exposes REST endpoints (e.g., /createuser).
@@ -227,19 +160,7 @@ The Users Service container:
 
 ==== _<Gamey Container>_
 
-@startuml
-node "Gamey Container" {
-  component "Web API"
-  component "Game Core"
-  component "Bot Engine"
-  component "Notation Module"
-}
-
-"Web API" --> "Game Core"
-"Game Core" --> "Bot Engine"
-"Game Core" --> "Notation Module"
-
-@enduml
+image::07_diagram_4.png[]
 
 The Gamey container:
 
@@ -257,12 +178,7 @@ Gamey remains logically independent from user management.
 
 ==== _<Database Container>_
 
-@startuml
-node "Database Container" {
-  database "User Database"
-}
 
-@enduml
 
 The database container:
 

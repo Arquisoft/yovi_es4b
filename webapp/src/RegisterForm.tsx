@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Alert } from '@mui/material';
+import { uiSx } from './theme';
 
 interface RegisterFormProps {
   onSuccess: (token: string, username: string) => void;
@@ -44,7 +45,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw.trim() ? JSON.parse(raw) : {};
       if (res.ok) {
         setResponseMessage(data.message);
         setUsername('');
@@ -52,7 +54,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         setConfirmPassword('');
         onSuccess(data.token, data.username);
       } else {
-        setError(data.message || 'Server error');
+        setError(data.message || `Server error (${res.status})`);
       }
     } catch (err: any) {
       setError(err.message || 'Network error');
@@ -62,14 +64,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 360 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={uiSx.formColumn}>
       <TextField
         id="register-username"
         label="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        variant="filled"
-        size="small"
       />
 
       <TextField
@@ -78,8 +78,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        variant="filled"
-        size="small"
       />
 
       <TextField
@@ -88,16 +86,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         type="password"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
-        variant="filled"
-        size="small"
       />
 
-      <Button className="submit-button" type="submit" variant="contained" color="primary" disabled={loading}>
+      <Button type="submit" color="primary" disabled={loading}>
         {loading ? 'Registering...' : 'Register'}
       </Button>
 
-      {responseMessage && <Alert className="success-message" severity="success">{responseMessage}</Alert>}
-      {error && <Alert className="error-message" severity="error">{error}</Alert>}
+      {responseMessage && <Alert severity="success">{responseMessage}</Alert>}
+      {error && <Alert severity="error">{error}</Alert>}
     </Box>
   );
 };
