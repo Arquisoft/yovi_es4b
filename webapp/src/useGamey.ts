@@ -9,29 +9,13 @@ import {
   type GameStateResponse,
 } from './gameyApi';
 import { canHumanPlay, gameStatusText, toBoardCells } from './gameyUi';
-type BotDifficulty = 'very_easy' | 'easy' | 'medium' | 'hard';
+import { mapDifficultyToBotId, type BotDifficulty } from './views/statsTypes';
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
   return 'Unexpected error';
-}
-
-// Helper para mapear la dificultad seleccionada al bot_id
-function mapDifficultyToBotId(difficulty: BotDifficulty): string {
-  switch (difficulty) {
-    case 'very_easy':
-      return 'random_bot';
-    case 'easy':
-      return 'biased_random_bot';
-    case 'medium':
-      return 'greedy_bot';
-    case 'hard':
-      return 'minimax_bot';
-    default:
-      return 'biased_random_bot'; // fallback seguro
-  }
 }
 
 export function useGamey(userId?: string) {
