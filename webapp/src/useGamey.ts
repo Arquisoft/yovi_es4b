@@ -9,7 +9,7 @@ import {
   type GameStateResponse,
 } from './gameyApi';
 import { canHumanPlay, gameStatusText, toBoardCells } from './gameyUi';
-import { mapDifficultyToBotId, type BotDifficulty } from './views/statsTypes';
+import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -54,7 +54,10 @@ export function useGamey(userId?: string) {
   ) {
     const nextMode = next?.mode ?? mode;
     const nextSize = next?.size ?? boardSize;
-    const nextBotId = next?.botId ?? mapDifficultyToBotId(botDifficulty);
+    const nextBotId =
+      nextMode === 'human_vs_bot'
+        ? (next?.botId ?? mapDifficultyToBotId(botDifficulty))
+        : undefined;
 
     // `createGame` ahora solo necesita mode + bot_id opcional
     return runRequest(

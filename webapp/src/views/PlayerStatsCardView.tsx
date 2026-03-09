@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { uiSx } from '../theme';
-import type { PlayerStatsSummary } from './statsTypes';
+import type { PlayerStatsSummary } from '../stats/types';
 
 type Props = {
   playerStats: PlayerStatsSummary;
@@ -13,15 +13,15 @@ const PlayerStatsCardView: React.FC<Props> = ({ playerStats }) => {
       <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
         Estadisticas del jugador
       </Typography>
-      <Box sx={uiSx.dashboardCardHint}>Vista ejemplo de `player_stats` (sin integrar backend aun).</Box>
+      <Box sx={uiSx.dashboardCardHint}>Resumen real de tu actividad reciente.</Box>
 
       <Box sx={uiSx.statsRows}>
         <Box sx={uiSx.statsRow}>
-          <Typography color="text.secondary">Juegos jugados</Typography>
+          <Typography color="text.secondary">Partidas jugadas</Typography>
           <Typography>{playerStats.totalGames}</Typography>
         </Box>
         <Box sx={uiSx.statsRow}>
-          <Typography color="text.secondary">Ganadas</Typography>
+          <Typography color="text.secondary">Victorias</Typography>
           <Typography>{playerStats.victories}</Typography>
         </Box>
         <Box sx={uiSx.statsRow}>
@@ -30,7 +30,7 @@ const PlayerStatsCardView: React.FC<Props> = ({ playerStats }) => {
         </Box>
         <Box sx={uiSx.statsRow}>
           <Typography color="text.secondary">Actualizado</Typography>
-          <Typography>{new Date(playerStats.updatedAt).toLocaleDateString()}</Typography>
+          <Typography>{playerStats.updatedAt ? new Date(playerStats.updatedAt).toLocaleDateString() : 'Sin partidas'}</Typography>
         </Box>
       </Box>
     </Paper>

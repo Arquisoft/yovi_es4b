@@ -4,7 +4,7 @@ import { uiSx } from '../theme';
 import playIcon from '../assets/play-button-svgrepo-com (1).svg';
 import statsIcon from '../assets/stats-graph-svgrepo-com.svg';
 import logOutIcon from '../assets/logout-svgrepo-com.svg';
-import { botDifficultyOptions, type BotDifficulty } from './statsTypes';
+import { botDifficultyOptions, type BotDifficulty } from '../stats/types';
 
 type Props = {
   onPlayBot: (difficulty: BotDifficulty) => void;
