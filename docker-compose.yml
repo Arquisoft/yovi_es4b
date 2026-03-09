@@ -22,7 +22,6 @@ services:
       - monitor-net
 
   stats:
-    build: ./stats
     container_name: stats
     image: ghcr.io/arquisoft/yovi_es4b-stats:latest
     ports:
@@ -37,7 +36,6 @@ services:
       - monitor-net
 
   gateway:
-    build: ./gateway
     container_name: gateway
     image: ghcr.io/arquisoft/yovi_es4b-gateway:latest
     ports:
@@ -52,21 +50,18 @@ services:
       - monitor-net
 
   users:
-    build: ./users
     container_name: users
     image: ghcr.io/arquisoft/yovi_es4b-users:latest
     networks:
       - monitor-net
 
   webapp:
-    build: ./webapp
     container_name: webapp
     image: ghcr.io/arquisoft/yovi_es4b-webapp:latest
     networks:
       - monitor-net
 
   gamey:
-    build: ./gamey
     container_name: gamey
     image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
     environment:
@@ -76,7 +71,6 @@ services:
       - monitor-net
 
   auth:
-    build: ./auth_service
     container_name: auth
     image: ghcr.io/arquisoft/yovi_es4b-auth:latest
     environment:
@@ -96,8 +90,6 @@ services:
     container_name: prometheus
     ports:
       - "9090:9090"
-    volumes:
-      - ./users/monitoring/prometheus:/etc/prometheus
     networks:
       - monitor-net
 
@@ -106,8 +98,6 @@ services:
     container_name: grafana
     ports:
       - "9091:3000"
-    volumes:
-      - ./users/monitoring/grafana/provisioning:/etc/grafana/provisioning
     networks:
       - monitor-net
 
