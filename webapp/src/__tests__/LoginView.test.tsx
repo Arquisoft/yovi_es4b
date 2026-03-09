@@ -3,9 +3,6 @@ import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import LoginView from '../views/LoginView';
 
-const loginFormSuccess = vi.fn();
-const registerFormSuccess = vi.fn();
-
 vi.mock('../LoginForm', () => ({
   default: ({ onSuccess }: { onSuccess: (token: string, username: string) => void }) => (
     <button onClick={() => onSuccess('login-token', 'login-user')}>Login Form Mock</button>
