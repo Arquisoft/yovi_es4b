@@ -1,17 +1,19 @@
 import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import TriangularBoard from '../components/board/TriangularBoard';
+import type { Coordinates, GameStateResponse } from '../gameyApi';
+import type { BoardCell } from '../gameyUi';
 import { uiSx } from '../theme';
 
 type Props = {
-  game: any | null;
-  board: any[];
+  game: GameStateResponse | null;
+  board: BoardCell[][];
   statusText: string;
   canPlayCell: boolean;
   loading: boolean;
   refreshCurrentGame: () => void;
   resignCurrentGame: () => void;
-  playCell: (coords: any) => Promise<void> | void;
+  playCell: (coords: Coordinates) => Promise<void> | void;
   onBack: () => void;
 };
 

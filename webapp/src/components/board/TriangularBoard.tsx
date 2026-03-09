@@ -23,18 +23,22 @@ const CellView: React.FC<{
 };
 
 const TriangularBoard: React.FC<Props> = ({ board, playCell, canPlayCell, loading, humanSymbol, size }) => {
-  const rows = board && board.length ? board : [];
+  const rows = board;
 
   return (
     <Box sx={uiSx.boardContainer}>
       {Array.from({ length: size }).map((_, rowIndex) => {
         const row = rows[rowIndex] ?? buildFallbackRow(rowIndex);
+        const firstCell = row[0];
+        const fallbackRowKey = `${firstCell.coords.x}-${firstCell.coords.y}-${firstCell.coords.z}`;
+        const rowKey = `row-${firstCell.key ?? fallbackRowKey}`;
 
         return (
-          <Box key={rowIndex} sx={uiSx.boardRow(size, rowIndex)}>
-            {row.map((cell, colIndex) => {
+          <Box key={rowKey} sx={uiSx.boardRow(size, rowIndex)}>
+            {row.map((cell) => {
               const color = getBoardCellColor(cell.symbol, humanSymbol);
               const clickable = isBoardCellPlayable(cell.symbol, canPlayCell, loading);
+              const cellKey = cell.key ?? `${cell.coords.x}-${cell.coords.y}-${cell.coords.z}`;
               const handleClick = () => {
                 if (!clickable) return;
                 playCell(cell.coords);
@@ -42,8 +46,8 @@ const TriangularBoard: React.FC<Props> = ({ board, playCell, canPlayCell, loadin
 
               return (
                 <CellView
-                  key={cell.key ?? `${rowIndex}-${colIndex}`}
-                  testId={`hex-${cell.key ?? `${rowIndex}-${colIndex}`}`}
+                  key={cellKey}
+                  testId={`hex-${cellKey}`}
                   clickable={clickable}
                   color={color}
                   onClick={handleClick}

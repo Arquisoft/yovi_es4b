@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import type React from 'react';
 import GameView from '../views/GameView';
+import type { GameStateResponse } from '../gameyApi';
 
 vi.mock('../components/board/TriangularBoard', () => ({
   default: (props: {
@@ -24,11 +25,7 @@ vi.mock('../components/board/TriangularBoard', () => ({
 
 function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = {}): React.ComponentProps<typeof GameView> {
   return {
-    game: {
-      game_id: 'game-123',
-      game_over: false,
-      yen: { players: ['B'], size: 7 },
-    },
+    game: buildGame(),
     board: [],
     statusText: 'Turno: Player 0 (B)',
     canPlayCell: true,
@@ -37,6 +34,25 @@ function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = 
     resignCurrentGame: vi.fn(),
     playCell: vi.fn(),
     onBack: vi.fn(),
+    ...overrides,
+  };
+}
+
+function buildGame(overrides: Partial<GameStateResponse> = {}): GameStateResponse {
+  return {
+    api_version: '1.0.0',
+    game_id: 'game-123',
+    mode: 'human_vs_bot',
+    bot_id: null,
+    yen: {
+      size: 7,
+      turn: 0,
+      players: ['B', 'R'],
+      layout: 'B/R',
+    },
+    game_over: false,
+    next_player: 0,
+    winner: null,
     ...overrides,
   };
 }
@@ -65,12 +81,9 @@ describe('GameView', () => {
     const { rerender } = render(
       <GameView
         {...buildProps({
-          game: {
-            game_id: 'game-123',
-            game_over: false,
+          game: buildGame({
             bot_id: 'minimax_bot',
-            yen: { players: ['B'], size: 7 },
-          },
+          }),
         })}
       />,
     );
@@ -80,12 +93,9 @@ describe('GameView', () => {
     rerender(
       <GameView
         {...buildProps({
-          game: {
-            game_id: 'game-123',
-            game_over: false,
+          game: buildGame({
             bot_id: 'custom_bot',
-            yen: { players: ['B'], size: 7 },
-          },
+          }),
         })}
       />,
     );
@@ -97,11 +107,9 @@ describe('GameView', () => {
     render(
       <GameView
         {...buildProps({
-          game: {
-            game_id: 'game-123',
-            game_over: false,
-            yen: { size: 7 },
-          },
+          game: buildGame({
+            yen: { size: 7, turn: 0, players: [], layout: 'B/R' },
+          }),
         })}
       />,
     );
@@ -123,12 +131,12 @@ describe('GameView', () => {
   });
 
   test('disables action buttons when loading or game is over', () => {
-    const { rerender } = render(<GameView {...buildProps({ loading: true, game: { game_id: 'game-123', game_over: false, yen: { players: ['B'], size: 7 } } })} />);
+    const { rerender } = render(<GameView {...buildProps({ loading: true, game: buildGame() })} />);
 
     expect(screen.getByRole('button', { name: /refrescar/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
 
-    rerender(<GameView {...buildProps({ loading: false, game: { game_id: 'game-123', game_over: true, yen: { players: ['B'], size: 7 } } })} />);
+    rerender(<GameView {...buildProps({ loading: false, game: buildGame({ game_over: true }) })} />);
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
   });
 
@@ -137,7 +145,7 @@ describe('GameView', () => {
       <GameView
         {...buildProps({
           loading: false,
-          game: { game_id: 'game-123', game_over: true, yen: { players: ['B'], size: 7 } },
+          game: buildGame({ game_over: true }),
         })}
       />,
     );

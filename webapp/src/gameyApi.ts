@@ -40,6 +40,22 @@ interface ApiErrorResponse {
 
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function extractErrorMessage(payload: unknown): string | null {
+  if (!isObject(payload) || typeof payload.message !== 'string') {
+    return null;
+  }
+
+  return payload.message;
+}
+
+function isMessageOnlyPayload(payload: unknown): payload is ApiErrorResponse {
+  return isObject(payload) && typeof payload.message === 'string' && !('game_id' in payload);
+}
+
 function withUserIdHeader(baseHeaders: Record<string, string>, userId?: string): Record<string, string> {
   if (!userId || userId.trim().length === 0) {
     return baseHeaders;
@@ -51,51 +67,45 @@ function withUserIdHeader(baseHeaders: Record<string, string>, userId?: string):
   };
 }
 
+function parseResponsePayload(response: Response, raw: string, url: string): unknown {
+  if (raw.trim().length === 0) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status} (${response.statusText}) at ${url}`);
+    }
+
+    throw new Error(`Invalid JSON response from ${url}`);
+  }
+}
+
+function throwIfResponseFailed(response: Response, raw: string, payload: unknown): void {
+  if (response.ok) {
+    return;
+  }
+
+  const message = extractErrorMessage(payload) ?? (raw.trim().length > 0 ? raw : `Request failed with status ${response.status}`);
+  throw new Error(message);
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${GAMEY_API_URL}${path}`;
   const response = await fetch(url, init);
   const raw = await response.text();
-  let payload: unknown = null;
+  const payload = parseResponsePayload(response, raw, url);
 
-  if (raw.trim().length > 0) {
-    try {
-      payload = JSON.parse(raw) as unknown;
-    } catch {
-      if (!response.ok) {
-        throw new Error(
-          `Request failed with status ${response.status} (${response.statusText}) at ${url}`,
-        );
-      }
-      throw new Error(`Invalid JSON response from ${url}`);
-    }
-  }
-
-  if (!response.ok) {
-    const message =
-      payload &&
-      typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      typeof payload.message === 'string'
-        ? payload.message
-        : raw.trim().length > 0
-          ? raw
-          : `Request failed with status ${response.status}`;
-    throw new Error(message);
-  }
+  throwIfResponseFailed(response, raw, payload);
 
   if (!payload) {
     throw new Error(`Empty response body from ${url}`);
   }
 
-  if (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'message' in payload &&
-    typeof payload.message === 'string' &&
-    !('game_id' in payload)
-  ) {
-    throw new Error((payload as ApiErrorResponse).message);
+  if (isMessageOnlyPayload(payload)) {
+    throw new Error(payload.message);
   }
 
   return payload as T;
