@@ -18,6 +18,9 @@ Before(async function () {
 
   this.browser = await chromium.launch({ headless, slowMo, devtools })
   this.page = await this.browser.newPage()
+
+  // Generate a unique username per run to avoid 409 conflicts
+  this.testUsername = 'Alice' + Date.now()
 })
 
 After(async function () {
