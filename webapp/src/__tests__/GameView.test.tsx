@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import type React from 'react';
 import GameView from '../views/GameView';
 
-vi.mock('../views/TriangularBoard', () => ({
+vi.mock('../components/board/TriangularBoard', () => ({
   default: (props: {
     humanSymbol: string | null;
     size: number;

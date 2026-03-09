@@ -46,7 +46,8 @@ describe('ConfigView', () => {
   test('disables bot difficulty buttons when mode is human_vs_human', () => {
     renderConfig({ mode: 'human_vs_human' });
 
-    expect(screen.getByRole('button', { name: /facil/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^muy facil$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^facil$/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /intermedio/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /dificil/i })).toBeDisabled();
   });

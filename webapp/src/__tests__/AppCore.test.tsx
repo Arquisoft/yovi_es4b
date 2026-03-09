@@ -119,7 +119,7 @@ describe('App core flows', () => {
     await user.click(screen.getByRole('button', { name: /crear partida/i }));
 
     await waitFor(() => {
-      expect(createNewGame).toHaveBeenCalledWith({ botId: 'random_bot' });
+      expect(createNewGame).toHaveBeenCalledWith();
       expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
     });
   });

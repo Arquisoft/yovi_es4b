@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
+import { mapDifficultyToBotId } from '../stats/types';
 
 const { createNewGameSpy, setModeSpy, logoutSpy } = vi.hoisted(() => ({
   createNewGameSpy: vi.fn(),
@@ -40,7 +41,7 @@ vi.mock('../useGamey', () => ({
       setModeState(nextMode);
     };
 
-    const createNewGame = async (next?: { mode?: 'human_vs_bot' | 'human_vs_human' }) => {
+    const createNewGame = async (next?: { mode?: 'human_vs_bot' | 'human_vs_human'; botId?: string }) => {
       createNewGameSpy(next);
       const selectedMode = next?.mode ?? mode;
       setGame({
@@ -90,7 +91,7 @@ describe('App sidebar actions', () => {
     await user.click(within(sidebar).getByRole('button', { name: /facil/i }));
 
     await waitFor(() => {
-      expect(createNewGameSpy).toHaveBeenCalledWith({ mode: 'human_vs_bot' });
+      expect(createNewGameSpy).toHaveBeenCalledWith({ mode: 'human_vs_bot', botId: mapDifficultyToBotId('easy') });
       expect(screen.getByText(/partida bot-game/i)).toBeInTheDocument();
     });
   });
