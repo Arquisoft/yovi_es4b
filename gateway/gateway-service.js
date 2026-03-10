@@ -7,27 +7,27 @@ function getProxyRoutes(env = process.env) {
   return [
     {
       mountPath: '/api',
-      target: env.GAMEY_SERVICE_URL ?? 'https://gamey:4000',
+      target: env.GAMEY_SERVICE_URL ?? 'http://gamey:4000',
       stripPrefix: '/api',
     },
     {
       mountPath: '/auth',
-      target: env.AUTH_SERVICE_URL ?? 'https://auth:3500',
+      target: env.AUTH_SERVICE_URL ?? 'http://auth:3500',
       stripPrefix: '/auth',
     },
     {
       mountPath: '/users',
-      target: env.USERS_SERVICE_URL ?? 'https://users:3000',
+      target: env.USERS_SERVICE_URL ?? 'http://users:3000',
       stripPrefix: '/users',
     },
     {
       mountPath: '/stats',
-      target: env.STATS_SERVICE_URL ?? 'https://stats:3001',
+      target: env.STATS_SERVICE_URL ?? 'http://stats:3001',
       stripPrefix: '/stats',
     },
     {
       mountPath: '/',
-      target: env.WEBAPP_SERVICE_URL ?? 'https://webapp:80',
+      target: env.WEBAPP_SERVICE_URL ?? 'http://webapp:80',
     },
   ];
 }
