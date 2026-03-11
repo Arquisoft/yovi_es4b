@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 import { useStats } from '../useStats';
@@ -13,7 +13,7 @@ vi.mock('../statsApi', () => ({
 }));
 
 function StatsProbe({ userId }: { userId?: string }) {
-  const { playerStats, matches, loading, error } = useStats(userId);
+  const { playerStats, matches, loading, error, refreshStats } = useStats(userId);
 
   return (
     <div>
@@ -24,6 +24,7 @@ function StatsProbe({ userId }: { userId?: string }) {
       <div data-testid="defeats">{playerStats.defeats}</div>
       <div data-testid="updated-at">{playerStats.updatedAt ?? ''}</div>
       <div data-testid="match-count">{matches.length}</div>
+      <button type="button" onClick={() => void refreshStats()}>refresh stats</button>
     </div>
   );
 }
@@ -183,5 +184,50 @@ describe('useStats', () => {
     expect(screen.getByTestId('total-games')).toHaveTextContent('0');
     expect(screen.getByTestId('match-count')).toHaveTextContent('0');
     expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+  });
+
+  test('allows manual refresh to request stats again', async () => {
+    fetchPlayerStats
+      .mockResolvedValueOnce({
+        totalGames: 3,
+        victories: 2,
+        defeats: 1,
+        updatedAt: '2026-03-01T10:00:00.000Z',
+      })
+      .mockResolvedValueOnce({
+        totalGames: 4,
+        victories: 3,
+        defeats: 1,
+        updatedAt: '2026-03-01T11:00:00.000Z',
+      });
+    fetchMatchHistory
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          gameId: 'game-2',
+          result: 'win',
+          mode: 'human_vs_bot',
+          winnerId: 'adri',
+          botId: 'greedy_bot',
+          endedAt: '2026-03-01T11:02:00.000Z',
+        },
+      ]);
+
+    render(<StatsProbe userId="adri" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('total-games')).toHaveTextContent('3');
+      expect(screen.getByTestId('match-count')).toHaveTextContent('0');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /refresh stats/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('total-games')).toHaveTextContent('4');
+      expect(screen.getByTestId('match-count')).toHaveTextContent('1');
+    });
+
+    expect(fetchPlayerStats).toHaveBeenCalledTimes(2);
+    expect(fetchMatchHistory).toHaveBeenCalledTimes(2);
   });
 });

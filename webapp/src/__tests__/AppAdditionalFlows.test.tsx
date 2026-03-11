@@ -42,12 +42,13 @@ vi.mock('../useStats', () => ({
     matches: [],
     loading: false,
     error: statsState.error,
+    refreshStats: vi.fn(),
   }),
 }));
 
 vi.mock('../useGamey', () => ({
   useGamey: () => {
-    const [game, setGame] = React.useState<any>(null);
+    const [game, setGame] = React.useState<{ game_id: string; game_over: boolean; yen: { players: string[]; size: number } } | null>(null);
 
     const createNewGame = vi.fn(async () => {
       createNewGameSpy();
