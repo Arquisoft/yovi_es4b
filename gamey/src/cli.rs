@@ -7,7 +7,8 @@
 //! - Server: Run as an HTTP server for bot API
 
 use crate::{
-    Coordinates, GameAction, Movement, RandomBot, RenderOptions, YBot, YBotRegistry, game,
+    BiasedRandomBot, Coordinates, GameAction, GreedyBot, MinimaxBot, Movement, RandomBot,
+    RenderOptions, YBot, YBotRegistry, game,
 };
 use crate::{GameStatus, GameY, PlayerId};
 use anyhow::Result;
@@ -69,7 +70,11 @@ pub fn run_cli_game() -> Result<()> {
     let args = CliArgs::parse();
     let mut render_options = crate::RenderOptions::default();
     let mut rl = DefaultEditor::new()?;
-    let bots_registry = YBotRegistry::new().with_bot(Arc::new(RandomBot));
+    let bots_registry = YBotRegistry::new()
+        .with_bot(Arc::new(RandomBot))
+        .with_bot(Arc::new(BiasedRandomBot))
+        .with_bot(Arc::new(GreedyBot))
+        .with_bot(Arc::new(MinimaxBot::default()));
     let bot: Arc<dyn YBot> = match bots_registry.find(&args.bot) {
         Some(b) => b,
         None => {
@@ -291,13 +296,7 @@ pub fn parse_idx(part: &str, bound: u32) -> Result<u32, String> {
 }
 
 /// Application logic for a Move command (Human + optional Bot response)
-fn handle_place_command(
-    game: &mut GameY,
-    idx: u32,
-    player: PlayerId,
-    mode: Mode,
-    bot: &dyn YBot,
-) {
+fn handle_place_command(game: &mut GameY, idx: u32, player: PlayerId, mode: Mode, bot: &dyn YBot) {
     let coords = Coordinates::from_index(idx, game.board_size());
     let movement = Movement::Placement { player, coords };
 
@@ -511,4 +510,3 @@ mod tests {
         assert!(debug.contains("5"));
     }
 }
-

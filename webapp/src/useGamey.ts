@@ -13,6 +13,10 @@ import {
   type MatchmakingStatus,
 } from './gameyApi';
 import { canHumanPlay, gameStatusText, toBoardCells } from './gameyUi';
+import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
+
+const DEFAULT_POLL_DELAY_MS = 1_000;
+const ONLINE_SYNC_DELAY_MS = 1_200;
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -21,9 +25,10 @@ function toErrorMessage(error: unknown): string {
   return 'Unexpected error';
 }
 
-export function useGamey() {
+export function useGamey(userId?: string) {
   const [boardSize, setBoardSize] = useState(7);
   const [mode, setMode] = useState<GameMode>('human_vs_bot');
+  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('easy');
   const [game, setGame] = useState<GameStateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +37,9 @@ export function useGamey() {
   const [matchmakingPosition, setMatchmakingPosition] = useState<number | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<number | null>(null);
   const [myPlayerToken, setMyPlayerToken] = useState<string | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
+
+  const ticketPollTimerRef = useRef<number | null>(null);
+  const onlineSyncTimerRef = useRef<number | null>(null);
 
   const board = useMemo(() => (game ? toBoardCells(game) : []), [game]);
   const canPlayCell = useMemo(() => {
@@ -52,39 +59,72 @@ export function useGamey() {
     return myPlayerId === null ? text : `${text} | Tu jugador: ${myPlayerId}`;
   }, [game, myPlayerId]);
 
-  function clearPollingTimer() {
-    if (pollTimerRef.current !== null) {
-      window.clearTimeout(pollTimerRef.current);
-      pollTimerRef.current = null;
+  function clearTicketPollingTimer() {
+    if (ticketPollTimerRef.current !== null) {
+      window.clearTimeout(ticketPollTimerRef.current);
+      ticketPollTimerRef.current = null;
     }
   }
 
-  function resetMatchmakingState(clearPlayerIdentity = true) {
-    clearPollingTimer();
+  function clearOnlineSyncTimer() {
+    if (onlineSyncTimerRef.current !== null) {
+      window.clearInterval(onlineSyncTimerRef.current);
+      onlineSyncTimerRef.current = null;
+    }
+  }
+
+  function resetMatchmakingState(clearIdentity = true) {
+    clearTicketPollingTimer();
     setMatchmakingTicketId(null);
     setMatchmakingStatus('idle');
     setMatchmakingPosition(null);
-    if (clearPlayerIdentity) {
+    if (clearIdentity) {
       setMyPlayerId(null);
       setMyPlayerToken(null);
+      clearOnlineSyncTimer();
     }
   }
 
   useEffect(
     () => () => {
-      clearPollingTimer();
+      clearTicketPollingTimer();
+      clearOnlineSyncTimer();
     },
     [],
   );
 
-  async function runRequest(request: Promise<GameStateResponse>) {
+  useEffect(() => {
+    clearOnlineSyncTimer();
+
+    if (!game || game.game_over || myPlayerId === null) {
+      return;
+    }
+
+    onlineSyncTimerRef.current = window.setInterval(() => {
+      void getGame(game.game_id)
+        .then((nextGame) => {
+          setGame(nextGame);
+        })
+        .catch((syncError: unknown) => {
+          setError(toErrorMessage(syncError));
+        });
+    }, ONLINE_SYNC_DELAY_MS);
+
+    return () => {
+      clearOnlineSyncTimer();
+    };
+  }, [game?.game_id, game?.game_over, myPlayerId]);
+
+  async function runRequest(request: Promise<GameStateResponse>): Promise<boolean> {
     setLoading(true);
     setError(null);
     try {
       const nextGame = await request;
       setGame(nextGame);
+      return true;
     } catch (requestError: unknown) {
       setError(toErrorMessage(requestError));
+      return false;
     } finally {
       setLoading(false);
     }
@@ -94,40 +134,57 @@ export function useGamey() {
     setBoardSize(Math.max(1, value));
   }
 
-  async function createNewGame() {
-    resetMatchmakingState();
-    await runRequest(createGame({ size: boardSize, mode }));
+  async function createNewGame(
+    next?: { mode?: GameMode; size?: number; botId?: string }
+  ) {
+    resetMatchmakingState(true);
+
+    const nextMode = next?.mode ?? mode;
+    const nextSize = next?.size ?? boardSize;
+    const nextBotId =
+      nextMode === 'human_vs_bot'
+        ? (next?.botId ?? mapDifficultyToBotId(botDifficulty))
+        : undefined;
+
+    return runRequest(
+      createGame(
+        {
+          size: nextSize,
+          mode: nextMode,
+          ...(nextBotId ? { bot_id: nextBotId } : {}),
+        },
+        userId
+      )
+    );
   }
 
   async function refreshCurrentGame() {
-    if (!game) {
-      return;
-    }
+    if (!game) return;
     await runRequest(getGame(game.game_id));
   }
 
   async function resignCurrentGame() {
-    if (!game) {
-      return;
-    }
-    await runRequest(resignGame(game.game_id, myPlayerToken ?? undefined));
+    if (!game) return;
+    await runRequest(resignGame(game.game_id, userId, myPlayerToken ?? undefined));
   }
 
   async function playCell(coords: Coordinates) {
-    if (!game || !canPlayCell || loading) {
-      return;
-    }
+    if (!game || !canPlayCell || loading) return;
     await runRequest(
-      playMove(game.game_id, {
-        coords,
-        ...(myPlayerToken ? { player_token: myPlayerToken } : {}),
-      }),
+      playMove(
+        game.game_id,
+        {
+          coords,
+          ...(myPlayerToken ? { player_token: myPlayerToken } : {}),
+        },
+        userId
+      )
     );
   }
 
   function scheduleTicketPoll(ticketId: string, delayMs: number) {
-    clearPollingTimer();
-    pollTimerRef.current = window.setTimeout(() => {
+    clearTicketPollingTimer();
+    ticketPollTimerRef.current = window.setTimeout(() => {
       void pollMatchmakingTicket(ticketId);
     }, delayMs);
   }
@@ -139,11 +196,11 @@ export function useGamey() {
       setMatchmakingPosition(ticket.position);
 
       if (ticket.status === 'waiting') {
-        scheduleTicketPoll(ticketId, ticket.poll_after_ms ?? 1_000);
+        scheduleTicketPoll(ticketId, ticket.poll_after_ms ?? DEFAULT_POLL_DELAY_MS);
         return;
       }
 
-      clearPollingTimer();
+      clearTicketPollingTimer();
 
       if (
         ticket.status === 'matched' &&
@@ -153,12 +210,13 @@ export function useGamey() {
       ) {
         setMyPlayerId(ticket.player_id);
         setMyPlayerToken(ticket.player_token);
+        setMatchmakingTicketId(null);
         const nextGame = await getGame(ticket.game_id);
         setGame(nextGame);
       }
     } catch (requestError: unknown) {
       setError(toErrorMessage(requestError));
-      clearPollingTimer();
+      clearTicketPollingTimer();
       setMatchmakingStatus('idle');
     }
   }
@@ -167,35 +225,43 @@ export function useGamey() {
     if (loading || matchmakingStatus === 'waiting') {
       return;
     }
+
     setLoading(true);
     setError(null);
+    setGame(null);
+    setMyPlayerId(null);
+    setMyPlayerToken(null);
+    clearOnlineSyncTimer();
+
     try {
-      setGame(null);
-      setMyPlayerId(null);
-      setMyPlayerToken(null);
-      const ticket = await enqueueMatchmaking(boardSize);
+      const ticket = await enqueueMatchmaking(boardSize, userId);
       setMatchmakingTicketId(ticket.ticket_id);
       setMatchmakingStatus(ticket.status);
       setMatchmakingPosition(ticket.position);
       if (ticket.status === 'waiting') {
-        scheduleTicketPoll(ticket.ticket_id, ticket.poll_after_ms ?? 1_000);
+        scheduleTicketPoll(ticket.ticket_id, ticket.poll_after_ms ?? DEFAULT_POLL_DELAY_MS);
       }
     } catch (requestError: unknown) {
       setError(toErrorMessage(requestError));
+      setMatchmakingStatus('idle');
     } finally {
       setLoading(false);
     }
   }
 
   async function cancelCurrentMatchmaking() {
-    if (!matchmakingTicketId) {
+    if (!matchmakingTicketId || loading) {
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
       await cancelMatchmakingTicket(matchmakingTicketId);
-      resetMatchmakingState();
+      clearTicketPollingTimer();
+      setMatchmakingTicketId(null);
+      setMatchmakingPosition(null);
+      setMatchmakingStatus('cancelled');
     } catch (requestError: unknown) {
       setError(toErrorMessage(requestError));
     } finally {
@@ -206,6 +272,7 @@ export function useGamey() {
   return {
     boardSize,
     mode,
+    botDifficulty,
     game,
     error,
     loading,
@@ -217,6 +284,7 @@ export function useGamey() {
     matchmakingPosition,
     myPlayerId,
     setMode,
+    setBotDifficulty,
     updateBoardSize,
     createNewGame,
     startMatchmaking,

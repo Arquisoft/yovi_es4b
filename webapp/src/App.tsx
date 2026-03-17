@@ -1,145 +1,189 @@
 import './App.css';
-import RegisterForm from './RegisterForm';
-import type { GameMode } from './gameyApi';
-import { cellClassName } from './gameyUi';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
+import { useStats } from './useStats';
+import { useAuth } from './hooks/useAuth';
+import LoginView from './views/LoginView';
+import GameView from './views/GameView';
+import SidebarView from './views/SidebarView';
+import DashboardView from './views/DashboardView';
+import HistoryView from './views/HistoryView';
+import HelpView from './views/HelpView';
+import { uiSx } from './theme';
 
 function App() {
+  const auth = useAuth();
+  const stats = useStats(auth.username ?? undefined);
+  const { refreshStats } = stats;
+  const lastSyncedFinishedGameRef = useRef<string | null>(null);
+
   const {
     boardSize,
     mode,
+    botDifficulty,
     game,
     error,
     loading,
     board,
     canPlayCell,
-    statusText,
+    myPlayerId,
     matchmakingTicketId,
     matchmakingStatus,
     matchmakingPosition,
-    myPlayerId,
     setMode,
+    setBotDifficulty,
     updateBoardSize,
     createNewGame,
     startMatchmaking,
     cancelCurrentMatchmaking,
-    refreshCurrentGame,
     resignCurrentGame,
     playCell,
-  } = useGamey();
+  } = useGamey(auth.username ?? undefined);
+
+  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>('dashboard');
+
+  async function handleCreateNewGame() {
+    const created = await createNewGame();
+    if (created) {
+      setView('game');
+    }
+  }
+
+  function handleOpenPlay() {
+    setView('dashboard');
+  }
+
+  function handleOpenStats() {
+    setView('history');
+    void refreshStats();
+  }
+
+  useEffect(() => {
+    if (matchmakingStatus === 'matched' && game) {
+      setView('game');
+    }
+  }, [matchmakingStatus, game?.game_id]);
+
+  useEffect(() => {
+    if (!game || !game.game_over) {
+      return;
+    }
+
+    const finishedGameKey = `${game.game_id}:${game.winner ?? 'none'}`;
+    if (lastSyncedFinishedGameRef.current === finishedGameKey) {
+      return;
+    }
+
+    lastSyncedFinishedGameRef.current = finishedGameKey;
+    void refreshStats();
+  }, [game, refreshStats]);
+
+  // If auth is still verifying the token, show nothing
+  if (auth.loading) return null;
+
+  // If not authenticated, always show login
+  if (!auth.isAuthenticated) {
+    return (
+      <Box sx={uiSx.appShell}>
+        <Box sx={uiSx.appHeader}>
+          <Typography component="h1" sx={uiSx.appHeaderTitle}>
+            GAME Y
+          </Typography>
+        </Box>
+
+        <Box sx={uiSx.appRoot}>
+          <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />
+        </Box>
+      </Box>
+    );
+  }
 
   return (
-    <div className="app">
-      <h1>GameY Web</h1>
-      <p className="subtitle">Crear partida y jugar desde el navegador</p>
+    <Box sx={uiSx.appShell}>
+      <Box sx={uiSx.appHeader}>
+        <Box sx={uiSx.appHeaderUserRow}>
+          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={() => setView('dashboard')}>
+            GAME Y
+          </Typography>
 
-      <section className="panel">
-        <h2>Nueva partida</h2>
-        <div className="controls">
-          <label htmlFor="size-input">Tamano</label>
-          <input
-            id="size-input"
-            type="number"
-            min={1}
-            value={boardSize}
-            onChange={(event) => {
-              const next = Number.parseInt(event.target.value, 10);
-              updateBoardSize(Number.isNaN(next) ? 1 : next);
-            }}
-          />
+          <Box sx={uiSx.appHeaderUserBadge}>
+            <Typography component="span" sx={uiSx.appHeaderUserText}>
+              Hello,
+            </Typography>
+            <Typography component="span" sx={uiSx.appHeaderUserName}>
+              {auth.username}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
 
-          <label htmlFor="mode-select">Modo</label>
-          <select
-            id="mode-select"
-            value={mode}
-            onChange={(event) => setMode(event.target.value as GameMode)}
-          >
-            <option value="human_vs_bot">Human vs Bot</option>
-            <option value="human_vs_human">Human vs Human</option>
-          </select>
+      <Box sx={uiSx.appBody}>
+        <SidebarView
+          onOpenPlay={handleOpenPlay}
+          onOpenStats={handleOpenStats}
+          onOpenHelp={() => setView('help')}
+          onLogout={auth.logout}
+        />
 
-          <button type="button" onClick={createNewGame} disabled={loading}>
-            {loading ? 'Cargando...' : 'Crear partida'}
-          </button>
-        </div>
-      </section>
+        <Box sx={uiSx.appMain}>
+          {error && (
+            <Alert severity="error" sx={uiSx.errorText}>
+              {error}
+            </Alert>
+          )}
 
-      <section className="panel">
-        <h2>Matchmaking online (MVP)</h2>
-        <div className="controls">
-          <button type="button" onClick={startMatchmaking} disabled={loading || matchmakingStatus === 'waiting'}>
-            {matchmakingStatus === 'waiting' ? 'Buscando rival...' : 'Buscar rival'}
-          </button>
-          <button
-            type="button"
-            onClick={cancelCurrentMatchmaking}
-            disabled={loading || matchmakingStatus !== 'waiting'}
-          >
-            Cancelar busqueda
-          </button>
-        </div>
-        {matchmakingStatus !== 'idle' && (
-          <p className="status-text">
-            {matchmakingStatus === 'waiting' &&
-              `Ticket ${matchmakingTicketId ?? '-'} en cola${
-                matchmakingPosition ? ` (posicion ${matchmakingPosition})` : ''
-              }`}
-            {matchmakingStatus === 'matched' && 'Emparejado. Cargando partida...'}
-            {matchmakingStatus === 'cancelled' && 'Busqueda cancelada.'}
-          </p>
-        )}
-      </section>
+          {stats.error && (
+            <Alert severity="warning" sx={uiSx.errorText}>
+              {stats.error}
+            </Alert>
+          )}
 
-      {error && <p className="error-text">{error}</p>}
+          {view === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
 
-      {game && (
-        <section className="panel">
-          <h2>Partida {game.game_id}</h2>
-          <p className="status-text">{statusText}</p>
-          {myPlayerId !== null && <p className="status-text">Tu id de jugador: {myPlayerId}</p>}
+          {view === 'dashboard' && (
+            <DashboardView
+              boardSize={boardSize}
+              mode={mode}
+              botDifficulty={botDifficulty}
+              loading={loading}
+              setMode={setMode}
+              setBotDifficulty={setBotDifficulty}
+              updateBoardSize={updateBoardSize}
+              createNewGame={handleCreateNewGame}
+              matchmakingTicketId={matchmakingTicketId}
+              matchmakingStatus={matchmakingStatus}
+              matchmakingPosition={matchmakingPosition}
+              startMatchmaking={startMatchmaking}
+              cancelCurrentMatchmaking={cancelCurrentMatchmaking}
+            />
+          )}
 
-          <div className="actions">
-            <button type="button" onClick={refreshCurrentGame} disabled={loading}>
-              Refrescar
-            </button>
-            <button type="button" onClick={resignCurrentGame} disabled={loading || game.game_over}>
-              Rendirse
-            </button>
-          </div>
+          {view === 'history' && (
+            <HistoryView
+              playerStats={stats.playerStats}
+              matches={stats.matches}
+            />
+          )}
 
-          <div className="board">
-            {board.map((row, rowIndex) => (
-              <div
-                key={`row-${rowIndex}`}
-                className="board-row"
-                style={{ marginLeft: `${(game.yen.size - rowIndex - 1) * 16}px` }}
-              >
-                {row.map((cell) => {
-                  const isEmpty = cell.symbol === '.';
-                  return (
-                    <button
-                      key={cell.key}
-                      type="button"
-                      className={cellClassName(cell.symbol)}
-                      disabled={!isEmpty || !canPlayCell || loading}
-                      title={`${cell.coords.x},${cell.coords.y},${cell.coords.z}`}
-                      onClick={() => void playCell(cell.coords)}
-                    >
-                      {isEmpty ? '.' : cell.symbol}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+          {view === 'help' && <HelpView />}
 
-      <section className="panel">
-        <h2>Registro</h2>
-        <RegisterForm />
-      </section>
-    </div>
+          {view === 'game' && (
+            <GameView
+              game={game}
+              board={board}
+              canPlayCell={canPlayCell}
+              loading={loading}
+              myPlayerId={myPlayerId}
+              currentUserId={auth.username}
+              resignCurrentGame={resignCurrentGame}
+              playCell={playCell}
+              onBack={() => setView('dashboard')}
+            />
+          )}
+        </Box>
+      </Box>
+    </Box>
   );
 }
 

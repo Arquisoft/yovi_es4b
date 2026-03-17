@@ -32,3 +32,122 @@ See https://docs.arc42.org/section-4/[Solution Strategy] in the arc42 documentat
 
 ****
 endif::arc42help[]
+
+This section summarizes the fundamental architecture decisions and explains how they support the most important quality goals.
+
+=== 4.1 Technology Decisions
+
+* `Frontend`: React + TypeScript + Vite (+ MUI).
++
+Reason: productive SPA development, typed UI code, and fast local feedback loops.
+
+* `Edge/API Entry Point`: `gateway` built with Node.js + Express + `http-proxy-middleware`.
++
+Reason: central route mapping and a single external entry point for browser clients.
+
+* `Authentication Service`: `auth_service` with Node.js + Express + Mongoose + JWT + bcrypt.
++
+Reason: dedicated identity boundary, password hashing, and stateless token-based sessions.
+
+* `Game Engine Service`: `gamey` with Rust + Axum.
++
+Reason: game rules and bot logic are isolated in a specialized service with strong correctness guarantees.
+
+* `Stats Service`: `stats` with Node.js + Express + MongoDB driver.
++
+Reason: dedicated storage and query API for player statistics and match history.
+
+* `Users Service`: `users` with Node.js + Express (+ Swagger UI/OpenAPI).
++
+Reason: keeps user-related API capabilities independent from authentication and gameplay concerns.
+
+* `Data Storage`: MongoDB with separated instances (`mongo-auth`, `mongo-stats`).
++
+Reason: separation of concerns, independent lifecycle, and persistent volumes.
+
+* `Observability`: Prometheus + Grafana (+ service metrics middleware in Node services).
++
+Reason: baseline monitoring for operational visibility.
+
+* `Packaging and Runtime`: Docker + Docker Compose.
++
+Reason: reproducible multi-service environments and deterministic local integration.
+
+=== 4.2 Top-Level Decomposition Decision
+
+The system follows a microservice decomposition with a gateway at the edge and domain-specific backend services.
+
+1. `Webapp`
++
+Responsibility: user interface, authentication/session UX, game interaction.
+
+2. `Gateway`
++
+Responsibility: path-based request routing to internal services and normalized upstream error handling.
+
+3. `Auth Service`
++
+Responsibility: register/login/verify workflows and JWT issuance/validation.
+
+4. `Gamey Service`
++
+Responsibility: game state lifecycle, move validation, and bot decisions.
+
+5. `Stats Service`
++
+Responsibility: match result persistence and player stats/history queries.
+
+6. `Users Service`
++
+Responsibility: user-related API endpoints not covered by authentication/game runtime.
+
+7. `Data Stores (MongoDB)`
++
+Responsibility: persistent storage for auth identities and game statistics.
+
+==== Communication Between Subsystems
+
+External communication is `Browser -> Gateway -> Internal Service`:
+
+* `/` -> `webapp`
+* `/auth/*` -> `auth_service`
+* `/api/*` -> `gamey`
+* `/stats/*` -> `stats`
+* `/users/*` -> `users`
+
+Internal communication relevant for gameplay:
+
+* `gamey -> stats`: HTTP call to `/internal/v1/matches/finished` when a match ends.
+* `auth_service -> mongo-auth`: credential and identity persistence.
+* `stats -> mongo-stats`: match history and aggregate counters persistence.
+
+Most calls are synchronous HTTP/JSON. Stats reporting is executed as a runtime side-effect and degrades gracefully if unavailable (game response still returns to the player).
+
+=== 4.3 Decisions to Achieve Quality Goals
+
+[cols="1,3",options="header"]
+|===
+|Quality Goal |Architectural Decision
+
+|Security
+|Dedicated `auth_service` with hashed passwords (`bcrypt`), JWT-based sessions, and protected internal stats endpoint via service token.
+
+|Performance
+|Game-critical logic in `gamey` (Rust) and lightweight proxying in `gateway`.
+
+|Usability
+|SPA frontend with immediate feedback on auth/game errors and a single public entry point through `gateway`.
+
+|Reliability and Availability
+|Isolated containers, explicit upstream-failure handling in `gateway` (`502 Bad Gateway`), and graceful degradation when stats reporting fails.
+
+|Maintainability and Testability
+|Clear bounded services (`webapp`, `gateway`, `auth_service`, `gamey`, `stats`, `users`) with service-level tests and explicit HTTP contracts.
+|===
+
+=== 4.4 Organizational Decisions
+
+* Central GitHub repository for source code and collaboration.
+* Task tracking and technical discussions through GitHub Issues.
+* Periodic team meetings for progress review and task distribution.
+* Decision and meeting traceability through documented records.

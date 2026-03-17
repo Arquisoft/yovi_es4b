@@ -9,6 +9,7 @@ use crate::GameY;
 use axum::{
     Json,
     extract::{Path, State},
+    http::HeaderMap,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -70,6 +71,7 @@ pub fn start_matchmaking_worker(state: AppState) {
 pub async fn enqueue(
     State(state): State<AppState>,
     Path(params): Path<ApiVersionParams>,
+    headers: HeaderMap,
     Json(request): Json<EnqueueRequest>,
 ) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
     check_api_version(&params.api_version)?;
@@ -82,17 +84,20 @@ pub async fn enqueue(
     }
 
     let ticket_id = state.new_ticket_id();
+    let user_id = read_header_string(&headers, "x-user-id");
 
     let matchmaking = state.matchmaking();
     let mut guard = matchmaking.write().await;
     guard.queue.push_back(MatchmakingQueueEntry {
         ticket_id: ticket_id.clone(),
         size: request.size,
+        user_id: user_id.clone(),
     });
     guard.tickets.insert(
         ticket_id.clone(),
         MatchmakingTicketStatus::Waiting {
             size: request.size,
+            user_id,
             enqueued_at: Instant::now(),
         },
     );
@@ -236,6 +241,9 @@ async fn process_once(state: &AppState) -> Result<(), String> {
                 game: GameY::new(a.size),
                 bot_id: None,
                 player_tokens: Some(player_tokens),
+                player0_user_id: a.user_id.clone(),
+                player1_user_id: b.user_id.clone(),
+                stats_reported: false,
             },
         );
         drop(games_guard);
@@ -306,6 +314,15 @@ fn default_board_size() -> u32 {
     DEFAULT_BOARD_SIZE
 }
 
+fn read_header_string(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
 fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorResponse> {
     Json(ErrorResponse::error(message, api_version, None))
 }
@@ -320,15 +337,18 @@ mod tests {
         state.queue.push_back(MatchmakingQueueEntry {
             ticket_id: "ticket-1".to_string(),
             size: 7,
+            user_id: None,
         });
         state.queue.push_back(MatchmakingQueueEntry {
             ticket_id: "ticket-2".to_string(),
             size: 7,
+            user_id: None,
         });
         state.tickets.insert(
             "ticket-1".to_string(),
             MatchmakingTicketStatus::Waiting {
                 size: 7,
+                user_id: None,
                 enqueued_at: Instant::now(),
             },
         );
@@ -336,6 +356,7 @@ mod tests {
             "ticket-2".to_string(),
             MatchmakingTicketStatus::Waiting {
                 size: 7,
+                user_id: None,
                 enqueued_at: Instant::now(),
             },
         );

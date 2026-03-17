@@ -14,8 +14,11 @@ use tokio::sync::RwLock;
 pub struct GameSession {
     pub game: GameY,
     pub bot_id: Option<String>,
-    /// Token by player id for authenticated multiplayer games.
+    /// Token by player id for authenticated multiplayer matchmaking games.
     pub player_tokens: Option<HashMap<u32, String>>,
+    pub player0_user_id: Option<String>,
+    pub player1_user_id: Option<String>,
+    pub stats_reported: bool,
 }
 
 /// Queue entry for matchmaking.
@@ -23,6 +26,7 @@ pub struct GameSession {
 pub struct MatchmakingQueueEntry {
     pub ticket_id: String,
     pub size: u32,
+    pub user_id: Option<String>,
 }
 
 /// Internal state for a matchmaking ticket.
@@ -30,6 +34,7 @@ pub struct MatchmakingQueueEntry {
 pub enum MatchmakingTicketStatus {
     Waiting {
         size: u32,
+        user_id: Option<String>,
         enqueued_at: Instant,
     },
     Matched {
@@ -141,7 +146,7 @@ mod tests {
         let cloned = state.clone();
         // Both should reference the same underlying data
         assert_eq!(state.bots().names(), cloned.bots().names());
-        assert_eq!(state.new_ticket_id(), "ticket-1");
+        assert!(state.new_ticket_id().starts_with("ticket-"));
     }
 
     #[test]

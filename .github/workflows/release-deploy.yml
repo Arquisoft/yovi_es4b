@@ -56,6 +56,11 @@ jobs:
     name: Run E2E tests
     runs-on: ubuntu-latest
     needs: [test-node, test-rust]
+    services:
+      mongo-auth:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,6 +72,10 @@ jobs:
         run: |
           cd users
           npm ci
+      - name: Install auth_service dependencies
+        run: |
+          cd auth_service
+          npm ci
       - name: Install webapp dependencies
         run: |
           cd webapp
@@ -76,6 +85,9 @@ jobs:
           cd webapp
           npm run test:e2e:install-browsers
       - name: Run E2E tests (start servers and run cucumber)
+        env:
+          JWT_SECRET: e2e-test-secret
+          MONGO_AUTH_DB: mongodb://localhost:27017/auth
         run: |
           cd webapp
           npm run test:e2e
@@ -119,7 +131,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
           workdir: webapp
-          buildargs: VITE_API_URL=http://${{ secrets.DEPLOY_HOST }}:3000
+
+  docker-push-gateway:
+    name: Publish gateway image
+    runs-on: ubuntu-latest
+    needs: e2e
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish to Registry (gateway)
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: ${{ github.repository_owner }}/${{ github.event.repository.name }}-gateway
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          workdir: gateway
 
   docker-push-gamey:
     name: Publish gamey image
@@ -141,10 +172,50 @@ jobs:
           registry: ghcr.io
           workdir: gamey
 
+  docker-push-auth:
+    name: Publish auth image
+    runs-on: ubuntu-latest
+    needs: e2e
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish to Registry (auth)
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: ${{ github.repository_owner }}/${{ github.event.repository.name }}-auth
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          workdir: auth_service
+
+  docker-push-stats:
+    name: Publish stats image
+    runs-on: ubuntu-latest
+    needs: e2e
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish to Registry (stats)
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: ${{ github.repository_owner }}/${{ github.event.repository.name }}-stats
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          workdir: stats
+
   deploy:
     name: Deploy over SSH
     runs-on: ubuntu-latest
-    needs: [docker-push-users, docker-push-webapp, docker-push-gamey]
+    needs: [docker-push-users, docker-push-webapp, docker-push-gateway, docker-push-gamey, docker-push-auth, docker-push-stats]
     steps:
       - name: Deploy over SSH
         uses: fifsky/ssh-action@master
@@ -154,5 +225,11 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           command: |
             wget https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/master/docker-compose.yml -O docker-compose.yml
+            cat > .env << 'EOF'
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES=${{ secrets.JWT_EXPIRES }}
+            MONGO_AUTH_DB=${{ secrets.MONGO_AUTH_DB }}
+            EOF
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose down
             docker compose up -d --pull always

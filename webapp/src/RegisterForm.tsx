@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
+import { Box, TextField, Button, Alert } from '@mui/material';
+import { uiSx } from './theme';
 
-const RegisterForm: React.FC = () => {
+interface RegisterFormProps {
+  onSuccess: (token: string, username: string) => void;
+}
+
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [responseMessage, setResponseMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -11,28 +19,42 @@ const RegisterForm: React.FC = () => {
     setResponseMessage(null);
     setError(null);
 
-    if (!username.trim()) {
-      setError('Please enter a username.');
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter a username and password.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
 
     setLoading(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-      const res = await fetch(`${API_URL}/createuser`, {
+      const AUTH_URL = import.meta.env.VITE_AUTH_API_URL ?? '/auth';
+      const res = await fetch(`${AUTH_URL}/register`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw.trim() ? JSON.parse(raw) : {};
       if (res.ok) {
         setResponseMessage(data.message);
         setUsername('');
+        setPassword('');
+        setConfirmPassword('');
+        onSuccess(data.token, data.username);
       } else {
-        setError(data.error || 'Server error');
+        setError(data.message || `Server error (${res.status})`);
       }
     } catch (err: any) {
       setError(err.message || 'Network error');
@@ -42,33 +64,37 @@ const RegisterForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="register-form">
-      <div className="form-group">
-        <label htmlFor="username">Whats your name?</label>
-        <input
-          type="text"
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="form-input"
-        />
-      </div>
-      <button type="submit" className="submit-button" disabled={loading}>
-        {loading ? 'Entering...' : 'Lets go!'}
-      </button>
+    <Box component="form" onSubmit={handleSubmit} sx={uiSx.formColumn}>
+      <TextField
+        id="register-username"
+        label="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
 
-      {responseMessage && (
-        <div className="success-message" style={{ marginTop: 12, color: 'green' }}>
-          {responseMessage}
-        </div>
-      )}
+      <TextField
+        id="register-password"
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-      {error && (
-        <div className="error-message" style={{ marginTop: 12, color: 'red' }}>
-          {error}
-        </div>
-      )}
-    </form>
+      <TextField
+        id="register-confirm-password"
+        label="Confirm Password"
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+      />
+
+      <Button type="submit" color="primary" disabled={loading}>
+        {loading ? 'Registering...' : 'Register'}
+      </Button>
+
+      {responseMessage && <Alert severity="success">{responseMessage}</Alert>}
+      {error && <Alert severity="error">{error}</Alert>}
+    </Box>
   );
 };
 
