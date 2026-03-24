@@ -11,6 +11,7 @@ vi.mock('../components/board/TriangularBoard', () => ({
     size: number;
     canPlayCell: boolean;
     loading: boolean;
+    winningCellKeys?: Set<string>;
   }) => (
     <div data-testid="triangular-board-mock">
       {JSON.stringify({
@@ -18,6 +19,7 @@ vi.mock('../components/board/TriangularBoard', () => ({
         size: props.size,
         canPlayCell: props.canPlayCell,
         loading: props.loading,
+        winningCellKeysSize: props.winningCellKeys?.size ?? 0,
       })}
     </div>
   ),
@@ -27,10 +29,8 @@ function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = 
   return {
     game: buildGame(),
     board: [],
-    statusText: 'Turno: Player 0 (B)',
     canPlayCell: true,
     loading: false,
-    refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
     playCell: vi.fn(),
     onBack: vi.fn(),
@@ -68,7 +68,6 @@ describe('GameView', () => {
     render(<GameView {...buildProps()} />);
 
     expect(screen.getByText(/partida game-123/i)).toBeInTheDocument();
-    expect(screen.getByText(/turno: player 0 \(b\)/i)).toBeInTheDocument();
 
     const boardProps = screen.getByTestId('triangular-board-mock');
     expect(boardProps).toHaveTextContent('"humanSymbol":"B"');
@@ -77,8 +76,8 @@ describe('GameView', () => {
     expect(boardProps).toHaveTextContent('"loading":false');
   });
 
-  test('renders bot label using mapped difficulty name and raw fallback id', () => {
-    const { rerender } = render(
+  test('does not render status or bot helper phrases', () => {
+    render(
       <GameView
         {...buildProps({
           game: buildGame({
@@ -88,19 +87,8 @@ describe('GameView', () => {
       />,
     );
 
-    expect(screen.getByText(/bot: dificil/i)).toBeInTheDocument();
-
-    rerender(
-      <GameView
-        {...buildProps({
-          game: buildGame({
-            bot_id: 'custom_bot',
-          }),
-        })}
-      />,
-    );
-
-    expect(screen.getByText(/bot: custom_bot/i)).toBeInTheDocument();
+    expect(screen.queryByText(/turno:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^bot:/i)).not.toBeInTheDocument();
   });
 
   test('passes null human symbol when players are missing', () => {
@@ -117,15 +105,13 @@ describe('GameView', () => {
     expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":null');
   });
 
-  test('calls refresh, resign and back actions from buttons', () => {
+  test('calls resign and back actions from buttons', () => {
     const props = buildProps();
     render(<GameView {...props} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /refrescar/i }));
     fireEvent.click(screen.getByRole('button', { name: /rendirse/i }));
     fireEvent.click(screen.getByRole('button', { name: /volver/i }));
 
-    expect(props.refreshCurrentGame).toHaveBeenCalledTimes(1);
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
     expect(props.onBack).toHaveBeenCalledTimes(1);
   });
@@ -133,24 +119,52 @@ describe('GameView', () => {
   test('disables action buttons when loading or game is over', () => {
     const { rerender } = render(<GameView {...buildProps({ loading: true, game: buildGame() })} />);
 
-    expect(screen.getByRole('button', { name: /refrescar/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
 
     rerender(<GameView {...buildProps({ loading: false, game: buildGame({ game_over: true }) })} />);
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
   });
 
-  test('keeps refresh enabled when the game is over but not loading', () => {
+  test('shows victory state and highlights the winning connection component', () => {
     render(
       <GameView
         {...buildProps({
-          loading: false,
-          game: buildGame({ game_over: true }),
+          game: buildGame({
+            game_over: true,
+            winner: 0,
+            yen: {
+              size: 3,
+              turn: 0,
+              players: ['B', 'R'],
+              layout: 'B/BB/BBR',
+            },
+          }),
         })}
       />,
     );
 
-    expect(screen.getByRole('button', { name: /refrescar/i })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
+    expect(screen.getByText(/^victoria$/i)).toBeInTheDocument();
+    expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"winningCellKeysSize":5');
+  });
+
+  test('shows defeat state when the opponent wins', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            game_over: true,
+            winner: 1,
+            yen: {
+              size: 3,
+              turn: 1,
+              players: ['B', 'R'],
+              layout: 'R/RR/RRB',
+            },
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/^derrota$/i)).toBeInTheDocument();
   });
 });

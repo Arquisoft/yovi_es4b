@@ -1,4 +1,4 @@
-import type { MatchHistoryItem, PlayerStatsSummary } from './stats/types';
+import type { FinalBoardSnapshot, MatchHistoryItem, PlayerStatsSummary } from './stats/types';
 
 const STATS_API_URL = import.meta.env.VITE_STATS_API_URL ?? '/stats';
 
@@ -10,15 +10,53 @@ type StatsResponse = {
 };
 
 type StatsHistoryResponse = {
-  items?: Array<{
-    gameId?: string;
-    result?: 'win' | 'loss';
-    mode?: 'human_vs_bot' | 'human_vs_human' | null;
-    winnerId?: string | null;
-    botId?: string | null;
-    endedAt?: string;
-  }>;
+  items?: StatsHistoryItemResponse[];
 };
+
+type StatsHistoryItemResponse = {
+  gameId?: string;
+  result?: 'win' | 'loss';
+  mode?: 'human_vs_bot' | 'human_vs_human' | null;
+  winnerId?: string | null;
+  botId?: string | null;
+  endedAt?: string;
+  finalBoard?: {
+    size?: number;
+    turn?: number;
+    players?: unknown;
+    layout?: string;
+  } | null;
+};
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string' && item.length > 0);
+}
+
+function normalizeFinalBoard(raw: StatsHistoryItemResponse['finalBoard']): FinalBoardSnapshot | null {
+  if (!raw) {
+    return null;
+  }
+
+  const hasValidSize = Number.isInteger(raw.size) && Number(raw.size) > 0;
+  const hasValidTurn = Number.isInteger(raw.turn) && Number(raw.turn) >= 0;
+  if (
+    !hasValidSize ||
+    !hasValidTurn ||
+    typeof raw.layout !== 'string' ||
+    raw.layout.length === 0 ||
+    !isStringArray(raw.players) ||
+    raw.players.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    size: Number(raw.size),
+    turn: Number(raw.turn),
+    players: raw.players,
+    layout: raw.layout,
+  };
+}
 
 function buildHeaders(userId: string): HeadersInit {
   return {
@@ -65,5 +103,6 @@ export async function fetchMatchHistory(userId: string, limit = 20): Promise<Mat
     winnerId: item.winnerId ?? null,
     botId: item.botId ?? null,
     endedAt: item.endedAt ?? new Date(0).toISOString(),
+    finalBoard: normalizeFinalBoard(item.finalBoard),
   }));
 }

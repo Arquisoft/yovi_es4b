@@ -85,4 +85,25 @@ describe('TriangularBoard', () => {
     await user.click(screen.getByTestId('hex-0-0'));
     expect(playCell).not.toHaveBeenCalled();
   });
+
+  test('marks winning cells for UI highlight', () => {
+    render(
+      <TriangularBoard
+        board={buildBoard()}
+        playCell={vi.fn()}
+        canPlayCell={true}
+        loading={false}
+        humanSymbol={'B'}
+        size={2}
+        winningCellKeys={new Set(['2-0--2'])}
+      />,
+    );
+
+    expect(screen.getByTestId('hex-0-0')).toHaveAttribute('data-winning-cell', 'true');
+    expect(screen.getByTestId('hex-0-0')).toHaveAttribute('data-piece-owner', 'empty');
+    expect(screen.getByTestId('hex-1-0')).not.toHaveAttribute('data-winning-cell');
+    expect(screen.getByTestId('hex-1-1')).toHaveAttribute('data-muted-cell', 'true');
+    expect(screen.getByTestId('hex-1-1')).toHaveAttribute('data-piece-owner', 'human');
+    expect(screen.getByTestId('hex-1-0')).not.toHaveAttribute('data-muted-cell');
+  });
 });

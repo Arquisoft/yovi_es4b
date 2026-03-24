@@ -111,6 +111,8 @@ You can run this project using Docker (recommended) or locally without Docker.
 
 This is the easiest way to get the project running. You need to have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
 
+The `docker-compose.yml` in this repository is configured to build first-party services (`webapp`, `gateway`, `users`, `gamey`, `auth`, `stats`) directly from local source code in this repo.
+
 1. **Build and run the containers:**
     From the root directory of the project, run:
 
