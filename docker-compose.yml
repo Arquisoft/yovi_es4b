@@ -42,24 +42,17 @@ services:
       - "80:8080"
     environment:
       - WEBAPP_SERVICE_URL=http://webapp:80
-      - USERS_SERVICE_URL=http://users:3000
       - GAMEY_SERVICE_URL=http://gamey:4000
       - AUTH_SERVICE_URL=http://auth:3500
       - STATS_SERVICE_URL=http://stats:3001
     depends_on:
       - webapp
-      - users
       - gamey
       - stats
       - auth
     networks:
       - monitor-net
 
-  users:
-    container_name: users
-    image: ghcr.io/arquisoft/yovi_es4b-users:latest
-    networks:
-      - monitor-net
 
   webapp:
     container_name: webapp

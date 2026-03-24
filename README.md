@@ -19,7 +19,6 @@ The project is divided into four main components, each in its own directory:
 
 - `gateway/`: A Node.js reverse proxy that routes all incoming requests to the correct microservice.
 - `webapp/`: A frontend application built with React, Vite, and TypeScript.
-- `users/`: A backend service for managing users, built with Node.js and Express.
 - `gamey/`: A Rust game engine and bot service.
 - `docs/`: Architecture documentation sources following Arc42 template
 
@@ -28,7 +27,6 @@ Each component includes the scripts/configuration needed to run and test the app
 ## Basic Features
 
 - **User Registration**: The web application provides a simple form to register new users.
-- **User Service**: The user service receives the registration request, simulates some processing, and returns a welcome message.
 - **GameY**: A basic Game engine which only chooses a random piece.
 
 ## Components

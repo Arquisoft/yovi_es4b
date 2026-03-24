@@ -13,7 +13,6 @@ export default defineConfig({
     proxy: {
       '/api': proxyRule('http://localhost:4000', '/api'),
       '/auth': proxyRule('http://localhost:3500', '/auth'),
-      '/users': proxyRule('http://localhost:3000', '/users'),
     },
   },
   test: {
