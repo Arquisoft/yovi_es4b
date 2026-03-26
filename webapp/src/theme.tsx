@@ -339,6 +339,13 @@ export const uiSx = {
     objectFit: 'contain',
     flexShrink: 0,
   } satisfies SxProps<Theme>,
+  sidebarSessionIcon: {
+    width: 24,
+    height: 24,
+    display: 'block',
+    objectFit: 'contain',
+    flexShrink: 0,
+  } satisfies SxProps<Theme>,
   sidebarBottom: {
     mt: 'auto',
     pt: 1.5,

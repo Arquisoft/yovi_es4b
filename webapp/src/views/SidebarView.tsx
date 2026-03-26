@@ -4,7 +4,8 @@ import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import { uiSx } from '../theme';
 import playIcon from '../assets/play-button-svgrepo-com (1).svg';
 import statsIcon from '../assets/stats-graph-svgrepo-com.svg';
-import logOutIcon from '../assets/logout-svgrepo-com.svg';
+import loginIcon from '../assets/login.svg';
+import logoutIcon from '../assets/logout.svg';
 
 type Props = {
   onOpenPlay: () => void;
@@ -12,6 +13,7 @@ type Props = {
   onOpenHelp: () => void;
   onSessionAction: () => void;
   sessionActionLabel: string;
+  isAuthenticated: boolean;
 };
 
 const SidebarView: React.FC<Props> = ({
@@ -20,6 +22,7 @@ const SidebarView: React.FC<Props> = ({
   onOpenHelp,
   onSessionAction,
   sessionActionLabel,
+  isAuthenticated,
 }) => {
   return (
     <Box component="aside" sx={uiSx.sidebar}>
@@ -47,7 +50,13 @@ const SidebarView: React.FC<Props> = ({
       <Box sx={uiSx.sidebarBottom}>
         <Box component="button" type="button" sx={uiSx.sidebarItem(false)} onClick={onSessionAction}>
           <Box component="span" sx={uiSx.sidebarItemContent}>
-            <Box component="img" src={logOutIcon} alt="" aria-hidden sx={uiSx.sidebarItemIcon} />
+            <Box
+              component="img"
+              src={isAuthenticated ? logoutIcon : loginIcon}
+              alt=""
+              aria-hidden
+              sx={uiSx.sidebarSessionIcon}
+            />
             <Box component="span">{sessionActionLabel}</Box>
           </Box>
         </Box>

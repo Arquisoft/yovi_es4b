@@ -138,7 +138,8 @@ function App() {
             onOpenStats={handleOpenStats}
             onOpenHelp={() => setView('help')}
             onSessionAction={handleSessionAction}
-            sessionActionLabel={auth.isAuthenticated ? 'Logout' : 'Iniciar sesion'}
+            sessionActionLabel={auth.isAuthenticated ? 'Logout' : 'Iniciar sesión'}
+            isAuthenticated={auth.isAuthenticated}
           />
 
           <Box sx={uiSx.appMain}>
@@ -203,7 +204,7 @@ function App() {
           <Button variant="text" onClick={() => setRestrictedModalOpen(false)}>
             Ahora no
           </Button>
-          <Button onClick={handleGoToLogin}>Ir a login o registro</Button>
+          <Button onClick={handleGoToLogin}>Ir a registro</Button>
         </DialogActions>
       </Dialog>
     </Box>
