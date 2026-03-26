@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
 import '@testing-library/jest-dom';
 import HistoryView from '../views/HistoryView';
@@ -54,16 +54,23 @@ describe('HistoryView', () => {
 
     render(<HistoryView playerStats={PLAYER_STATS} matches={matches} />);
 
-    expect(screen.getByText('match-1')).toBeInTheDocument();
-    expect(screen.getByText('match-2')).toBeInTheDocument();
-    expect(screen.getByText('match-3')).toBeInTheDocument();
-    expect(screen.getAllByText(/victoria|derrota/i)).toHaveLength(3);
-    expect(screen.getAllByText('Bot').length).toBeGreaterThan(1);
-    expect(screen.getByText('Humano')).toBeInTheDocument();
-    expect(screen.getByText('Intermedio')).toBeInTheDocument();
-    expect(screen.getByText('custom_bot')).toBeInTheDocument();
-    expect(screen.getByText('rival')).toBeInTheDocument();
-    expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+    const rows = screen.getAllByRole('row');
+    const matchOneRow = rows.find((row) => within(row).queryByText('match-1'));
+    const matchTwoRow = rows.find((row) => within(row).queryByText('match-2'));
+    const matchThreeRow = rows.find((row) => within(row).queryByText('match-3'));
+
+    expect(matchOneRow).toBeTruthy();
+    expect(matchTwoRow).toBeTruthy();
+    expect(matchThreeRow).toBeTruthy();
+
+    expect(within(matchOneRow as HTMLElement).getByText('Victoria')).toBeInTheDocument();
+    expect(within(matchOneRow as HTMLElement).getByText('Bot')).toBeInTheDocument();
+    expect(within(matchOneRow as HTMLElement).getByText('Intermedio')).toBeInTheDocument();
+    expect(within(matchTwoRow as HTMLElement).getByText('Derrota')).toBeInTheDocument();
+    expect(within(matchTwoRow as HTMLElement).getByText('Humano')).toBeInTheDocument();
+    expect(within(matchTwoRow as HTMLElement).getByText('rival')).toBeInTheDocument();
+    expect(within(matchThreeRow as HTMLElement).getByText('custom_bot')).toBeInTheDocument();
+    expect(within(matchThreeRow as HTMLElement).getAllByText('-').length).toBeGreaterThan(0);
     expect(screen.getAllByText(new Date(matches[0].endedAt).toLocaleString())).toHaveLength(3);
   });
 
@@ -84,12 +91,20 @@ describe('HistoryView', () => {
 
     render(<HistoryView playerStats={PLAYER_STATS} matches={matches} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'match-1' }));
+    const noBoardRow = screen
+      .getAllByRole('row')
+      .find((row) => within(row).queryByText('match-no-board'));
+
+    expect(noBoardRow).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sin tablero' })).toBeDisabled();
+    fireEvent.click(noBoardRow as HTMLElement);
+    expect(screen.queryByText('Tablero final - match-no-board')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver tablero' }));
 
     expect(screen.getByText('Tablero final - match-1')).toBeInTheDocument();
     expect(screen.getByText(/estado final guardado en el historial/i)).toBeInTheDocument();
     expect(screen.getAllByTestId(/hex-/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'match-no-board' })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /cerrar/i }));
     expect(screen.queryByText('Tablero final - match-1')).not.toBeInTheDocument();
