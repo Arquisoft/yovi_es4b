@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
@@ -48,20 +48,23 @@ vi.mock('../useStats', () => ({
     matches: [],
     loading: false,
     error: null,
+    refreshStats: vi.fn(),
   }),
 }));
 
 describe('App history navigation', () => {
-  test('opens full history from "Ver mas partidas" and returns to dashboard', async () => {
+  test('opens stats view from sidebar and returns to dashboard', async () => {
     render(<App />);
     const user = userEvent.setup();
+    const sidebar = screen.getByRole('complementary');
 
-    expect(screen.getByText(/historial de partidas/i)).toBeInTheDocument();
+    expect(screen.getByText(/configurar partida/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /ver mas partidas/i }));
+    await user.click(within(sidebar).getByRole('button', { name: /estadisticas/i }));
+    expect(await screen.findByRole('heading', { name: /estadisticas/i })).toBeInTheDocument();
     expect(screen.getByText(/historial completo/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /volver al inicio/i }));
-    expect(screen.getByText(/historial de partidas/i)).toBeInTheDocument();
+    await user.click(within(sidebar).getByRole('button', { name: /jugar/i }));
+    expect(await screen.findByText(/configurar partida/i)).toBeInTheDocument();
   });
 });
