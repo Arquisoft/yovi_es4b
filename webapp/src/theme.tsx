@@ -761,6 +761,44 @@ export const uiSx = {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     overflow: 'hidden',
   } satisfies SxProps<Theme>,
+  loginGuestActions: {
+    mt: 2,
+    pt: 1.6,
+    borderTop: `1px solid ${uiColors.border.faint}`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 1,
+  } satisfies SxProps<Theme>,
+  loginGuestHint: {
+    textAlign: 'center',
+    color: 'text.secondary',
+    fontSize: '0.9rem',
+    maxWidth: 360,
+  } satisfies SxProps<Theme>,
+  accessDialogPaper: {
+    maxWidth: 480,
+    borderRadius: 2.2,
+    backgroundColor: uiColors.bg.surface,
+    boxShadow: '0 18px 42px rgba(0, 0, 0, 0.32)',
+  } satisfies SxProps<Theme>,
+  accessDialogTitle: {
+    fontWeight: 800,
+    letterSpacing: 0.25,
+  } satisfies SxProps<Theme>,
+  accessDialogContent: {
+    pt: '6px !important',
+  } satisfies SxProps<Theme>,
+  accessDialogText: {
+    color: 'text.secondary',
+    lineHeight: 1.6,
+  } satisfies SxProps<Theme>,
+  accessDialogActions: {
+    px: 3,
+    pb: 2.4,
+    pt: 0.6,
+    gap: 1,
+  } satisfies SxProps<Theme>,
   boardContainer: {
     display: 'flex',
     flexDirection: 'column',

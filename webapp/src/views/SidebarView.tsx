@@ -10,10 +10,17 @@ type Props = {
   onOpenPlay: () => void;
   onOpenStats: () => void;
   onOpenHelp: () => void;
-  onLogout: () => void;
+  onSessionAction: () => void;
+  sessionActionLabel: string;
 };
 
-const SidebarView: React.FC<Props> = ({ onOpenPlay, onOpenStats, onOpenHelp, onLogout }) => {
+const SidebarView: React.FC<Props> = ({
+  onOpenPlay,
+  onOpenStats,
+  onOpenHelp,
+  onSessionAction,
+  sessionActionLabel,
+}) => {
   return (
     <Box component="aside" sx={uiSx.sidebar}>
       <Box component="button" type="button" sx={uiSx.sidebarItem(false)} onClick={onOpenPlay}>
@@ -38,10 +45,10 @@ const SidebarView: React.FC<Props> = ({ onOpenPlay, onOpenStats, onOpenHelp, onL
       </Box>
 
       <Box sx={uiSx.sidebarBottom}>
-        <Box component="button" type="button" sx={uiSx.sidebarItem(false)} onClick={onLogout}>
+        <Box component="button" type="button" sx={uiSx.sidebarItem(false)} onClick={onSessionAction}>
           <Box component="span" sx={uiSx.sidebarItemContent}>
             <Box component="img" src={logOutIcon} alt="" aria-hidden sx={uiSx.sidebarItemIcon} />
-            <Box component="span">Logout</Box>
+            <Box component="span">{sessionActionLabel}</Box>
           </Box>
         </Box>
       </Box>
