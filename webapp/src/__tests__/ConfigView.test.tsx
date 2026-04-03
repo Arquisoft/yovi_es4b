@@ -24,20 +24,22 @@ function renderConfig(overrides: ConfigOverrides = {}) {
 }
 
 describe('ConfigView', () => {
-  test('updates board size when user changes the number input', async () => {
+  test('updates board size when user changes the number input and leaves the field', async () => {
     const props = renderConfig();
 
     const sizeInput = screen.getByRole('spinbutton');
     fireEvent.change(sizeInput, { target: { value: '9' } });
+    fireEvent.blur(sizeInput);
 
     expect(props.updateBoardSize).toHaveBeenLastCalledWith(9);
   });
 
-  test('falls back to board size 1 when the input is not a number', () => {
+  test('falls back to board size 1 when the input is empty', () => {
     const props = renderConfig();
 
     const sizeInput = screen.getByRole('spinbutton');
     fireEvent.change(sizeInput, { target: { value: '' } });
+    fireEvent.blur(sizeInput);
 
     expect(props.updateBoardSize).toHaveBeenLastCalledWith(1);
   });
@@ -45,7 +47,7 @@ describe('ConfigView', () => {
   test('calls setMode when selecting game mode', () => {
     const props = renderConfig({ mode: 'human_vs_bot' });
 
-    fireEvent.click(screen.getByRole('button', { name: /human vs human/i }));
+    fireEvent.click(screen.getByRole('button', { name: /humano vs humano/i }));
 
     expect(props.setMode).toHaveBeenCalledWith('human_vs_human');
   });
@@ -53,7 +55,7 @@ describe('ConfigView', () => {
   test('calls setMode when switching back to human vs bot', () => {
     const props = renderConfig({ mode: 'human_vs_human' });
 
-    fireEvent.click(screen.getByRole('button', { name: /human vs bot/i }));
+    fireEvent.click(screen.getByRole('button', { name: /humano vs bot/i }));
 
     expect(props.setMode).toHaveBeenCalledWith('human_vs_bot');
   });
@@ -77,9 +79,12 @@ describe('ConfigView', () => {
 
   test('calls createNewGame when create button is enabled', () => {
     const props = renderConfig({ mode: 'human_vs_bot', botDifficulty: 'easy', loading: false });
+    const sizeInput = screen.getByRole('spinbutton');
+    fireEvent.change(sizeInput, { target: { value: '10' } });
 
     fireEvent.click(screen.getByRole('button', { name: /crear partida/i }));
 
+    expect(props.updateBoardSize).toHaveBeenLastCalledWith(10);
     expect(props.createNewGame).toHaveBeenCalledTimes(1);
   });
 

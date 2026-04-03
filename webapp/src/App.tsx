@@ -1,21 +1,24 @@
 import './App.css';
-import { useEffect, useState } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
+
 import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
 import { useStats } from './useStats';
 import { useAuth } from './hooks/useAuth';
 import LoginView from './views/LoginView';
 import GameView from './views/GameView';
-import type { GameMode } from './gameyApi';
 import SidebarView from './views/SidebarView';
 import DashboardView from './views/DashboardView';
 import HistoryView from './views/HistoryView';
-import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
+import HelpView from './views/HelpView';
 import { uiSx } from './theme';
 
 function App() {
   const auth = useAuth();
   const stats = useStats(auth.username ?? undefined);
+  const { refreshStats } = stats;
+  const lastSyncedFinishedGameRef = useRef<string | null>(null);
 
   const {
     boardSize,
@@ -26,23 +29,15 @@ function App() {
     loading,
     board,
     canPlayCell,
-    statusText,
     setMode,
     setBotDifficulty,
     updateBoardSize,
     createNewGame,
-    refreshCurrentGame,
     resignCurrentGame,
     playCell,
   } = useGamey(auth.username ?? undefined);
 
-  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game'>('dashboard');
-
-  useEffect(() => {
-    if (game?.game_over) {
-      stats.reload();
-    }
-  }, [game?.game_over, stats.reload]);
+  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>('dashboard');
 
   async function handleCreateNewGame() {
     const created = await createNewGame();
@@ -51,20 +46,28 @@ function App() {
     }
   }
 
-  async function handleSidebarPlay(nextMode: GameMode, difficulty?: BotDifficulty) {
-    setMode(nextMode);
-    if (nextMode === 'human_vs_bot' && difficulty) {
-      setBotDifficulty(difficulty);
+  function handleOpenPlay() {
+    setView('dashboard');
+  }
+
+  function handleOpenStats() {
+    setView('history');
+    void refreshStats();
+  }
+
+  useEffect(() => {
+    if (!game || !game.game_over) {
+      return;
     }
 
-    const created = await createNewGame({
-      mode: nextMode,
-      botId: nextMode === 'human_vs_bot' && difficulty ? mapDifficultyToBotId(difficulty) : undefined,
-    });
-    if (created) {
-      setView('game');
+    const finishedGameKey = `${game.game_id}:${game.winner ?? 'none'}`;
+    if (lastSyncedFinishedGameRef.current === finishedGameKey) {
+      return;
     }
-  }
+
+    lastSyncedFinishedGameRef.current = finishedGameKey;
+    void refreshStats();
+  }, [game, refreshStats]);
 
   // If auth is still verifying the token, show nothing
   if (auth.loading) return null;
@@ -107,12 +110,9 @@ function App() {
 
       <Box sx={uiSx.appBody}>
         <SidebarView
-          onPlayBot={(difficulty) => handleSidebarPlay('human_vs_bot', difficulty)}
-          onPlayHuman={() => handleSidebarPlay('human_vs_human')}
-          onOpenStats={() => {
-            stats.reload();
-            setView('history');
-          }}
+          onOpenPlay={handleOpenPlay}
+          onOpenStats={handleOpenStats}
+          onOpenHelp={() => setView('help')}
           onLogout={auth.logout}
         />
 
@@ -141,25 +141,24 @@ function App() {
               setBotDifficulty={setBotDifficulty}
               updateBoardSize={updateBoardSize}
               createNewGame={handleCreateNewGame}
-              playerStats={stats.playerStats}
-              matches={stats.matches}
-              onViewMoreMatches={() => {
-                stats.reload();
-                setView('history');
-              }}
             />
           )}
 
-          {view === 'history' && <HistoryView matches={stats.matches} onBack={() => setView('dashboard')} />}
+          {view === 'history' && (
+            <HistoryView
+              playerStats={stats.playerStats}
+              matches={stats.matches}
+            />
+          )}
+
+          {view === 'help' && <HelpView />}
 
           {view === 'game' && (
             <GameView
               game={game}
               board={board}
-              statusText={statusText}
               canPlayCell={canPlayCell}
               loading={loading}
-              refreshCurrentGame={refreshCurrentGame}
               resignCurrentGame={resignCurrentGame}
               playCell={playCell}
               onBack={() => setView('dashboard')}
