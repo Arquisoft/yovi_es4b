@@ -48,6 +48,7 @@ vi.mock('../useStats', () => ({
     matches: [],
     loading: false,
     error: null,
+    reload: vi.fn(),
   }),
 }));
 

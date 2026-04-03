@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fetchMatchHistory, fetchPlayerStats } from './statsApi';
 import { EMPTY_PLAYER_STATS, type MatchHistoryItem, type PlayerStatsSummary } from './stats/types';
 
@@ -7,6 +7,11 @@ export function useStats(userId?: string) {
   const [matches, setMatches] = useState<MatchHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reload = useCallback(() => {
+    setReloadKey((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!userId || userId.trim().length === 0) {
@@ -52,12 +57,13 @@ export function useStats(userId?: string) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   return {
     playerStats,
     matches,
     loading,
     error,
+    reload,
   };
 }

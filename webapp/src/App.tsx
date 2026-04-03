@@ -1,5 +1,5 @@
 import './App.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
 import { useStats } from './useStats';
@@ -37,6 +37,12 @@ function App() {
   } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game'>('dashboard');
+
+  useEffect(() => {
+    if (game?.game_over) {
+      stats.reload();
+    }
+  }, [game?.game_over, stats.reload]);
 
   async function handleCreateNewGame() {
     const created = await createNewGame();
@@ -103,7 +109,10 @@ function App() {
         <SidebarView
           onPlayBot={(difficulty) => handleSidebarPlay('human_vs_bot', difficulty)}
           onPlayHuman={() => handleSidebarPlay('human_vs_human')}
-          onOpenStats={() => setView('history')}
+          onOpenStats={() => {
+            stats.reload();
+            setView('history');
+          }}
           onLogout={auth.logout}
         />
 
@@ -134,7 +143,10 @@ function App() {
               createNewGame={handleCreateNewGame}
               playerStats={stats.playerStats}
               matches={stats.matches}
-              onViewMoreMatches={() => setView('history')}
+              onViewMoreMatches={() => {
+                stats.reload();
+                setView('history');
+              }}
             />
           )}
 
