@@ -19,6 +19,8 @@ export function useStats(userId?: string) {
 
   const refreshStats = useCallback(async () => {
     if (safeUserId.length === 0) {
+      // Invalidate any in-flight request so stale responses cannot overwrite the cleared state.
+      requestIdRef.current += 1;
       setPlayerStats(EMPTY_PLAYER_STATS);
       setMatches([]);
       setError(null);
