@@ -57,13 +57,6 @@ services:
     networks:
       - monitor-net
 
-  users:
-    container_name: users
-    build:
-      context: ./users
-      dockerfile: Dockerfile
-    networks:
-      - monitor-net
   webapp:
     container_name: webapp
     build:
