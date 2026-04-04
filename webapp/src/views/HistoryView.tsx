@@ -71,6 +71,10 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
     }
   }, [page, safePage]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [matches]);
+
   const historyBoardStageSx = {
     ...uiSx.gameBoardStage,
     transform: 'none',
