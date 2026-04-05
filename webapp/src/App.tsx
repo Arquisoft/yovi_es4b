@@ -47,12 +47,32 @@ function App() {
   }
 
   function handleOpenPlay() {
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
     setView('dashboard');
   }
 
   function handleOpenStats() {
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
     setView('history');
     void refreshStats();
+  }
+
+  function handleOpenHelp() {
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
+    setView('help');
+  }
+
+  function handleLogout() {
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
+    auth.logout();
   }
 
   useEffect(() => {
@@ -68,6 +88,69 @@ function App() {
     lastSyncedFinishedGameRef.current = finishedGameKey;
     void refreshStats();
   }, [game, refreshStats]);
+
+  useEffect(() => {
+    if (!game || game.game_over || view !== 'game') {
+      return;
+    }
+
+    const blockedState = { gameNavigationBlocked: true };
+    const pushBlockedState = () => window.history.pushState(blockedState, '');
+
+    const sendResignKeepalive = () => {
+      if (!game || game.game_over) {
+        return;
+      }
+      const gameyApiUrl = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
+      const url = `${gameyApiUrl}/v1/games/${game.game_id}/resign`;
+      const headers = new Headers();
+      if (auth.username) {
+        headers.set('x-user-id', auth.username.trim());
+      }
+      void fetch(url, {
+        method: 'POST',
+        keepalive: true,
+        headers,
+      });
+    };
+
+    const onPopState = () => {
+      if (!game || game.game_over) {
+        return;
+      }
+      pushBlockedState();
+    };
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!game || game.game_over) {
+        return;
+      }
+      sendResignKeepalive();
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!game || game.game_over) {
+        return;
+      }
+      if (event.key === 'F5') {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    pushBlockedState();
+    window.addEventListener('popstate', onPopState);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [auth.username, game, view]);
 
   // If auth is still verifying the token, show nothing
   if (auth.loading) return null;
@@ -93,7 +176,7 @@ function App() {
     <Box sx={uiSx.appShell}>
       <Box sx={uiSx.appHeader}>
         <Box sx={uiSx.appHeaderUserRow}>
-          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={() => setView('dashboard')}>
+          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={handleOpenPlay}>
             GAME Y
           </Typography>
 
@@ -112,8 +195,8 @@ function App() {
         <SidebarView
           onOpenPlay={handleOpenPlay}
           onOpenStats={handleOpenStats}
-          onOpenHelp={() => setView('help')}
-          onLogout={auth.logout}
+          onOpenHelp={handleOpenHelp}
+          onLogout={handleLogout}
         />
 
         <Box sx={uiSx.appMain}>

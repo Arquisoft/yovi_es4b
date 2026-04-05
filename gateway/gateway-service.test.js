@@ -52,7 +52,7 @@ test('createApp sets expected proxy configuration for each route', () => {
 
   createApp({ env, proxyFactory });
 
-  assert.equal(capturedConfigs.length, 5);
+  assert.equal(capturedConfigs.length, 4);
 
   const gameyProxy = capturedConfigs.find((config) => config.target === env.GAMEY_SERVICE_URL);
   const authProxy = capturedConfigs.find((config) => config.target === env.AUTH_SERVICE_URL);

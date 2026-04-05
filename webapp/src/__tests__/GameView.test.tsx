@@ -105,7 +105,7 @@ describe('GameView', () => {
     expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":null');
   });
 
-  test('calls resign and back actions from buttons', () => {
+  test('calls resign action but keeps back disabled while the game is active', () => {
     const props = buildProps();
     render(<GameView {...props} />);
 
@@ -113,6 +113,16 @@ describe('GameView', () => {
     fireEvent.click(screen.getByRole('button', { name: /volver/i }));
 
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
+    expect(props.onBack).toHaveBeenCalledTimes(0);
+    expect(screen.getByRole('button', { name: /volver/i })).toBeDisabled();
+  });
+
+  test('calls back action when the game is already finished', () => {
+    const props = buildProps({ game: buildGame({ game_over: true }) });
+    render(<GameView {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /volver/i }));
+
     expect(props.onBack).toHaveBeenCalledTimes(1);
   });
 
