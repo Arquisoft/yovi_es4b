@@ -3,5 +3,5 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-design-decisions]]
 == Architecture Decisions
 
-This section has been deleted from the documentation due to its integration in the wiki. The content can be found here: (TODO: link to wiki page)
+This section has been deleted from the documentation due to its integration in the wiki. The content can be found here: [Architecture Decisions](https://github.com/Arquisoft/yovi_es4b/wiki/Registro-de-decisiones-arquitect%C3%B3nicas)
 
