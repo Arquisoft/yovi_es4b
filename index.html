@@ -500,17 +500,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_operational_concepts">8.6. <em>&lt;Operational Concepts&gt;</em></a></li>
 </ul>
 </li>
-<li><a href="#section-design-decisions">9. Architecture Decisions</a>
-<ul class="sectlevel2">
-<li><a href="#_adr_01_adoption_of_a_service_oriented_architecture">9.1. ADR-01: Adoption of a Service-Oriented Architecture</a></li>
-<li><a href="#_adr_02_use_of_container_based_deployment">9.2. ADR-02: Use of Container-Based Deployment</a></li>
-<li><a href="#_adr_03_introduction_of_a_dedicated_persistence_layer_for_users">9.3. ADR-03: Introduction of a Dedicated Persistence Layer for Users</a></li>
-<li><a href="#_adr_04_separation_of_game_logic_from_user_management">9.4. ADR-04: Separation of Game Logic from User Management</a></li>
-<li><a href="#_adr_05_technology_choices_for_services">9.5. ADR-05: Technology Choices for Services</a></li>
-<li><a href="#_adr_06_restful_api_design">9.6. ADR-06: RESTful API Design</a></li>
-<li><a href="#_adr_07_monitoring_with_prometheus_and_grafana">9.7. ADR-07: Monitoring with Prometheus and Grafana</a></li>
-</ul>
-</li>
+<li><a href="#section-design-decisions">9. Architecture Decisions</a></li>
 <li><a href="#section-quality-scenarios">10. Quality Requirements</a>
 <ul class="sectlevel2">
 <li><a href="#_quality_tree">10.1. Quality Tree</a></li>
@@ -1000,7 +990,7 @@ and deployment requirements.
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="./images/business-context-diagram.png" alt="business context diagram" width="1027" height="674">
+<img src="./images/business-context-diagram.png" alt="business context diagram" width="730" height="674">
 </div>
 </div>
 <div class="sect2">
@@ -1011,16 +1001,10 @@ and deployment requirements.
 <p><strong>Player</strong>: The end-user who interacts with the system through a web browser to play games and view statistics.</p>
 </li>
 <li>
-<p><strong>Administrator</strong>: Responsible for managing users and monitoring the system.</p>
-</li>
-<li>
 <p><strong>Bot</strong>: An automated agent that can interact with the game engine to play games and view user stats.</p>
 </li>
 <li>
 <p><strong>WebApp</strong>: The front-end application built with React and Vite, serving the user interface and handling user interactions.</p>
-</li>
-<li>
-<p><strong>Users</strong>: The back-end service responsible for user management, built with Node.js.</p>
 </li>
 <li>
 <p><strong>AuthService</strong>: Dedicated authentication microservice (Node.js + Express) that handles registration, login, stores password hashes in MongoDB and emits/verifies JWTs.</p>
@@ -1060,7 +1044,7 @@ and deployment requirements.
 <h3 id="_technical_context">3.2. Technical Context</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="1804" height="843">
+<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="1290" height="825">
 </div>
 </div>
 <div class="sect3">
@@ -1102,11 +1086,6 @@ together with a mapping table showing the relationships between channels and inp
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS (via Reverse Proxy) / HTTP (dev 5173)</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Administrator</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Administration actions, user management requests</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS (Users API)</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">External Bot</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Game actions, statistics queries, automated gameplay</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS JSON (Gamey API)</p></td>
@@ -1118,18 +1097,13 @@ together with a mapping table showing the relationships between channels and inp
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">WebApp (React + Vite + TypeScript)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">User interactions, REST API calls to Users and Gamey</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User interactions, REST API calls to Auth and Gamey</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST)</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Users (Node.js + Express)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">User management, admin APIs, metrics endpoint</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST) / TCP (database driver)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">AuthService (Node.js + Express)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Login, registration, JWT issuance/verification; stores password hashes in MongoDB</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (REST) for auth endpoints (<code>/register</code>, <code>/login</code>, <code>/me</code>) / TCP (MongoDB driver)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (REST) for auth endpoints (<code>/register</code>, <code>/login</code>, <code>/verify</code>) / TCP (MongoDB driver)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Gamey (Rust Engine + Bot Service)</p></td>
@@ -1139,11 +1113,11 @@ together with a mapping table showing the relationships between channels and inp
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Databases (Mongo)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">One database for storage of users and other for game statistics</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">MongoDB protocol (TCP) with authentication, running in containers with mounted volumes for persistence</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TCP (MongoDB wire protocol)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Prometheus</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Metrics scraping from Users and Gamey</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Metrics scraping from Auth and Gamey</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (/metrics)</p></td>
 </tr>
 <tr>
@@ -1240,12 +1214,6 @@ Refer to details in the following sections.</p>
 </div>
 </li>
 <li>
-<p><code>Users Service</code>: <code>users</code> with Node.js + Express (+ Swagger UI/OpenAPI).</p>
-<div class="paragraph">
-<p>Reason: keeps user-related API capabilities independent from authentication and gameplay concerns.</p>
-</div>
-</li>
-<li>
 <p><code>Data Storage</code>: MongoDB with separated instances (<code>mongo-auth</code>, <code>mongo-stats</code>).</p>
 <div class="paragraph">
 <p>Reason: separation of concerns, independent lifecycle, and persistent volumes.</p>
@@ -1304,12 +1272,6 @@ Refer to details in the following sections.</p>
 </div>
 </li>
 <li>
-<p><code>Users Service</code></p>
-<div class="paragraph">
-<p>Responsibility: user-related API endpoints not covered by authentication/game runtime.</p>
-</div>
-</li>
-<li>
 <p><code>Data Stores (MongoDB)</code></p>
 <div class="paragraph">
 <p>Responsibility: persistent storage for auth identities and game statistics.</p>
@@ -1335,9 +1297,6 @@ Refer to details in the following sections.</p>
 </li>
 <li>
 <p><code>/stats/*</code> &#8594; <code>stats</code></p>
-</li>
-<li>
-<p><code>/users/*</code> &#8594; <code>users</code></p>
 </li>
 </ul>
 </div>
@@ -1394,7 +1353,7 @@ Refer to details in the following sections.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Maintainability and Testability</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Clear bounded services (<code>webapp</code>, <code>gateway</code>, <code>auth_service</code>, <code>gamey</code>, <code>stats</code>, <code>users</code>) with service-level tests and explicit HTTP contracts.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clear bounded services (<code>webapp</code>, <code>gateway</code>, <code>auth_service</code>, <code>gamey</code>, <code>stats</code>) with service-level tests and explicit HTTP contracts.</p></td>
 </tr>
 </tbody>
 </table>
@@ -2081,8 +2040,8 @@ It consists of independent services communicating over HTTP and running within i
 <p>| Building Block         | Infrastructure Element                       |
 | ---------------------- | -------------------------------------------- |
 | React SPA (Webapp)     | Webapp Container                             |
-| User Management Logic  | Users Service Container                      |
-| User Persistence Layer | Database Container                           |
+| Authentication Logic   | Auth Service Container                       |
+| Auth Persistence Layer | Mongo Auth Container                         |
 | Game Core &amp; Bots       | Gamey Container                              |
 | Client Interface       | Web Browser                                  |
 | Communication          | Docker Internal Network (HTTP + DB protocol) |</p>
@@ -2136,31 +2095,31 @@ It consists of independent services communicating over HTTP and running within i
 </div>
 </div>
 <div class="sect3">
-<h4 id="_users_service_container">7.2.2. <em>&lt;Users Service Container&gt;</em></h4>
+<h4 id="_auth_service_container">7.2.2. <em>&lt;Auth Service Container&gt;</em></h4>
 <div class="imageblock">
 <div class="content">
 <img src="./images/07_diagram_3.png" alt="07 diagram 3">
 </div>
 </div>
 <div class="paragraph">
-<p>The Users Service container:</p>
+<p>The Auth Service container:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Exposes REST endpoints (e.g., /createuser).</p>
+<p>Exposes REST endpoints (<code>/register</code>, <code>/login</code>, <code>/verify</code>).</p>
 </li>
 <li>
-<p>Implements business logic for user registration.</p>
+<p>Implements authentication and token verification logic.</p>
 </li>
 <li>
-<p>Contains a persistence layer responsible for storing user data.</p>
+<p>Contains a persistence layer responsible for storing password hashes and identities.</p>
 </li>
 <li>
-<p>Connects to an external database container.</p>
+<p>Connects to the <code>mongo-auth</code> database container.</p>
 </li>
 <li>
-<p>Ensures separation between API layer, business logic, and data access.</p>
+<p>Ensures separation between API layer, auth logic, and data access.</p>
 </li>
 </ul>
 </div>
@@ -2195,21 +2154,21 @@ It consists of independent services communicating over HTTP and running within i
 </ul>
 </div>
 <div class="paragraph">
-<p>Gamey remains logically independent from user management.</p>
+<p>Gamey remains logically independent from authentication persistence.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_database_container">7.2.4. <em>&lt;Database Container&gt;</em></h4>
+<h4 id="_mongo_auth_container">7.2.4. <em>&lt;Mongo Auth Container&gt;</em></h4>
 <div class="paragraph">
-<p>The database container:</p>
+<p>The Mongo Auth container:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Stores user registration data persistently.</p>
+<p>Stores user authentication data persistently.</p>
 </li>
 <li>
-<p>Is accessed exclusively by the Users Service.</p>
+<p>Is accessed exclusively by the Auth Service.</p>
 </li>
 <li>
 <p>Is not directly exposed to the frontend or Gamey.</p>
@@ -2218,6 +2177,9 @@ It consists of independent services communicating over HTTP and running within i
 <p>Ensures data durability and separation of concerns.</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>Mongo Stats is a separate database container used by the <code>stats</code> service.</p>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -2333,7 +2295,7 @@ These concepts ensure architectural consistency, reduce complexity, and support 
 <div class="sect2">
 <h3 id="_domain_concepts">8.1. <em>&lt;Domain Concepts&gt;</em></h3>
 <div class="paragraph">
-<p>The domain of the system is centered around user management and Game Y execution.</p>
+<p>The domain of the system is centered around authentication, player profiles, and Game Y execution.</p>
 </div>
 <div class="paragraph">
 <p>Key domain concepts include:</p>
@@ -2411,22 +2373,8 @@ Each component has a clearly defined responsibility:</p>
 <p>Webapp: User interaction and presentation</p>
 </li>
 <li>
-<p>Users Service: User management and persistence</p>
+<p>Auth Service: Registration, login, token verification, and credential persistence</p>
 </li>
-<li>
-<p>Gamey: Game logic and bot execution</p>
-</li>
-<li>
-<p>API-first Design
-All communication between components is performed through HTTP-based APIs.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>This approach ensures loose coupling and enables independent evolution of components.</p>
-</div>
-<div class="ulist">
-<ul>
 <li>
 <p>Gamey: Game logic and bot execution</p>
 </li>
@@ -2443,24 +2391,24 @@ All communication between components is performed through HTTP-based APIs.</p>
 <div class="sect2">
 <h3 id="_security_concepts">8.4. <em>&lt;Security Concepts&gt;</em></h3>
 <div class="paragraph">
-<p>The system implements basic security concepts, appropriate for a development or educational environment:</p>
+<p>The system implements the following security concepts:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>No authentication or authorization mechanisms are currently enforced.</p>
+<p>User authentication is enforced with JWT-based sessions (<code>/register</code>, <code>/login</code>, <code>/verify</code>).</p>
 </li>
 <li>
-<p>No sensitive credentials are stored.</p>
+<p>Passwords are never stored in plain text; they are hashed with <code>bcrypt</code>.</p>
 </li>
 <li>
-<p>Database access is restricted to the Users Service.</p>
+<p>Auth persistence is isolated in MongoDB (<code>mongo-auth</code>) and only accessed by <code>auth_service</code>.</p>
 </li>
 <li>
-<p>Services communicate within a trusted internal network.</p>
+<p>Internal service communication is isolated in the Docker network; the public entry point is the gateway.</p>
 </li>
 <li>
-<p>Security considerations are intentionally simplified to keep the architectural focus on modularity and clarity.</p>
+<p>Stats internal endpoints are protected with a service token to avoid unauthorized writes.</p>
 </li>
 </ul>
 </div>
@@ -2519,559 +2467,9 @@ All communication between components is performed through HTTP-based APIs.</p>
 <h2 id="section-design-decisions">9. Architecture Decisions</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This section documents the most relevant architectural decisions made during the design of the system.
-Each decision includes context, alternatives, rationale, and consequences to ensure traceability and transparency.</p>
-</div>
-<div class="sect2">
-<h3 id="_adr_01_adoption_of_a_service_oriented_architecture">9.1. ADR-01: Adoption of a Service-Oriented Architecture</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>The system consists of three main functional areas:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>User interface (Webapp)</p>
-</li>
-<li>
-<p>User management</p>
-</li>
-<li>
-<p>Game engine logic</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>These areas could be implemented either as a single monolithic application or as independent services.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<p>The system is implemented as a set of loosely coupled services, each running independently and communicating via HTTP APIs.</p>
-</dd>
-<dt class="hdlist1">Alternatives Considered</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>Monolithic architecture</p>
-</li>
-<li>
-<p>Service-oriented (multi-container) architecture</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<p>The service-oriented approach was selected because:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>It enforces clear separation of concerns</p>
-</li>
-<li>
-<p>It allows independent development and testing</p>
-</li>
-<li>
-<p>It aligns with container-based deployment</p>
-</li>
-<li>
-<p>It improves maintainability and scalability</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Independent evolution of components</p>
-</li>
-<li>
-<p>Clear API contracts</p>
-</li>
-<li>
-<p>Better modularity</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Increased deployment complexity</p>
-</li>
-<li>
-<p>Network communication overhead</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_adr_02_use_of_container_based_deployment">9.2. ADR-02: Use of Container-Based Deployment</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>The system needs to be executable in development environments and easily portable across machines.</p>
-</dd>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<p>All services are deployed using containerization and orchestrated together.</p>
-</dd>
-<dt class="hdlist1">Alternatives Considered</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>Native execution on host machine</p>
-</li>
-<li>
-<p>Containerized execution</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<p>Containerization ensures:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Environment consistency</p>
-</li>
-<li>
-<p>Dependency isolation</p>
-</li>
-<li>
-<p>Simplified onboarding</p>
-</li>
-<li>
-<p>Infrastructure reproducibility</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Predictable deployments</p>
-</li>
-<li>
-<p>Technology independence per service</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Slight overhead compared to native execution</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_adr_03_introduction_of_a_dedicated_persistence_layer_for_users">9.3. ADR-03: Introduction of a Dedicated Persistence Layer for Users</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>To support real user management, persistent storage is required.</p>
-</dd>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<p>A dedicated database component is introduced for storing user data.
-The database is accessed exclusively through a persistence layer inside the Users Service.</p>
-</dd>
-<dt class="hdlist1">Alternatives Considered</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>In-memory user storage</p>
-</li>
-<li>
-<p>File-based storage</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<p>A database-based solution was chosen because:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>It provides durability and consistency</p>
-</li>
-<li>
-<p>It enables long-term user management</p>
-</li>
-<li>
-<p>It allows future extension (authentication, statistics, etc.)</p>
-</li>
-<li>
-<p>It enforces architectural separation between services</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Persistent user data</p>
-</li>
-<li>
-<p>Improved scalability</p>
-</li>
-<li>
-<p>Clear data ownership (Users Service)</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Additional infrastructure component</p>
-</li>
-<li>
-<p>Need for connection management and data modeling</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_adr_04_separation_of_game_logic_from_user_management">9.4. ADR-04: Separation of Game Logic from User Management</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>The system includes both user registration and game execution logic.</p>
-</dd>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<p>The Gamey engine remains fully independent from user persistence and user management.</p>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>Ensures single responsibility per service</p>
-</li>
-<li>
-<p>Allows the game engine to be reused in other contexts</p>
-</li>
-<li>
-<p>Prevents unnecessary coupling between domain areas</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Clear domain boundaries</p>
-</li>
-<li>
-<p>Higher reusability</p>
-</li>
-<li>
-<p>Easier testing</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Requires API coordination between services</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_adr_05_technology_choices_for_services">9.5. ADR-05: Technology Choices for Services</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>The system requires different technologies for frontend, backend services, and game engine to optimize for performance, development speed, and maintainability.</p>
-</dd>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>Frontend: React with TypeScript and Vite for modern, fast web development.</p>
-</li>
-<li>
-<p>User Service: Node.js with Express for lightweight, JavaScript-based API.</p>
-</li>
-<li>
-<p>Game Engine: Rust for high-performance, safe game logic and bot implementation.</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Alternatives Considered</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>Use a single technology stack (e.g., all JavaScript/Node.js)</p>
-</li>
-<li>
-<p>Use compiled languages for all services</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<p>Technology choices are based on suitability for each component:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>React provides a rich ecosystem for UI development.</p>
-</li>
-<li>
-<p>Node.js allows rapid prototyping and aligns with JavaScript expertise.</p>
-</li>
-<li>
-<p>Rust ensures memory safety and performance for game computations.</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Optimized performance per component</p>
-</li>
-<li>
-<p>Leverage best tools for each task</p>
-</li>
-<li>
-<p>Improved developer productivity</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Polyglot development increases complexity</p>
-</li>
-<li>
-<p>Requires multiple build tools and deployment processes</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_adr_06_restful_api_design">9.6. ADR-06: RESTful API Design</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>Services need to communicate reliably and scalably.</p>
-</dd>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<p>All inter-service communication uses RESTful HTTP APIs with JSON payloads.</p>
-</dd>
-<dt class="hdlist1">Alternatives Considered</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>GraphQL</p>
-</li>
-<li>
-<p>Message queues (e.g., RabbitMQ)</p>
-</li>
-<li>
-<p>Direct function calls</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<p>REST is simple, widely supported, and sufficient for the system&#8217;s needs. It allows easy testing and integration.</p>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Standard and familiar</p>
-</li>
-<li>
-<p>Easy to debug and monitor</p>
-</li>
-<li>
-<p>Stateless communication</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Potential over-fetching/under-fetching compared to GraphQL</p>
-</li>
-<li>
-<p>HTTP overhead for frequent calls</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_adr_07_monitoring_with_prometheus_and_grafana">9.7. ADR-07: Monitoring with Prometheus and Grafana</h3>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Status</dt>
-<dd>
-<p>Accepted</p>
-</dd>
-<dt class="hdlist1">Context</dt>
-<dd>
-<p>The system needs observability for performance and reliability in development and potential production.</p>
-</dd>
-<dt class="hdlist1">Decision</dt>
-<dd>
-<p>Integrate Prometheus for metrics collection and Grafana for visualization, with basic dashboards.</p>
-</dd>
-<dt class="hdlist1">Alternatives Considered</dt>
-<dd>
-<div class="ulist">
-<ul>
-<li>
-<p>No monitoring</p>
-</li>
-<li>
-<p>Commercial solutions (e.g., DataDog)</p>
-</li>
-</ul>
-</div>
-</dd>
-<dt class="hdlist1">Rationale</dt>
-<dd>
-<p>Open-source tools provide sufficient monitoring without cost. Prometheus integrates well with Node.js services.</p>
-</dd>
-<dt class="hdlist1">Consequences</dt>
-<dd>
-<p>Positive:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Real-time insights into system health</p>
-</li>
-<li>
-<p>Proactive issue detection</p>
-</li>
-<li>
-<p>Educational value for learning observability</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Negative:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Additional infrastructure components</p>
-</li>
-<li>
-<p>Initial setup complexity</p>
-</li>
-</ul>
+<p>This section has been deleted from the documentation due to its integration in the wiki. The content can be found here: [Architecture Decisions](<a href="https://github.com/Arquisoft/yovi_es4b/wiki/Registro-de-decisiones-arquitect%C3%B3nicas" class="bare">https://github.com/Arquisoft/yovi_es4b/wiki/Registro-de-decisiones-arquitect%C3%B3nicas</a>)</p>
 </div>
 <div style="page-break-after: always;"></div>
-</div>
 </div>
 </div>
 <div class="sect1">
