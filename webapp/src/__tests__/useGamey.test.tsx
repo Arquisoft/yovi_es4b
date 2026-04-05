@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { useGamey } from '../useGamey';
+import { ONLINE_SESSION_VERSION, onlineSessionStore } from '../onlineSessionStore';
 
 const createGame = vi.fn();
 const getGame = vi.fn();
@@ -48,6 +49,7 @@ describe('useGamey', () => {
     enqueueMatchmaking.mockReset();
     getMatchmakingTicket.mockReset();
     cancelMatchmakingTicket.mockReset();
+    sessionStorage.clear();
   });
 
   test('starts with the expected defaults', () => {
@@ -62,6 +64,7 @@ describe('useGamey', () => {
     expect(result.current.board).toEqual([]);
     expect(result.current.canPlayCell).toBe(false);
     expect(result.current.statusText).toBe('');
+    expect(result.current.restoringSession).toBe(false);
     expect(result.current.matchmakingStatus).toBe('idle');
     expect(result.current.matchmakingTicketId).toBeNull();
   });
@@ -247,6 +250,13 @@ describe('useGamey', () => {
     });
 
     expect(enqueueMatchmaking).toHaveBeenCalledWith(7, 'adri');
+    expect(onlineSessionStore.load('adri')).toEqual({
+      version: ONLINE_SESSION_VERSION,
+      kind: 'waiting',
+      userId: 'adri',
+      ticketId: 'ticket-1',
+      boardSize: 7,
+    });
     expect(result.current.matchmakingStatus).toBe('waiting');
     expect(result.current.matchmakingTicketId).toBe('ticket-1');
     expect(result.current.matchmakingPosition).toBe(1);
@@ -256,7 +266,88 @@ describe('useGamey', () => {
     });
 
     expect(cancelMatchmakingTicket).toHaveBeenCalledWith('ticket-1');
+    expect(onlineSessionStore.load('adri')).toBeNull();
     expect(result.current.matchmakingStatus).toBe('cancelled');
     expect(result.current.matchmakingTicketId).toBeNull();
+  });
+
+  test('restores a waiting online matchmaking session from browser storage', async () => {
+    onlineSessionStore.save({
+      version: ONLINE_SESSION_VERSION,
+      kind: 'waiting',
+      userId: 'adri',
+      ticketId: 'ticket-restore',
+      boardSize: 9,
+    });
+    getMatchmakingTicket.mockResolvedValue({
+      api_version: '1.0.0',
+      ticket_id: 'ticket-restore',
+      status: 'waiting',
+      poll_after_ms: 5000,
+      position: 2,
+      game_id: null,
+      player_id: null,
+      player_token: null,
+    });
+
+    const { result } = renderHook(() => useGamey('adri'));
+
+    await waitFor(() => {
+      expect(getMatchmakingTicket).toHaveBeenCalledWith('ticket-restore');
+      expect(result.current.restoringSession).toBe(false);
+    });
+
+    expect(result.current.boardSize).toBe(9);
+    expect(result.current.matchmakingStatus).toBe('waiting');
+    expect(result.current.matchmakingTicketId).toBe('ticket-restore');
+    expect(result.current.matchmakingPosition).toBe(2);
+  });
+
+  test('restores an active online game from browser storage', async () => {
+    onlineSessionStore.save({
+      version: ONLINE_SESSION_VERSION,
+      kind: 'active',
+      userId: 'adri',
+      gameId: 'game-restore',
+      myPlayerId: 1,
+      playerToken: 'ptk-42',
+    });
+    getGame.mockResolvedValue(
+      buildGame({
+        game_id: 'game-restore',
+        mode: 'human_vs_human',
+        bot_id: null,
+        next_player: 1,
+      }),
+    );
+    playMove.mockResolvedValue(
+      buildGame({
+        game_id: 'game-restore',
+        mode: 'human_vs_human',
+        bot_id: null,
+        next_player: 0,
+      }),
+    );
+
+    const { result } = renderHook(() => useGamey('adri'));
+
+    await waitFor(() => {
+      expect(getGame).toHaveBeenCalledWith('game-restore');
+      expect(result.current.restoringSession).toBe(false);
+    });
+
+    expect(result.current.game?.game_id).toBe('game-restore');
+    expect(result.current.myPlayerId).toBe(1);
+    expect(result.current.canPlayCell).toBe(true);
+
+    await act(async () => {
+      await result.current.playCell({ x: 1, y: 0, z: -1 });
+    });
+
+    expect(playMove).toHaveBeenCalledWith(
+      'game-restore',
+      { coords: { x: 1, y: 0, z: -1 }, player_token: 'ptk-42' },
+      'adri',
+    );
   });
 });

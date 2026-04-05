@@ -25,6 +25,7 @@ function App() {
     game,
     error,
     loading,
+    restoringSession,
     board,
     canPlayCell,
     myPlayerId,
@@ -42,15 +43,24 @@ function App() {
   } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>('dashboard');
+  const [dismissedAutoGameId, setDismissedAutoGameId] = useState<string | null>(null);
+  const autoOpenedGameId =
+    game && (matchmakingStatus === 'matched' || myPlayerId !== null) ? game.game_id : null;
+  const resolvedView =
+    autoOpenedGameId && dismissedAutoGameId !== autoOpenedGameId ? 'game' : view;
 
   async function handleCreateNewGame() {
     const created = await createNewGame();
     if (created) {
+      setDismissedAutoGameId(null);
       setView('game');
     }
   }
 
   function handleOpenPlay() {
+    if (autoOpenedGameId) {
+      setDismissedAutoGameId(autoOpenedGameId);
+    }
     setView('dashboard');
   }
 
@@ -58,12 +68,6 @@ function App() {
     setView('history');
     void refreshStats();
   }
-
-  useEffect(() => {
-    if (matchmakingStatus === 'matched' && game) {
-      setView('game');
-    }
-  }, [matchmakingStatus, game?.game_id]);
 
   useEffect(() => {
     if (!game || !game.game_over) {
@@ -81,6 +85,8 @@ function App() {
 
   // If auth is still verifying the token, show nothing
   if (auth.loading) return null;
+
+  if (auth.isAuthenticated && restoringSession) return null;
 
   // If not authenticated, always show login
   if (!auth.isAuthenticated) {
@@ -103,7 +109,7 @@ function App() {
     <Box sx={uiSx.appShell}>
       <Box sx={uiSx.appHeader}>
         <Box sx={uiSx.appHeaderUserRow}>
-          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={() => setView('dashboard')}>
+          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={handleOpenPlay}>
             GAME Y
           </Typography>
 
@@ -139,9 +145,9 @@ function App() {
             </Alert>
           )}
 
-          {view === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
+          {resolvedView === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
 
-          {view === 'dashboard' && (
+          {resolvedView === 'dashboard' && (
             <DashboardView
               boardSize={boardSize}
               mode={mode}
@@ -159,16 +165,16 @@ function App() {
             />
           )}
 
-          {view === 'history' && (
+          {resolvedView === 'history' && (
             <HistoryView
               playerStats={stats.playerStats}
               matches={stats.matches}
             />
           )}
 
-          {view === 'help' && <HelpView />}
+          {resolvedView === 'help' && <HelpView />}
 
-          {view === 'game' && (
+          {resolvedView === 'game' && (
             <GameView
               game={game}
               board={board}
@@ -178,7 +184,7 @@ function App() {
               currentUserId={auth.username}
               resignCurrentGame={resignCurrentGame}
               playCell={playCell}
-              onBack={() => setView('dashboard')}
+              onBack={handleOpenPlay}
             />
           )}
         </Box>

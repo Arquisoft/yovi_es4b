@@ -17,18 +17,27 @@ type AuthMock = {
 type GameyMock = {
   boardSize: number;
   mode: 'human_vs_bot' | 'human_vs_human';
-  game: any | null;
+  botDifficulty: 'very_easy' | 'easy' | 'medium' | 'hard';
+  game: { game_id: string; game_over: boolean; yen: { players: string[]; size: number } } | null;
   error: string | null;
   loading: boolean;
-  board: any[];
+  restoringSession: boolean;
+  board: unknown[];
   canPlayCell: boolean;
   statusText: string;
+  myPlayerId: number | null;
+  matchmakingTicketId: string | null;
+  matchmakingStatus: 'idle' | 'waiting' | 'matched' | 'cancelled';
+  matchmakingPosition: number | null;
   setMode: (mode: 'human_vs_bot' | 'human_vs_human') => void;
+  setBotDifficulty: (difficulty: 'very_easy' | 'easy' | 'medium' | 'hard') => void;
   updateBoardSize: (size: number) => void;
   createNewGame: (next?: { mode?: 'human_vs_bot' | 'human_vs_human'; botId?: string }) => Promise<boolean>;
+  startMatchmaking: () => void;
+  cancelCurrentMatchmaking: () => void;
   refreshCurrentGame: () => void;
   resignCurrentGame: () => void;
-  playCell: (coords: any) => void;
+  playCell: (coords: unknown) => void;
 };
 
 let authState: AuthMock;
@@ -59,6 +68,7 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
   return {
     boardSize: 7,
     mode: 'human_vs_bot',
+    botDifficulty: 'easy',
     game: {
       game_id: 'app-game',
       game_over: false,
@@ -66,12 +76,20 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
     },
     error: null,
     loading: false,
+    restoringSession: false,
     board: [],
     canPlayCell: true,
     statusText: 'Turno',
+    myPlayerId: null,
+    matchmakingTicketId: null,
+    matchmakingStatus: 'idle',
+    matchmakingPosition: null,
     setMode: vi.fn(),
+    setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
     createNewGame: vi.fn().mockResolvedValue(true),
+    startMatchmaking: vi.fn(),
+    cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
     playCell: vi.fn(),
@@ -120,6 +138,16 @@ describe('App core flows', () => {
 
     await waitFor(() => {
       expect(createNewGame).toHaveBeenCalledWith();
+      expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
+    });
+  });
+
+  test('opens the game view when restoring an online game', async () => {
+    gameyState = buildGamey({ myPlayerId: 1 });
+
+    render(<App />);
+
+    await waitFor(() => {
       expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
     });
   });
