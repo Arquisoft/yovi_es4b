@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import LoginForm from '../LoginForm';
 import RegisterForm from '../RegisterForm';
-import { Box, Typography, Paper, Tabs, Tab } from '@mui/material';
+import { Box, Button, Paper, Tab, Tabs, Typography } from '@mui/material';
 import { uiSx } from '../theme';
 
 type Props = {
   onNext: () => void;
   onAuth: (token: string, username: string) => void;
+  onContinueAsGuest: () => void;
 };
 
-const LoginView: React.FC<Props> = ({ onNext, onAuth }) => {
+const LoginView: React.FC<Props> = ({ onNext, onAuth, onContinueAsGuest }) => {
   const [tab, setTab] = useState(0);
 
   const handleAuth = (token: string, username: string) => {
@@ -31,6 +32,15 @@ const LoginView: React.FC<Props> = ({ onNext, onAuth }) => {
 
         {tab === 0 && <LoginForm onSuccess={handleAuth} />}
         {tab === 1 && <RegisterForm onSuccess={handleAuth} />}
+
+        <Box sx={uiSx.loginGuestActions}>
+          <Typography sx={uiSx.loginGuestHint}>
+            Si prefieres probar primero, puedes entrar sin cuenta y jugar como invitado.
+          </Typography>
+          <Button variant="text" onClick={onContinueAsGuest}>
+            Continuar sin registrarme
+          </Button>
+        </Box>
       </Paper>
     </Box>
   );
