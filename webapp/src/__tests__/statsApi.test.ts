@@ -54,9 +54,21 @@ describe('statsApi', () => {
             winnerId: 'rival',
             botId: null,
             endedAt: '2026-03-01T10:00:00.000Z',
+            finalBoard: {
+              size: 3,
+              turn: 4,
+              players: ['B', 'R'],
+              layout: 'B/R./...',
+            },
           },
           {
             result: 'unexpected',
+            finalBoard: {
+              size: 3,
+              turn: 1,
+              players: [],
+              layout: '',
+            },
           },
         ],
       }),
@@ -77,6 +89,12 @@ describe('statsApi', () => {
         winnerId: 'rival',
         botId: null,
         endedAt: '2026-03-01T10:00:00.000Z',
+        finalBoard: {
+          size: 3,
+          turn: 4,
+          players: ['B', 'R'],
+          layout: 'B/R./...',
+        },
       },
       {
         gameId: 'match-1',
@@ -85,6 +103,7 @@ describe('statsApi', () => {
         winnerId: null,
         botId: null,
         endedAt: new Date(0).toISOString(),
+        finalBoard: null,
       },
     ]);
   });

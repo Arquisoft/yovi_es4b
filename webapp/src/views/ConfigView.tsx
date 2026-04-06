@@ -25,6 +25,22 @@ const ConfigView: React.FC<Props> = ({
   updateBoardSize,
   createNewGame,
 }) => {
+  const [sizeDraft, setSizeDraft] = React.useState(String(boardSize));
+
+  React.useEffect(() => {
+    setSizeDraft(String(boardSize));
+  }, [boardSize]);
+
+  const commitBoardSize = React.useCallback(() => {
+    const parsed = Number.parseInt(sizeDraft.trim(), 10);
+    updateBoardSize(Number.isNaN(parsed) ? 1 : Math.max(1, parsed));
+  }, [sizeDraft, updateBoardSize]);
+
+  const handleCreateGame = () => {
+    commitBoardSize();
+    createNewGame();
+  };
+
   return (
     <Paper sx={uiSx.dashboardCard}>
       <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
@@ -39,11 +55,15 @@ const ConfigView: React.FC<Props> = ({
             id="size-input"
             type="number"
             size="small"
-            value={boardSize}
-            onChange={(event) => {
-              const next = Number.parseInt(event.target.value, 10);
-              updateBoardSize(Number.isNaN(next) ? 1 : next);
+            value={sizeDraft}
+            onChange={(event) => setSizeDraft(event.target.value)}
+            onBlur={commitBoardSize}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                commitBoardSize();
+              }
             }}
+            inputProps={{ min: 1, step: 1 }}
             sx={uiSx.configSizeInput}
           />
         </Box>
@@ -58,14 +78,14 @@ const ConfigView: React.FC<Props> = ({
               sx={uiSx.configToggleButton(mode === 'human_vs_bot')}
               onClick={() => setMode('human_vs_bot')}
             >
-              Human vs Bot
+              Humano vs Bot
             </Button>
             <Button
               variant="outlined"
               sx={uiSx.configToggleButton(mode === 'human_vs_human')}
               onClick={() => setMode('human_vs_human')}
             >
-              Human vs Humano
+              Humano vs Humano
             </Button>
           </Box>
         </Box>
@@ -91,7 +111,7 @@ const ConfigView: React.FC<Props> = ({
       </Box>
 
       <Box sx={uiSx.configActions}>
-        <Button onClick={createNewGame} disabled={loading}>
+        <Button sx={uiSx.configCreateButton} onClick={handleCreateGame} disabled={loading}>
           {loading ? 'Cargando...' : 'Crear partida'}
         </Button>
       </Box>

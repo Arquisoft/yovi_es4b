@@ -4,21 +4,28 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
-import { mapDifficultyToBotId } from '../stats/types';
 
-const { createNewGameSpy, setModeSpy, setBotDifficultySpy, logoutSpy } = vi.hoisted(() => ({
-  createNewGameSpy: vi.fn(),
+const { setModeSpy, setBotDifficultySpy, logoutSpy, refreshStatsSpy, authSessionState } = vi.hoisted(() => ({
   setModeSpy: vi.fn(),
   setBotDifficultySpy: vi.fn(),
   logoutSpy: vi.fn(),
+  refreshStatsSpy: vi.fn().mockResolvedValue(undefined),
+  authSessionState: {
+    initialAuthenticated: true,
+    initialGuest: false,
+  },
 }));
 
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => {
-    const [isAuthenticated, setIsAuthenticated] = React.useState(true);
+    const [isAuthenticated, setIsAuthenticated] = React.useState(authSessionState.initialAuthenticated);
+    const [isGuest, setIsGuest] = React.useState(authSessionState.initialGuest);
 
     return {
       isAuthenticated,
+      isGuest,
+      hasSession: isAuthenticated || isGuest,
+      displayName: isAuthenticated ? 'adri' : isGuest ? 'Usuario anonimo' : null,
       token: isAuthenticated ? 'fake-token' : null,
       username: isAuthenticated ? 'adri' : null,
       loading: false,
@@ -26,6 +33,13 @@ vi.mock('../hooks/useAuth', () => ({
       logout: () => {
         logoutSpy();
         setIsAuthenticated(false);
+      },
+      continueAsGuest: () => {
+        setIsAuthenticated(false);
+        setIsGuest(true);
+      },
+      openLogin: () => {
+        setIsGuest(false);
       },
       getAuthHeader: () => ({}),
     };
@@ -36,7 +50,7 @@ vi.mock('../useGamey', () => ({
   useGamey: () => {
     const [mode, setModeState] = React.useState<'human_vs_bot' | 'human_vs_human'>('human_vs_bot');
     const [botDifficulty, setBotDifficultyState] = React.useState<'very_easy' | 'easy' | 'medium' | 'hard'>('easy');
-    const [game, setGame] = React.useState<any>(null);
+    const [game, setGame] = React.useState<{ game_id: string; game_over: boolean; yen: { players: string[]; size: number } } | null>(null);
 
     const setMode = (nextMode: 'human_vs_bot' | 'human_vs_human') => {
       setModeSpy(nextMode);
@@ -48,9 +62,8 @@ vi.mock('../useGamey', () => ({
       setBotDifficultyState(nextDifficulty);
     };
 
-    const createNewGame = async (next?: { mode?: 'human_vs_bot' | 'human_vs_human'; botId?: string }) => {
-      createNewGameSpy(next);
-      const selectedMode = next?.mode ?? mode;
+    const createNewGame = async () => {
+      const selectedMode = mode;
       setGame({
         game_id: selectedMode === 'human_vs_bot' ? 'bot-game' : 'human-game',
         game_over: false,
@@ -80,54 +93,67 @@ vi.mock('../useGamey', () => ({
   },
 }));
 
+vi.mock('../useStats', () => ({
+  useStats: () => ({
+    playerStats: {
+      totalGames: 0,
+      victories: 0,
+      defeats: 0,
+      updatedAt: null,
+    },
+    matches: [],
+    loading: false,
+    error: null,
+    refreshStats: refreshStatsSpy,
+  }),
+}));
+
 describe('App sidebar actions', () => {
   beforeEach(() => {
-    createNewGameSpy.mockClear();
+    authSessionState.initialAuthenticated = true;
+    authSessionState.initialGuest = false;
     setModeSpy.mockClear();
     setBotDifficultySpy.mockClear();
     logoutSpy.mockClear();
+    refreshStatsSpy.mockClear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  test('clicking "Facil" creates a human_vs_bot game and opens game view', async () => {
+  test('clicking "Jugar" opens the main play dashboard', async () => {
     render(<App />);
     const user = userEvent.setup();
-    const sidebar = screen.getByRole('complementary');
 
-    await user.hover(within(sidebar).getByRole('button', { name: /jugar/i }));
-    await user.click(within(sidebar).getByRole('button', { name: /^facil$/i }));
+    await user.click(screen.getByRole('button', { name: /ayuda/i }));
+    expect(screen.getByText(/reglas basicas/i)).toBeInTheDocument();
+
+    const sidebar = screen.getByRole('complementary');
+    await user.click(within(sidebar).getByRole('button', { name: /jugar/i }));
 
     await waitFor(() => {
-      expect(setBotDifficultySpy).toHaveBeenCalledWith('easy');
-      expect(createNewGameSpy).toHaveBeenCalledWith({ mode: 'human_vs_bot', botId: mapDifficultyToBotId('easy') });
-      expect(screen.getByText(/partida bot-game/i)).toBeInTheDocument();
+      expect(screen.getByText(/configurar partida/i)).toBeInTheDocument();
     });
   });
 
-  test('clicking "Contra humano" creates a human_vs_human game and opens game view', async () => {
-    render(<App />);
-    const user = userEvent.setup();
-    const sidebar = screen.getByRole('complementary');
-
-    await user.hover(within(sidebar).getByRole('button', { name: /jugar/i }));
-    await user.click(within(sidebar).getByRole('button', { name: /contra humano/i }));
-
-    await waitFor(() => {
-      expect(createNewGameSpy).toHaveBeenCalledWith({ mode: 'human_vs_human' });
-      expect(screen.getByText(/partida human-game/i)).toBeInTheDocument();
-    });
-  });
-
-  test('clicking "Estadisticas" opens the history view', async () => {
+  test('clicking "Estadisticas" opens the history view and refreshes stats', async () => {
     render(<App />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /estadisticas/i }));
 
+    expect(refreshStatsSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/historial completo/i)).toBeInTheDocument();
+  });
+
+  test('clicking "Ayuda" opens the help view', async () => {
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /ayuda/i }));
+
+    expect(screen.getByText(/reglas basicas/i)).toBeInTheDocument();
   });
 
   test('clicking "Logout" returns to login view', async () => {
@@ -138,6 +164,39 @@ describe('App sidebar actions', () => {
 
     await waitFor(() => {
       expect(logoutSpy).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/welcome to gamey/i)).toBeInTheDocument();
+    });
+  });
+
+  test('guest users see the login action and cannot open stats', async () => {
+    authSessionState.initialAuthenticated = false;
+    authSessionState.initialGuest = false;
+
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /continuar sin registrarme/i }));
+
+    expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /estadisticas/i }));
+
+    expect(screen.getByText(/registro necesario/i)).toBeInTheDocument();
+    expect(refreshStatsSpy).not.toHaveBeenCalled();
+  });
+
+  test('guest users can move from the restricted stats dialog to login', async () => {
+    authSessionState.initialAuthenticated = false;
+    authSessionState.initialGuest = false;
+
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /continuar sin registrarme/i }));
+    await user.click(screen.getByRole('button', { name: /estadisticas/i }));
+    await user.click(screen.getByRole('button', { name: /ir a registro/i }));
+
+    await waitFor(() => {
       expect(screen.getByText(/welcome to gamey/i)).toBeInTheDocument();
     });
   });

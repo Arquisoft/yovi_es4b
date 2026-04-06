@@ -36,6 +36,14 @@ export type MatchHistoryItem = {
   winnerId: string | null;
   botId: string | null;
   endedAt: string;
+  finalBoard?: FinalBoardSnapshot | null;
+};
+
+export type FinalBoardSnapshot = {
+  size: number;
+  turn: number;
+  players: string[];
+  layout: string;
 };
 
 export const botHistoryLabels: Record<string, string> = {

@@ -26,6 +26,7 @@ services:
     image: ghcr.io/arquisoft/yovi_es4b-stats:latest
     build:
       context: ./stats
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
     environment:
@@ -42,6 +43,7 @@ services:
     image: ghcr.io/arquisoft/yovi_es4b-gateway:latest
     build:
       context: ./gateway
+      dockerfile: Dockerfile
     ports:
       - "80:8080"
     environment:
@@ -64,6 +66,7 @@ services:
     image: ghcr.io/arquisoft/yovi_es4b-users:latest
     build:
       context: ./users
+      dockerfile: Dockerfile
     networks:
       - monitor-net
 
@@ -72,6 +75,7 @@ services:
     image: ghcr.io/arquisoft/yovi_es4b-webapp:latest
     build:
       context: ./webapp
+      dockerfile: Dockerfile
     networks:
       - monitor-net
 
@@ -80,6 +84,7 @@ services:
     image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
     build:
       context: ./gamey
+      dockerfile: Dockerfile
     environment:
       - STATS_SERVICE_URL=http://stats:3001
       - STATS_INTERNAL_TOKEN=stats-internal-token
@@ -91,6 +96,7 @@ services:
     image: ghcr.io/arquisoft/yovi_es4b-auth:latest
     build:
       context: ./auth_service
+      dockerfile: Dockerfile
     environment:
       - MONGO_AUTH_DB=mongodb://mongo-auth:27017/auth
       - JWT_SECRET=${JWT_SECRET:-change_this_secret}

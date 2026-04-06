@@ -3,41 +3,41 @@ import type { SxProps, Theme } from '@mui/material/styles';
 
 export const uiColors = {
   bg: {
-    base: '#081427',
-    surface: '#10213a',
-    sidebar: 'rgba(9, 24, 45, 0.88)',
-    overlay: 'rgba(10, 24, 44, 0.96)',
-    boardPanel: 'rgba(10, 28, 52, 0.9)',
+    base: '#2b2a28',
+    surface: '#312e2b',
+    sidebar: 'rgba(38, 37, 34, 0.92)',
+    overlay: 'rgba(42, 40, 37, 0.96)',
+    boardPanel: 'rgba(41, 39, 36, 0.94)',
   },
   text: {
-    primary: '#f4f8ff',
-    secondary: '#c4d7f4',
-    muted: '#9fb5d8',
+    primary: '#f0efea',
+    secondary: '#c2c1bc',
+    muted: '#9d9b95',
   },
   accent: {
-    main: '#59c3ff',
-    light: '#90dbff',
-    dark: '#2699d6',
-    hoverBg: 'rgba(89, 195, 255, 0.18)',
+    main: '#81b64c',
+    light: '#9dce67',
+    dark: '#5f8f33',
+    hoverBg: 'rgba(129, 182, 76, 0.18)',
   },
   border: {
-    strong: 'rgba(154, 198, 255, 0.36)',
-    soft: 'rgba(154, 198, 255, 0.22)',
-    faint: 'rgba(154, 198, 255, 0.14)',
+    strong: 'rgba(164, 164, 158, 0.42)',
+    soft: 'rgba(164, 164, 158, 0.28)',
+    faint: 'rgba(164, 164, 158, 0.16)',
   },
   feedback: {
-    error: '#ff6b6b',
+    error: '#d65a5a',
   },
   board: {
-    empty: '#ede4d3',
-    human: '#62d986',
-    opponent: '#ff7d7d',
+    empty: '#d8d2c0',
+    human: '#7fa650',
+    opponent: '#d06b6b',
   },
 } as const;
 
 const theme = createTheme({
   typography: {
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontFamily: "'Segoe UI Variable', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
   },
   palette: {
     mode: 'dark',
@@ -45,7 +45,7 @@ const theme = createTheme({
       main: uiColors.accent.main,
       light: uiColors.accent.light,
       dark: uiColors.accent.dark,
-      contrastText: '#042033',
+      contrastText: '#1f211c',
     },
     error: {
       main: uiColors.feedback.error,
@@ -69,7 +69,8 @@ const theme = createTheme({
           margin: 0,
           minWidth: 320,
           minHeight: '100vh',
-          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          fontFamily: "'Segoe UI Variable', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          background: uiColors.bg.base,
         },
         '#root': {
           width: '100%',
@@ -199,8 +200,8 @@ export const uiSx = {
     borderBottom: `1px solid ${uiColors.border.soft}`,
     border: `1px solid ${uiColors.border.faint}`,
     borderRadius: 2.2,
-    backgroundColor: 'rgba(16, 33, 58, 0.72)',
-    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
+    backgroundColor: '#312e2b',
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.18)',
     py: 1.9,
     px: 2.2,
   } satisfies SxProps<Theme>,
@@ -252,7 +253,7 @@ export const uiSx = {
     py: 0.45,
     borderRadius: 1.2,
     border: `1px solid ${uiColors.border.soft}`,
-    backgroundColor: 'rgba(89, 195, 255, 0.06)',
+    backgroundColor: 'rgba(129, 182, 76, 0.09)',
   } satisfies SxProps<Theme>,
   appHeaderUserText: {
     fontSize: '0.92rem',
@@ -298,16 +299,13 @@ export const uiSx = {
     borderRight: { xs: 'none', md: `1px solid ${uiColors.border.faint}` },
     borderBottom: { xs: `1px solid ${uiColors.border.faint}`, md: 'none' },
     backgroundColor: uiColors.bg.sidebar,
-    borderRadius: 2.2,
+    borderRadius: 1.8,
+    boxShadow: '0 10px 22px rgba(0, 0, 0, 0.28)',
     display: 'flex',
     flexDirection: 'column',
     gap: 1.5,
     position: 'relative',
     overflow: 'visible',
-  } satisfies SxProps<Theme>,
-  sidebarPlayGroup: {
-    position: 'relative',
-    width: '100%',
   } satisfies SxProps<Theme>,
   sidebarItem: (active: boolean): SxProps<Theme> => ({
     border: 'none',
@@ -341,63 +339,12 @@ export const uiSx = {
     objectFit: 'contain',
     flexShrink: 0,
   } satisfies SxProps<Theme>,
-  sidebarSubmenu: (open: boolean): SxProps<Theme> => ({
-    position: { xs: 'static', md: 'absolute' },
-    left: { md: '100%' },
-    top: { md: 0 },
-    mt: { xs: 1, md: 0 },
-    minWidth: 220,
-    display: open ? 'flex' : 'none',
-    flexDirection: 'column',
-    gap: 0.3,
-    p: 1.1,
-    borderRadius: 2,
-    border: `1px solid ${uiColors.border.soft}`,
-    backgroundColor: uiColors.bg.overlay,
-    boxShadow: '0 10px 26px rgba(0, 0, 0, 0.35)',
-    zIndex: 3,
-  }),
-  sidebarSubmenuDivider: {
-    mt: 0.7,
-    mb: 0.5,
-    mx: 0.4,
-    borderTop: `1px solid ${uiColors.border.soft}`,
-  } satisfies SxProps<Theme>,
-  sidebarSubmenuTitle: {
-    px: 1,
-    py: 0.5,
-    fontSize: '0.8rem',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: 'text.secondary',
-    opacity: 0.9,
-  } satisfies SxProps<Theme>,
-  sidebarOption: {
-    border: 'none',
-    background: 'transparent',
-    color: 'inherit',
-    textAlign: 'left',
-    padding: '8px 10px',
-    borderRadius: 8,
-    fontSize: '0.94rem',
-    cursor: 'pointer',
-    width: '100%',
-    minWidth: '100%',
-    height: 'auto',
+  sidebarSessionIcon: {
+    width: 24,
+    height: 24,
     display: 'block',
-    transition: 'background-color 0.16s ease, color 0.16s ease',
-    '&:hover': {
-      color: uiColors.accent.light,
-      backgroundColor: uiColors.accent.hoverBg,
-    },
-  } satisfies SxProps<Theme>,
-  sidebarOptionDisabled: {
-    px: 1,
-    py: 0.75,
-    borderRadius: 1,
-    fontSize: '0.94rem',
-    color: 'text.secondary',
-    opacity: 0.55,
+    objectFit: 'contain',
+    flexShrink: 0,
   } satisfies SxProps<Theme>,
   sidebarBottom: {
     mt: 'auto',
@@ -420,6 +367,8 @@ export const uiSx = {
   dashboardCard: {
     p: 2.4,
     borderRadius: 2,
+    backgroundColor: 'rgba(49, 46, 43, 0.9)',
+    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.18)',
     display: 'flex',
     flexDirection: 'column',
     gap: 1.25,
@@ -436,15 +385,13 @@ export const uiSx = {
     pb: 0.85,
     fontWeight: 800,
     letterSpacing: 0.35,
-    textShadow: '0 1px 0 rgba(0, 0, 0, 0.18)',
     '&::before': {
       content: '""',
       width: 7,
       height: 7,
       borderRadius: '50%',
       backgroundColor: uiColors.accent.light,
-      boxShadow: `0 0 10px ${uiColors.accent.light}`,
-      opacity: 0.85,
+      opacity: 0.95,
     },
     '&::after': {
       content: '""',
@@ -454,7 +401,8 @@ export const uiSx = {
       bottom: 0,
       height: 2,
       borderRadius: 2,
-      background: `linear-gradient(90deg, ${uiColors.accent.light} 0%, rgba(255,255,255,0) 92%)`,
+      backgroundColor: uiColors.accent.light,
+      opacity: 0.72,
     },
   } satisfies SxProps<Theme>,
   dashboardCardHint: {
@@ -471,7 +419,7 @@ export const uiSx = {
     fontSize: '0.76rem',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
-    color: 'text.secondary',
+    color: 'text.muted',
     fontWeight: 700,
   } satisfies SxProps<Theme>,
   configToggleButton: (active: boolean): SxProps<Theme> => ({
@@ -482,10 +430,10 @@ export const uiSx = {
     fontSize: '0.88rem',
     fontWeight: 700,
     color: active ? 'text.primary' : 'text.secondary',
-    backgroundColor: active ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: active ? 'rgba(129, 182, 76, 0.18)' : 'rgba(255, 255, 255, 0.04)',
     borderColor: active ? 'primary.light' : 'divider',
     '&:hover': {
-      backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.12)',
+      backgroundColor: active ? 'rgba(129, 182, 76, 0.24)' : 'rgba(255, 255, 255, 0.08)',
       borderColor: active ? 'primary.light' : 'primary.main',
     },
   }),
@@ -526,6 +474,14 @@ export const uiSx = {
     display: 'flex',
     justifyContent: 'flex-end',
   } satisfies SxProps<Theme>,
+  configCreateButton: {
+    minWidth: 160,
+    height: 44,
+    borderRadius: 1.4,
+    fontSize: '0.95rem',
+    px: 2.1,
+    letterSpacing: 0.2,
+  } satisfies SxProps<Theme>,
   dashboardConfigControls: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -547,7 +503,7 @@ export const uiSx = {
     py: 0.9,
     borderRadius: 1.4,
     border: `1px solid ${uiColors.border.faint}`,
-    backgroundColor: 'rgba(10, 28, 52, 0.62)',
+    backgroundColor: 'rgba(44, 42, 39, 0.78)',
   } satisfies SxProps<Theme>,
   dashboardHistoryCard: {
     p: 2.4,
@@ -577,6 +533,193 @@ export const uiSx = {
     gap: 1.5,
     flexWrap: 'wrap',
   } satisfies SxProps<Theme>,
+  historyTableHint: {
+    mt: -0.5,
+    mb: 0.2,
+    color: 'text.secondary',
+    fontSize: '0.86rem',
+    letterSpacing: 0.12,
+  } satisfies SxProps<Theme>,
+  historyStatsGrid: {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' },
+    gap: 1.2,
+    mt: 0.2,
+  } satisfies SxProps<Theme>,
+  historyStatCard: (tone: 'neutral' | 'win' | 'loss' | 'info'): SxProps<Theme> => ({
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 1.5,
+    border: `1px solid ${
+      tone === 'win'
+        ? 'rgba(127, 166, 80, 0.58)'
+        : tone === 'loss'
+          ? 'rgba(208, 107, 107, 0.58)'
+          : tone === 'info'
+            ? 'rgba(164, 164, 158, 0.52)'
+            : uiColors.border.faint
+    }`,
+    backgroundColor: 'rgba(44, 42, 39, 0.82)',
+    px: 1.3,
+    py: 1.1,
+    minHeight: 96,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 3,
+      backgroundColor:
+        tone === 'win'
+          ? '#7fa650'
+          : tone === 'loss'
+            ? '#d06b6b'
+            : tone === 'info'
+              ? 'rgba(172, 170, 162, 0.85)'
+              : 'rgba(172, 170, 162, 0.7)',
+    },
+  }),
+  historyStatLabel: {
+    fontSize: '0.78rem',
+    letterSpacing: 0.34,
+    textTransform: 'uppercase',
+    color: 'text.secondary',
+    fontWeight: 700,
+  } satisfies SxProps<Theme>,
+  historyStatValue: {
+    mt: 0.35,
+    fontSize: { xs: '1.2rem', md: '1.35rem' },
+    fontWeight: 800,
+    letterSpacing: 0.2,
+    lineHeight: 1.1,
+  } satisfies SxProps<Theme>,
+  historyStatMeta: {
+    mt: 0.45,
+    fontSize: '0.78rem',
+    color: 'text.secondary',
+    opacity: 0.92,
+    letterSpacing: 0.12,
+  } satisfies SxProps<Theme>,
+  historyWinrateTrack: {
+    mt: 0.55,
+    width: '100%',
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
+  } satisfies SxProps<Theme>,
+  historyWinrateFill: (percent: number): SxProps<Theme> => ({
+    height: '100%',
+    width: `${Math.max(0, Math.min(100, percent))}%`,
+    borderRadius: 999,
+    backgroundColor: uiColors.accent.main,
+    transition: 'width 0.2s ease',
+  }),
+  historyTableContainer: {
+    border: `1px solid ${uiColors.border.faint}`,
+    borderRadius: 1.6,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(44, 42, 39, 0.55)',
+  } satisfies SxProps<Theme>,
+  historyTableHeadCell: {
+    backgroundColor: 'rgba(49, 46, 43, 0.96)',
+    color: 'text.secondary',
+    fontWeight: 700,
+    letterSpacing: 0.2,
+    fontSize: '0.79rem',
+    textTransform: 'uppercase',
+    borderBottom: `1px solid ${uiColors.border.soft}`,
+    whiteSpace: 'nowrap',
+  } satisfies SxProps<Theme>,
+  historyRow: (interactive: boolean): SxProps<Theme> => ({
+    transition: 'background-color 0.14s ease',
+    cursor: interactive ? 'pointer' : 'default',
+    '&:nth-of-type(odd)': {
+      backgroundColor: 'rgba(255, 255, 255, 0.01)',
+    },
+    '&:hover': interactive
+      ? {
+          backgroundColor: 'rgba(129, 182, 76, 0.12)',
+        }
+      : {},
+  }),
+  historyGameIdButton: (interactive: boolean): SxProps<Theme> => ({
+    minWidth: 0,
+    px: 0,
+    py: 0,
+    fontWeight: 800,
+    justifyContent: 'flex-start',
+    textAlign: 'left',
+    color: interactive ? uiColors.accent.light : 'text.secondary',
+    opacity: interactive ? 1 : 0.62,
+    '&:hover': interactive
+      ? {
+          textDecoration: 'underline',
+          backgroundColor: 'transparent',
+        }
+      : {},
+  }),
+  historyResultBadge: (won: boolean): SxProps<Theme> => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    px: 1.1,
+    py: 0.26,
+    borderRadius: 999,
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    letterSpacing: 0.14,
+    border: `1px solid ${
+      won
+        ? 'rgba(115, 229, 154, 0.6)'
+        : 'rgba(255, 134, 134, 0.66)'
+    }`,
+    color: won ? '#c8ffd8' : '#ffd2d2',
+    backgroundColor: won ? 'rgba(73, 174, 114, 0.16)' : 'rgba(189, 84, 84, 0.16)',
+  }),
+  historyModeBadge: (isBot: boolean): SxProps<Theme> => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    px: 1,
+    py: 0.22,
+    borderRadius: 999,
+    fontSize: '0.76rem',
+    fontWeight: 700,
+    border: `1px solid ${
+      isBot
+        ? 'rgba(129, 182, 76, 0.62)'
+        : 'rgba(164, 164, 158, 0.52)'
+    }`,
+    color: isBot ? '#d8efbe' : '#d8d5cc',
+    backgroundColor: isBot ? 'rgba(129, 182, 76, 0.14)' : 'rgba(140, 137, 128, 0.14)',
+    minWidth: 68,
+    justifyContent: 'center',
+  }),
+  historyMutedTextCell: {
+    color: 'text.secondary',
+    opacity: 0.9,
+  } satisfies SxProps<Theme>,
+  historyActionCell: {
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
+  } satisfies SxProps<Theme>,
+  historyActionButton: (enabled: boolean): SxProps<Theme> => ({
+    minWidth: 112,
+    height: 32,
+    borderRadius: 1.3,
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    px: 1.3,
+    ...(enabled
+      ? {}
+      : {
+          color: 'text.secondary',
+          opacity: 0.7,
+        }),
+  }),
   appTitle: {
     mb: 2,
     textAlign: 'center',
@@ -625,6 +768,44 @@ export const uiSx = {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     overflow: 'hidden',
   } satisfies SxProps<Theme>,
+  loginGuestActions: {
+    mt: 2,
+    pt: 1.6,
+    borderTop: `1px solid ${uiColors.border.faint}`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 1,
+  } satisfies SxProps<Theme>,
+  loginGuestHint: {
+    textAlign: 'center',
+    color: 'text.secondary',
+    fontSize: '0.9rem',
+    maxWidth: 360,
+  } satisfies SxProps<Theme>,
+  accessDialogPaper: {
+    maxWidth: 480,
+    borderRadius: 2.2,
+    backgroundColor: uiColors.bg.surface,
+    boxShadow: '0 18px 42px rgba(0, 0, 0, 0.32)',
+  } satisfies SxProps<Theme>,
+  accessDialogTitle: {
+    fontWeight: 800,
+    letterSpacing: 0.25,
+  } satisfies SxProps<Theme>,
+  accessDialogContent: {
+    pt: '6px !important',
+  } satisfies SxProps<Theme>,
+  accessDialogText: {
+    color: 'text.secondary',
+    lineHeight: 1.6,
+  } satisfies SxProps<Theme>,
+  accessDialogActions: {
+    px: 3,
+    pb: 2.4,
+    pt: 0.6,
+    gap: 1,
+  } satisfies SxProps<Theme>,
   boardContainer: {
     display: 'flex',
     flexDirection: 'column',
@@ -660,29 +841,153 @@ export const uiSx = {
     backgroundColor: uiColors.bg.boardPanel,
     boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)',
   } satisfies SxProps<Theme>,
+  gameResignButton: {
+    minWidth: 150,
+    borderColor: 'rgba(164, 164, 158, 0.62)',
+    color: '#e4e1d8',
+    backgroundColor: 'rgba(63, 61, 57, 0.42)',
+    '&:hover': {
+      borderColor: 'rgba(184, 184, 176, 0.8)',
+      backgroundColor: 'rgba(74, 72, 67, 0.6)',
+    },
+  } satisfies SxProps<Theme>,
+  gameBackButton: {
+    minWidth: 150,
+    color: '#f0efea',
+    backgroundColor: 'rgba(94, 104, 88, 0.9)',
+    border: '1px solid rgba(136, 152, 120, 0.55)',
+    '&:hover': {
+      backgroundColor: 'rgba(106, 117, 101, 0.96)',
+    },
+  } satisfies SxProps<Theme>,
+  gameOutcomeBanner: (won: boolean): SxProps<Theme> => ({
+    width: '100%',
+    maxWidth: 760,
+    px: { xs: 1.6, sm: 2.1 },
+    py: { xs: 1.2, sm: 1.5 },
+    borderRadius: 2,
+    border: `1px solid ${
+      won
+        ? 'rgba(115, 229, 154, 0.62)'
+        : 'rgba(255, 119, 119, 0.62)'
+    }`,
+    backgroundColor: won ? 'rgba(73, 174, 114, 0.16)' : 'rgba(189, 84, 84, 0.2)',
+    boxShadow: won
+      ? '0 8px 20px rgba(36, 110, 69, 0.32)'
+      : '0 8px 20px rgba(116, 45, 45, 0.35)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0.45,
+    textAlign: 'center',
+  }),
+  gameOutcomeTitle: {
+    fontWeight: 900,
+    fontSize: { xs: '1.16rem', sm: '1.34rem' },
+    letterSpacing: 0.25,
+  } satisfies SxProps<Theme>,
   boardRow: (size: number, rowIndex: number): SxProps<Theme> => ({
     display: 'flex',
     justifyContent: 'center',
     mb: '-14px',
     ml: `${size - (rowIndex + 1)}px`,
   }),
-  boardHex: (color: string, clickable: boolean): SxProps<Theme> => ({
-    width: 48,
-    height: 56,
-    backgroundColor: color,
-    margin: '4px',
-    clipPath: `polygon(
-      50% 0%,
-      100% 25%,
-      100% 75%,
-      50% 100%,
-      0% 75%,
-      0% 25%
-    )`,
-    transition: '0.12s',
-    display: 'inline-block',
-    '&:hover': clickable ? { filter: 'brightness(0.92)', cursor: 'pointer' } : {},
-  }),
+  boardHex: (
+    color: string,
+    clickable: boolean,
+    highlighted = false,
+    muted = false,
+    owner: 'human' | 'opponent' | 'empty' = 'empty',
+  ): SxProps<Theme> => {
+    const mutedFilter =
+      owner === 'human'
+        ? 'saturate(0.56) brightness(0.82) contrast(0.96)'
+        : owner === 'opponent'
+          ? 'saturate(0.5) brightness(0.8) contrast(0.95)'
+          : 'none';
+
+    const ownerBorderColor =
+      owner === 'human'
+        ? 'rgba(158, 235, 185, 0.84)'
+        : owner === 'opponent'
+          ? 'rgba(255, 186, 186, 0.9)'
+          : 'rgba(255, 255, 255, 0.72)';
+
+    const mutedPattern =
+      owner === 'human'
+        ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.28) 0 2px, rgba(255,255,255,0) 2px 6px)'
+        : owner === 'opponent'
+          ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.28) 0 2px, rgba(255,255,255,0) 2px 6px)'
+          : 'none';
+
+    return {
+      width: 48,
+      height: 56,
+      backgroundColor: color,
+      margin: '4px',
+      position: 'relative',
+      clipPath: `polygon(
+        50% 0%,
+        100% 25%,
+        100% 75%,
+        50% 100%,
+        0% 75%,
+        0% 25%
+      )`,
+      transition: 'filter 0.16s ease, box-shadow 0.22s ease, opacity 0.2s ease',
+      display: 'inline-block',
+      zIndex: highlighted ? 2 : 1,
+      opacity: muted ? 0.78 : 1,
+      boxShadow: highlighted
+        ? '0 0 0 2px rgba(255, 255, 255, 0.88)'
+        : 'none',
+      filter: highlighted
+        ? 'saturate(1.12) brightness(1.02)'
+        : muted
+          ? mutedFilter
+          : 'none',
+      transform: 'none',
+      animation: 'none',
+      '&::before':
+        highlighted || (muted && owner !== 'empty')
+          ? {
+              content: '""',
+              position: 'absolute',
+              inset: 2,
+              clipPath: 'inherit',
+              backgroundImage: highlighted
+                ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.34) 0 3px, rgba(255,255,255,0) 3px 8px)'
+                : mutedPattern,
+              opacity: highlighted ? 0.52 : 0.66,
+              pointerEvents: 'none',
+            }
+          : {},
+      '&::after':
+        highlighted || (muted && owner !== 'empty')
+          ? {
+              content: '""',
+              position: 'absolute',
+              inset: highlighted ? 1 : 2,
+              clipPath: 'inherit',
+              border: highlighted
+                ? '2px solid rgba(255,255,255,0.98)'
+                : owner === 'human'
+                  ? `2px dashed ${ownerBorderColor}`
+                  : `2px dotted ${ownerBorderColor}`,
+              pointerEvents: 'none',
+            }
+          : {},
+      '&:hover': clickable
+        ? {
+            filter: highlighted
+              ? 'saturate(1.12) brightness(1.02)'
+              : muted
+                ? mutedFilter
+                : 'brightness(0.92)',
+            cursor: 'pointer',
+          }
+        : {},
+    };
+  },
 };
 
 export default theme;
