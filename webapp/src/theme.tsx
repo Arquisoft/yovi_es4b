@@ -37,7 +37,7 @@ export const uiColors = {
 
 type HistoryStatTone = 'neutral' | 'win' | 'loss' | 'info';
 type GameOutcomeTone = 'success' | 'danger' | 'accent';
-type GameCountdownTone = 'turn' | 'disconnect';
+type GameCountdownTone = 'self' | 'opponent' | 'disconnect';
 type BoardOwner = 'human' | 'opponent' | 'empty';
 
 function getHistoryStatBorderColor(tone: HistoryStatTone): string {
@@ -97,27 +97,47 @@ function getGameOutcomeShadowColor(tone: GameOutcomeTone): string {
 }
 
 function getGameCountdownBorderColor(tone: GameCountdownTone): string {
-  return tone === 'disconnect'
-    ? 'rgba(146, 195, 92, 0.66)'
-    : 'rgba(209, 191, 108, 0.66)';
+  switch (tone) {
+    case 'self':
+      return 'rgba(146, 195, 92, 0.66)';
+    case 'opponent':
+      return 'rgba(212, 104, 104, 0.62)';
+    default:
+      return 'rgba(146, 195, 92, 0.66)';
+  }
 }
 
 function getGameCountdownBackgroundColor(tone: GameCountdownTone): string {
-  return tone === 'disconnect'
-    ? 'rgba(129, 182, 76, 0.12)'
-    : 'rgba(199, 168, 70, 0.12)';
+  switch (tone) {
+    case 'self':
+      return 'rgba(129, 182, 76, 0.12)';
+    case 'opponent':
+      return 'rgba(189, 84, 84, 0.12)';
+    default:
+      return 'rgba(129, 182, 76, 0.12)';
+  }
 }
 
 function getGameCountdownShadowColor(tone: GameCountdownTone): string {
-  return tone === 'disconnect'
-    ? '0 8px 16px rgba(47, 64, 31, 0.12)'
-    : '0 8px 16px rgba(74, 56, 20, 0.14)';
+  switch (tone) {
+    case 'self':
+      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+    case 'opponent':
+      return '0 8px 16px rgba(78, 34, 34, 0.12)';
+    default:
+      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+  }
 }
 
 function getGameCountdownFillGradient(tone: GameCountdownTone): string {
-  return tone === 'disconnect'
-    ? 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))'
-    : 'linear-gradient(90deg, rgba(221, 195, 93, 0.95), rgba(191, 156, 56, 0.95))';
+  switch (tone) {
+    case 'self':
+      return 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))';
+    case 'opponent':
+      return 'linear-gradient(90deg, rgba(232, 126, 126, 0.95), rgba(208, 107, 107, 0.95))';
+    default:
+      return 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))';
+  }
 }
 
 function getBoardOwnerMutedFilter(owner: BoardOwner): string {
