@@ -17,7 +17,7 @@ vi.mock('../RegisterForm', () => ({
 
 describe('LoginView', () => {
   test('switches between Login and Register tabs', () => {
-    render(<LoginView onNext={vi.fn()} onAuth={vi.fn()} />);
+    render(<LoginView onNext={vi.fn()} onAuth={vi.fn()} onContinueAsGuest={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: /login form mock/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /register form mock/i })).not.toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('LoginView', () => {
     const onNext = vi.fn();
     const onAuth = vi.fn();
 
-    render(<LoginView onNext={onNext} onAuth={onAuth} />);
+    render(<LoginView onNext={onNext} onAuth={onAuth} onContinueAsGuest={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /login form mock/i }));
     expect(onAuth).toHaveBeenCalledWith('login-token', 'login-user');
@@ -46,5 +46,15 @@ describe('LoginView', () => {
     fireEvent.click(screen.getByRole('button', { name: /register form mock/i }));
     expect(onAuth).toHaveBeenCalledWith('register-token', 'register-user');
     expect(onNext).toHaveBeenCalledTimes(2);
+  });
+
+  test('allows continuing as guest', () => {
+    const onContinueAsGuest = vi.fn();
+
+    render(<LoginView onNext={vi.fn()} onAuth={vi.fn()} onContinueAsGuest={onContinueAsGuest} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar sin registrarme/i }));
+
+    expect(onContinueAsGuest).toHaveBeenCalledTimes(1);
   });
 });

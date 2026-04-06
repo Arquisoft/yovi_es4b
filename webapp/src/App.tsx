@@ -1,7 +1,6 @@
 import './App.css';
 
 import { useEffect, useRef, useState } from 'react';
-
 import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
 import { useStats } from './useStats';
@@ -37,7 +36,9 @@ function App() {
     playCell,
   } = useGamey(auth.username ?? undefined);
 
-  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>('dashboard');
+  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>(
+    auth.isAuthenticated ? 'dashboard' : 'login',
+  );
 
   async function handleCreateNewGame() {
     const created = await createNewGame();
@@ -96,7 +97,13 @@ function App() {
   }
 
   useEffect(() => {
-    if (!game || !game.game_over) {
+    if (!auth.hasSession && view !== 'login') {
+      setView('login');
+    }
+  }, [auth.hasSession, view]);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated || !game || !game.game_over) {
       return;
     }
 
@@ -172,25 +179,7 @@ function App() {
     };
   }, [auth.username, game, view]);
 
-  // If auth is still verifying the token, show nothing
   if (auth.loading) return null;
-
-  // If not authenticated, always show login
-  if (!auth.isAuthenticated) {
-    return (
-      <Box sx={uiSx.appShell}>
-        <Box sx={uiSx.appHeader}>
-          <Typography component="h1" sx={uiSx.appHeaderTitle}>
-            GAME Y
-          </Typography>
-        </Box>
-
-        <Box sx={uiSx.appRoot}>
-          <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />
-        </Box>
-      </Box>
-    );
-  }
 
   return (
     <Box sx={uiSx.appShell}>
@@ -200,14 +189,16 @@ function App() {
             GAME Y
           </Typography>
 
-          <Box sx={uiSx.appHeaderUserBadge}>
-            <Typography component="span" sx={uiSx.appHeaderUserText}>
-              Hello,
-            </Typography>
-            <Typography component="span" sx={uiSx.appHeaderUserName}>
-              {auth.username}
-            </Typography>
-          </Box>
+          {auth.hasSession ? (
+            <Box sx={uiSx.appHeaderUserBadge}>
+              <Typography component="span" sx={uiSx.appHeaderUserText}>
+                Hello,
+              </Typography>
+              <Typography component="span" sx={uiSx.appHeaderUserName}>
+                {auth.displayName}
+              </Typography>
+            </Box>
+          ) : null}
         </Box>
       </Box>
 

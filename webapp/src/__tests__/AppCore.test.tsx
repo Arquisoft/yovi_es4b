@@ -6,11 +6,16 @@ import App from '../App';
 
 type AuthMock = {
   isAuthenticated: boolean;
+  isGuest: boolean;
+  hasSession: boolean;
+  displayName: string | null;
   token: string | null;
   username: string | null;
   loading: boolean;
   login: (token: string, username: string) => void;
   logout: () => void;
+  continueAsGuest: () => void;
+  openLogin: () => void;
   getAuthHeader: () => Record<string, string>;
 };
 
@@ -45,11 +50,16 @@ vi.mock('../useGamey', () => ({
 function buildAuth(overrides: Partial<AuthMock> = {}): AuthMock {
   return {
     isAuthenticated: true,
+    isGuest: false,
+    hasSession: true,
+    displayName: 'adri',
     token: 'fake-token',
     username: 'adri',
     loading: false,
     login: vi.fn(),
     logout: vi.fn(),
+    continueAsGuest: vi.fn(),
+    openLogin: vi.fn(),
     getAuthHeader: () => ({}),
     ...overrides,
   };
@@ -94,7 +104,14 @@ describe('App core flows', () => {
   });
 
   test('shows login view when user is not authenticated', () => {
-    authState = buildAuth({ isAuthenticated: false, token: null, username: null });
+    authState = buildAuth({
+      isAuthenticated: false,
+      isGuest: false,
+      hasSession: false,
+      displayName: null,
+      token: null,
+      username: null,
+    });
 
     render(<App />);
 
@@ -122,5 +139,21 @@ describe('App core flows', () => {
       expect(createNewGame).toHaveBeenCalledWith();
       expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
     });
+  });
+
+  test('shows guest name inside the app header when the user continues without account', () => {
+    authState = buildAuth({
+      isAuthenticated: false,
+      isGuest: true,
+      hasSession: true,
+      displayName: 'Usuario anonimo',
+      token: null,
+      username: null,
+    });
+
+    render(<App />);
+
+    expect(screen.getByText(/hello,/i)).toBeInTheDocument();
+    expect(screen.getByText(/usuario anonimo/i)).toBeInTheDocument();
   });
 });

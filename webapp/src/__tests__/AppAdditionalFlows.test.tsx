@@ -15,17 +15,29 @@ const { loginSpy, createNewGameSpy, statsState } = vi.hoisted(() => ({
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const [isGuest, setIsGuest] = React.useState(false);
 
     return {
       isAuthenticated,
+      isGuest,
+      hasSession: isAuthenticated || isGuest,
+      displayName: isAuthenticated ? 'adri' : isGuest ? 'Usuario anonimo' : null,
       token: isAuthenticated ? 'fake-token' : null,
       username: isAuthenticated ? 'adri' : null,
       loading: false,
       login: (token: string, username: string) => {
         loginSpy(token, username);
         setIsAuthenticated(true);
+        setIsGuest(false);
       },
       logout: vi.fn(),
+      continueAsGuest: () => {
+        setIsAuthenticated(false);
+        setIsGuest(true);
+      },
+      openLogin: () => {
+        setIsGuest(false);
+      },
       getAuthHeader: () => ({}),
     };
   },
@@ -82,15 +94,26 @@ vi.mock('../useGamey', () => ({
 }));
 
 vi.mock('../views/LoginView', () => ({
-  default: ({ onNext, onAuth }: { onNext: () => void; onAuth: (token: string, username: string) => void }) => (
-    <button
-      onClick={() => {
-        onAuth('token-1', 'adri');
-        onNext();
-      }}
-    >
-      Mock Login View
-    </button>
+  default: ({
+    onNext,
+    onAuth,
+    onContinueAsGuest,
+  }: {
+    onNext: () => void;
+    onAuth: (token: string, username: string) => void;
+    onContinueAsGuest: () => void;
+  }) => (
+    <>
+      <button
+        onClick={() => {
+          onAuth('token-1', 'adri');
+          onNext();
+        }}
+      >
+        Mock Login View
+      </button>
+      <button onClick={onContinueAsGuest}>Mock Continue as Guest</button>
+    </>
   ),
 }));
 
@@ -142,6 +165,17 @@ describe('App additional flows', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/stats warning/i)).toBeInTheDocument();
+    });
+  });
+
+  test('can continue as guest and open the dashboard without logging in', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /mock continue as guest/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/usuario anonimo/i)).toBeInTheDocument();
+      expect(screen.getByText(/configurar partida/i)).toBeInTheDocument();
     });
   });
 });
