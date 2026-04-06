@@ -4,12 +4,14 @@ import { useGamey } from '../useGamey';
 
 const createGame = vi.fn();
 const getGame = vi.fn();
+const getHint = vi.fn();
 const playMove = vi.fn();
 const resignGame = vi.fn();
 
 vi.mock('../gameyApi', () => ({
   createGame: (...args: unknown[]) => createGame(...args),
   getGame: (...args: unknown[]) => getGame(...args),
+  getHint: (...args: unknown[]) => getHint(...args),
   playMove: (...args: unknown[]) => playMove(...args),
   resignGame: (...args: unknown[]) => resignGame(...args),
 }));
@@ -37,6 +39,7 @@ describe('useGamey', () => {
   beforeEach(() => {
     createGame.mockReset();
     getGame.mockReset();
+    getHint.mockReset();
     playMove.mockReset();
     resignGame.mockReset();
   });
@@ -180,6 +183,23 @@ describe('useGamey', () => {
       await result.current.playCell({ x: 0, y: 0, z: 0 });
     });
     expect(playMove).not.toHaveBeenCalled();
+  });
+
+  test('requests a hint when a game is active and the human can play', async () => {
+    createGame.mockResolvedValue(buildGame());
+    getHint.mockResolvedValue({ api_version: 'v1', game_id: 'game-1', coords: { x: 1, y: 0, z: -1 } });
+    const { result } = renderHook(() => useGamey('adri'));
+
+    await act(async () => {
+      await result.current.createNewGame();
+    });
+
+    await act(async () => {
+      await result.current.requestHint();
+    });
+
+    expect(getHint).toHaveBeenCalledWith('game-1');
+    expect(result.current.hintCoords).toEqual({ x: 1, y: 0, z: -1 });
   });
 
   test('exposes loading during an in-flight request', async () => {

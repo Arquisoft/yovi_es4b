@@ -6,36 +6,36 @@
 //! - Human vs Computer: Play against a bot
 //! - Server: Run as an HTTP server for bot API
 
-use crate::{
-    BiasedRandomBot, Coordinates, GameAction, GreedyBot, MinimaxBot, Movement, RandomBot, RenderOptions, YBot, YBotRegistry, game,
-};
-use crate::{GameStatus, GameY, PlayerId};
-use anyhow::Result;
 use clap::{Parser, ValueEnum};
+use crate::{
+    BiasedRandomBot, Coordinates, GameAction, GameStatus, GameY, GreedyBot, MinimaxBot, Movement, PlayerId, RandomBot, RenderOptions, YBot, YBotRegistry,
+};
+use anyhow::Result;
 use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
 use std::fmt::Display;
+use std::str::FromStr;
 use std::sync::Arc;
 
 /// Command-line arguments for the GameY application.
 #[derive(Parser, Debug)]
-#[command(author, version, about)]
-#[command(long_about = "GameY: A command-line implementation of the Game of Y.")]
+#[clap(author, version, about)]
+#[clap(long_about = "GameY: A command-line implementation of the Game of Y.")]
 pub struct CliArgs {
     /// Size of the triangular board (length of one side).
-    #[arg(short, long, default_value_t = 7)]
+    #[clap(short, long, default_value_t = 7)]
     pub size: u32,
 
     /// Game mode: human (2-player), computer (vs bot), or server (HTTP API).
-    #[arg(short, long, default_value_t = Mode::Human)]
+    #[clap(short, long, default_value_t = Mode::Human)]
     pub mode: Mode,
 
     /// The bot to use (only used with --mode=computer), default = random_bot
-    #[arg(short, long, default_value = "random_bot")]
+    #[clap(short, long, default_value = "random_bot")]
     pub bot: String,
 
     /// Port to run the server on (only used with --mode=server)
-    #[arg(short, long, default_value_t = 3000)]
+    #[clap(short, long, default_value_t = 3000)]
     pub port: u16,
 }
 
@@ -58,6 +58,19 @@ impl Display for Mode {
             Mode::Server => "server",
         };
         write!(f, "{}", s)
+    }
+}
+
+impl FromStr for Mode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "computer" => Ok(Mode::Computer),
+            "human" => Ok(Mode::Human),
+            "server" => Ok(Mode::Server),
+            _ => Err(format!("Unknown mode: {}", s)),
+        }
     }
 }
 
@@ -85,7 +98,7 @@ pub fn run_cli_game() -> Result<()> {
             return Ok(());
         }
     };
-    let mut game = game::GameY::new(args.size);
+    let mut game = GameY::new(args.size);
     loop {
         println!("{}", game.render(&render_options));
         let status = game.status();

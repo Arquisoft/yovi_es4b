@@ -1,0 +1,79 @@
+﻿docker : #0 building with "desktop-linux" instance using docker driver
+En línea: 1 Carácter: 60
++ ... UNIOVI\3ERO\ASW\yovi_es4b\gamey; docker build -t gamey . 2>&1 | Out-F ...
++                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (#0 building wit...g docker driver 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 621B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/rust:latest
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/debian:bookworm-slim
+#3 DONE 0.9s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 DONE 0.0s
+
+#6 [builder 1/5] FROM docker.io/library/rust:latest@sha256:f2a0f2b3529c9bbbf547
+9d131611451a3cc3956d9a11374d6d4ba96f059c1dce
+#6 resolve docker.io/library/rust:latest@sha256:f2a0f2b3529c9bbbf5479d131611451
+a3cc3956d9a11374d6d4ba96f059c1dce 0.1s done
+#6 DONE 0.1s
+
+#7 [stage-1 1/3] FROM docker.io/library/debian:bookworm-slim@sha256:f06537653ac
+770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
+#7 resolve docker.io/library/debian:bookworm-slim@sha256:f06537653ac770703bc45b
+4b113475bd402f451e85223f0f2837acbf89ab020a 0.1s done
+#7 DONE 0.1s
+
+#8 [builder 2/5] WORKDIR /app/gamey
+#8 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 1.26kB 0.0s done
+#5 DONE 0.0s
+
+#9 [builder 3/5] COPY Cargo.toml Cargo.lock ./
+#9 DONE 0.2s
+
+#10 [builder 4/5] COPY src/ ./src/
+#10 DONE 0.1s
+
+#11 [builder 5/5] RUN cargo build --release
+#11 0.363 error: failed to parse manifest at `/app/gamey/Cargo.toml`
+#11 0.363 
+#11 0.363 Caused by:
+#11 0.363   can't find `gamey_benchmarks` bench at 
+`benches/gamey_benchmarks.rs` or `benches/gamey_benchmarks/main.rs`. Please 
+specify bench.path if you want to use a non-default path.
+#11 ERROR: process "/bin/sh -c cargo build --release" did not complete 
+successfully: exit code: 101
+------
+ > [builder 5/5] RUN cargo build --release:
+0.363 error: failed to parse manifest at `/app/gamey/Cargo.toml`
+0.363 
+0.363 Caused by:
+0.363   can't find `gamey_benchmarks` bench at `benches/gamey_benchmarks.rs` 
+or `benches/gamey_benchmarks/main.rs`. Please specify bench.path if you want 
+to use a non-default path.
+------
+Dockerfile:11
+--------------------
+   9 |     
+  10 |     # Build the application
+  11 | >>> RUN cargo build --release
+  12 |     
+  13 |     # Use a minimal image for the final stage
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c cargo build 
+--release" did not complete successfully: exit code: 101

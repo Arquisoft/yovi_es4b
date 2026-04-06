@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   createGame,
   getGame,
+  getHint,
   playMove,
   resignGame,
   type Coordinates,
@@ -25,6 +26,7 @@ export function useGamey(userId?: string) {
   const [game, setGame] = useState<GameStateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hintCoords, setHintCoords] = useState<Coordinates | null>(null);
 
   const board = useMemo(() => (game ? toBoardCells(game) : []), [game]);
   const canPlayCell = useMemo(() => (game ? canHumanPlay(game) : false), [game]);
@@ -36,6 +38,7 @@ export function useGamey(userId?: string) {
     try {
       const nextGame = await request;
       setGame(nextGame);
+      setHintCoords(null);
       return true;
     } catch (requestError: unknown) {
       setError(toErrorMessage(requestError));
@@ -77,6 +80,24 @@ export function useGamey(userId?: string) {
     await runRequest(getGame(game.game_id));
   }
 
+  async function requestHint() {
+    if (!game || !canPlayCell || loading) {
+      return false;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getHint(game.game_id);
+      setHintCoords(response.coords);
+      return true;
+    } catch (requestError: unknown) {
+      setError(toErrorMessage(requestError));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function resignCurrentGame() {
     if (!game) return;
     await runRequest(resignGame(game.game_id, userId));
@@ -97,12 +118,14 @@ export function useGamey(userId?: string) {
     board,
     canPlayCell,
     statusText,
+    hintCoords,
     setMode,
     setBotDifficulty,
     updateBoardSize,
     createNewGame,
     refreshCurrentGame,
     resignCurrentGame,
+    requestHint,
     playCell,
   };
 }

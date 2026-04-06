@@ -50,6 +50,10 @@ pub fn create_router(state: AppState) -> axum::Router {
             axum::routing::post(games::play_move),
         )
         .route(
+            "/{api_version}/games/{game_id}/hint",
+            axum::routing::post(games::hint_game),
+        )
+        .route(
             "/{api_version}/games/{game_id}/resign",
             axum::routing::post(games::resign_game),
         )

@@ -175,13 +175,13 @@ impl GameY {
         let neighbors = self.get_neighbors(&coords);
 
         for neighbor in neighbors {
-            if let Some((neighbor_idx, neighbor_player)) = self.board_map.get(&neighbor)
-                && *neighbor_player == player
-            {
-                // Union returns true if the merge resulted in a winning connection
-                //
-                let connection_won = self.union(current_set_idx, *neighbor_idx);
-                won = won || connection_won;
+            if let Some((neighbor_idx, neighbor_player)) = self.board_map.get(&neighbor) {
+                if *neighbor_player == player {
+                    // Union returns true if the merge resulted in a winning connection
+                    //
+                    let connection_won = self.union(current_set_idx, *neighbor_idx);
+                    won = won || connection_won;
+                }
             }
         }
         won

@@ -2,7 +2,10 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use gamey::{YBotRegistry, YEN, create_default_state, create_router, state::AppState, RandomBot, MoveResponse, ErrorResponse};
+use gamey::{
+    create_default_state, create_router, state::AppState, ErrorResponse, MoveResponse, RandomBot,
+    YBotRegistry, YEN,
+};
 use http_body_util::BodyExt;
 use std::sync::Arc;
 use tower::ServiceExt;

@@ -142,6 +142,18 @@ export async function playMove(gameId: string, move: MoveRequest, userId?: strin
   });
 }
 
+export interface HintResponse {
+  api_version: string;
+  game_id: string;
+  coords: Coordinates;
+}
+
+export async function getHint(gameId: string): Promise<HintResponse> {
+  return requestJson<HintResponse>(`/v1/games/${gameId}/hint`, {
+    method: 'POST',
+  });
+}
+
 export async function resignGame(gameId: string, userId?: string): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}/resign`, {
     method: 'POST',

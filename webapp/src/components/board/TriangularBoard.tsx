@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import type { BoardCell } from '../../gameyUi';
+import type { Coordinates } from '../../gameyApi';
 import { toCoordsKey } from '../../gameyUi';
 import { uiSx } from '../../theme';
 import { BOARD_CELL_UI, buildFallbackRow, getBoardCellColor, isBoardCellPlayable } from './triangularBoardUi';
@@ -13,6 +14,7 @@ type Props = {
   canPlayCell: boolean;
   loading: boolean;
   humanSymbol: string | null;
+  hintCoords?: Coordinates | null;
   size: number;
   winningCellKeys?: Set<string>;
 };
@@ -22,6 +24,7 @@ const CellView: React.FC<{
   onClick?: () => void;
   clickable?: boolean;
   highlighted?: boolean;
+  hinted?: boolean;
   muted?: boolean;
   owner?: PieceOwner;
   testId?: string;
@@ -30,6 +33,7 @@ const CellView: React.FC<{
   onClick,
   clickable = false,
   highlighted = false,
+  hinted = false,
   muted = false,
   owner = 'empty',
   testId,
@@ -38,6 +42,7 @@ const CellView: React.FC<{
     <Box
       data-testid={testId}
       data-winning-cell={highlighted ? 'true' : undefined}
+      data-hint-cell={hinted ? 'true' : undefined}
       data-muted-cell={muted ? 'true' : undefined}
       data-piece-owner={owner}
       onClick={clickable ? onClick : undefined}
@@ -52,11 +57,13 @@ const TriangularBoard: React.FC<Props> = ({
   canPlayCell,
   loading,
   humanSymbol,
+  hintCoords = null,
   size,
   winningCellKeys = new Set<string>(),
 }) => {
   const rows = board;
   const hasWinningHighlight = winningCellKeys.size > 0;
+  const hintCellKey = hintCoords ? toCoordsKey(hintCoords) : null;
 
   return (
     <Box sx={uiSx.boardContainer}>
@@ -80,6 +87,7 @@ const TriangularBoard: React.FC<Props> = ({
                 : humanSymbol && cell.symbol === humanSymbol
                   ? 'human'
                   : 'opponent';
+              const isHinted = hintCellKey !== null && coordsKey === hintCellKey;
               const isMuted = hasWinningHighlight && isOccupied && !isHighlighted;
               const handleClick = () => {
                 if (!clickable) return;
@@ -92,7 +100,8 @@ const TriangularBoard: React.FC<Props> = ({
                   testId={`hex-${cellKey}`}
                   clickable={clickable}
                   color={color}
-                  highlighted={isHighlighted}
+                  highlighted={isHighlighted || isHinted}
+                  hinted={isHinted}
                   muted={isMuted}
                   owner={owner}
                   onClick={handleClick}

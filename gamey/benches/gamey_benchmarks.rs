@@ -60,9 +60,7 @@ fn bench_game_creation(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("new", board_size),
             board_size,
-            |b, &size| {
-                b.iter(|| black_box(GameY::new(size)))
-            },
+            |b, &size| b.iter(|| black_box(GameY::new(size))),
         );
     }
 
@@ -150,20 +148,14 @@ fn bench_render(c: &mut Criterion) {
             let _ = game.add_move(movement);
         }
 
-        group.bench_with_input(
-            BenchmarkId::new("simple", board_size),
-            &game,
-            |b, game| {
-                b.iter(|| black_box(game.render(&options_simple)))
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("simple", board_size), &game, |b, game| {
+            b.iter(|| black_box(game.render(&options_simple)))
+        });
 
         group.bench_with_input(
             BenchmarkId::new("full_options", board_size),
             &game,
-            |b, game| {
-                b.iter(|| black_box(game.render(&options_full)))
-            },
+            |b, game| b.iter(|| black_box(game.render(&options_full))),
         );
     }
 

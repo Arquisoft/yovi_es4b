@@ -106,4 +106,21 @@ describe('TriangularBoard', () => {
     expect(screen.getByTestId('hex-1-1')).toHaveAttribute('data-piece-owner', 'human');
     expect(screen.getByTestId('hex-1-0')).not.toHaveAttribute('data-muted-cell');
   });
+
+  test('highlights a hinted empty cell on the board', () => {
+    render(
+      <TriangularBoard
+        board={buildBoard()}
+        playCell={vi.fn()}
+        canPlayCell={true}
+        loading={false}
+        humanSymbol={'B'}
+        size={2}
+        hintCoords={{ x: 2, y: 0, z: -2 }}
+      />,
+    );
+
+    expect(screen.getByTestId('hex-0-0')).toHaveAttribute('data-hint-cell', 'true');
+    expect(screen.getByTestId('hex-0-0')).toHaveAttribute('data-winning-cell', 'true');
+  });
 });

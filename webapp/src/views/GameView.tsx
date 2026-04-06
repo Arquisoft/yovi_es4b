@@ -11,7 +11,9 @@ type Props = {
   board: BoardCell[][];
   canPlayCell: boolean;
   loading: boolean;
+  hintCoords: Coordinates | null;
   resignCurrentGame: () => void;
+  requestHint: () => Promise<boolean> | void;
   playCell: (coords: Coordinates) => Promise<void> | void;
   onBack: () => void;
 };
@@ -21,7 +23,9 @@ const GameView: React.FC<Props> = ({
   board,
   canPlayCell,
   loading,
+  hintCoords,
   resignCurrentGame,
+  requestHint,
   playCell,
   onBack,
 }) => {
@@ -32,6 +36,8 @@ const GameView: React.FC<Props> = ({
   const winningCellKeys = hasWinner ? findWinningConnectionCellKeys(game) : new Set<string>();
   const isHumanWinner = hasWinner && game.winner === 0;
   const outcomeTitle = !hasWinner ? 'Partida finalizada' : isHumanWinner ? 'Victoria' : 'Derrota';
+
+  const canRequestHint = !loading && !game.game_over && canPlayCell;
 
   return (
     <Box sx={uiSx.centeredColumn}>
@@ -51,6 +57,7 @@ const GameView: React.FC<Props> = ({
           canPlayCell={canPlayCell}
           loading={loading}
           playCell={playCell}
+          hintCoords={hintCoords}
           size={game.yen.size}
           winningCellKeys={winningCellKeys}
         />
@@ -58,12 +65,32 @@ const GameView: React.FC<Props> = ({
 
       <Box sx={uiSx.gameActionsBox}>
         <Box sx={uiSx.centeredRow}>
-          <Button variant="outlined" sx={uiSx.gameResignButton} onClick={resignCurrentGame} disabled={loading || game.game_over}>
+          <Button
+            variant="outlined"
+            sx={uiSx.gameResignButton}
+            onClick={resignCurrentGame}
+            disabled={loading || game.game_over}
+          >
             Rendirse
+          </Button>
+
+          <Button
+            variant="contained"
+            sx={uiSx.gameHintButton}
+            onClick={requestHint}
+            disabled={!canRequestHint}
+          >
+            Solicitar pista
           </Button>
 
           <Button sx={uiSx.gameBackButton} onClick={onBack}>Volver</Button>
         </Box>
+
+        {hintCoords && (
+          <Typography sx={uiSx.gameHintText}>
+            Sugerencia: coloca en ({hintCoords.x}, {hintCoords.y}, {hintCoords.z})
+          </Typography>
+        )}
       </Box>
     </Box>
   );

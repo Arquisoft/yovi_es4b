@@ -806,6 +806,15 @@ export const uiSx = {
       backgroundColor: 'rgba(74, 72, 67, 0.6)',
     },
   } satisfies SxProps<Theme>,
+  gameHintButton: {
+    minWidth: 150,
+    ml: 2,
+    color: '#ffffff',
+    backgroundColor: '#4a90e2',
+    '&:hover': {
+      backgroundColor: '#3c78c3',
+    },
+  } satisfies SxProps<Theme>,
   gameBackButton: {
     minWidth: 150,
     color: '#f0efea',
@@ -814,6 +823,11 @@ export const uiSx = {
     '&:hover': {
       backgroundColor: 'rgba(106, 117, 101, 0.96)',
     },
+  } satisfies SxProps<Theme>,
+  gameHintText: {
+    mt: 1,
+    textAlign: 'center',
+    color: '#d8e3ff',
   } satisfies SxProps<Theme>,
   gameOutcomeBanner: (won: boolean): SxProps<Theme> => ({
     width: '100%',

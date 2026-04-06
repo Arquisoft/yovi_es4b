@@ -30,8 +30,10 @@ function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = 
     game: buildGame(),
     board: [],
     canPlayCell: true,
+    hintCoords: null,
     loading: false,
     resignCurrentGame: vi.fn(),
+    requestHint: vi.fn(),
     playCell: vi.fn(),
     onBack: vi.fn(),
     ...overrides,
@@ -105,14 +107,17 @@ describe('GameView', () => {
     expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":null');
   });
 
-  test('calls resign and back actions from buttons', () => {
-    const props = buildProps();
+  test('calls resign, hint and back actions from buttons', () => {
+    const requestHint = vi.fn();
+    const props = buildProps({ requestHint });
     render(<GameView {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: /rendirse/i }));
+    fireEvent.click(screen.getByRole('button', { name: /solicitar pista/i }));
     fireEvent.click(screen.getByRole('button', { name: /volver/i }));
 
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
+    expect(requestHint).toHaveBeenCalledTimes(1);
     expect(props.onBack).toHaveBeenCalledTimes(1);
   });
 
@@ -166,5 +171,18 @@ describe('GameView', () => {
     );
 
     expect(screen.getByText(/^derrota$/i)).toBeInTheDocument();
+  });
+
+  test('shows hint text when hint coordinates are available', () => {
+    render(
+      <GameView
+        {...buildProps({
+          hintCoords: { x: 1, y: 1, z: -2 },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/sugerencia:/i)).toBeInTheDocument();
+    expect(screen.getByText(/1, 1, -2/)).toBeInTheDocument();
   });
 });

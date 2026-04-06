@@ -4,7 +4,7 @@ use axum::{
 };
 use gamey::{create_default_state, create_router};
 use http_body_util::BodyExt;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use tower::ServiceExt;
 
 fn test_app() -> axum::Router {
@@ -155,8 +155,7 @@ async fn play_move_updates_turn_in_human_vs_human_game() {
     assert_eq!(moved["game_over"], false);
     assert_eq!(moved["next_player"], 1);
 
-    let (_, fetched) =
-        request_json(&app, Method::GET, &format!("/v1/games/{game_id}"), None).await;
+    let (_, fetched) = request_json(&app, Method::GET, &format!("/v1/games/{game_id}"), None).await;
 
     assert_eq!(fetched["next_player"], 1);
 }
@@ -213,4 +212,80 @@ async fn play_move_returns_error_when_game_does_not_exist() {
 
     assert_eq!(status, StatusCode::OK);
     assert!(body["message"].as_str().unwrap().contains("Game not found"));
+}
+
+#[tokio::test]
+async fn hint_game_returns_suggestion_for_human_turn() {
+    let app = test_app();
+
+    let (_, created) = request_json(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot",
+            "bot_id": "random_bot"
+        })),
+    )
+    .await;
+
+    let game_id = created["game_id"].as_str().unwrap();
+    let (status, body) = request_json(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/hint"),
+        None,
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["game_id"].as_str(), Some(game_id));
+    assert!(body["coords"].get("x").is_some());
+    assert!(body["coords"].get("y").is_some());
+    assert!(body["coords"].get("z").is_some());
+}
+
+#[tokio::test]
+async fn hint_game_rejects_hint_when_bot_turn_in_human_vs_bot() {
+    let app = test_app();
+
+    let (_, created) = request_json(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot",
+            "bot_id": "random_bot"
+        })),
+    )
+    .await;
+
+    let game_id = created["game_id"].as_str().unwrap();
+
+    // Force a bot move by making a human move first.
+    let (_, _) = request_json(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/moves"),
+        Some(json!({
+            "coords": { "x": 2, "y": 0, "z": 0 }
+        })),
+    )
+    .await;
+
+    let (status, body) = request_json(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/hint"),
+        None,
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert!(body["message"]
+        .as_str()
+        .unwrap()
+        .contains("Hint is only available"));
 }

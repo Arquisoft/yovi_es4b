@@ -3,7 +3,7 @@ use super::{
     state::{AppState, GameSession},
     version::check_api_version,
 };
-use crate::{Coordinates, GameAction, GameStatus, GameY, Movement, PlayerId, YEN};
+use crate::{Coordinates, GameAction, GameStatus, GameY, MinimaxBot, Movement, PlayerId, YEN, bot::ybot::YBot};
 use axum::{
     Json,
     extract::{Path, State},
@@ -61,6 +61,16 @@ pub struct GameStateResponse {
     pub next_player: Option<u32>,
     /// Winner player id if game is finished.
     pub winner: Option<u32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HintResponse {
+    /// The API version used.
+    pub api_version: String,
+    /// Unique game identifier.
+    pub game_id: String,
+    /// The coordinates suggested for the next move.
+    pub coords: Coordinates,
 }
 
 #[derive(Deserialize)]
@@ -206,44 +216,44 @@ pub async fn play_move(
                 )
             })?;
 
-        if let Some(bot_id) = &session.bot_id
-            && !session.game.check_game_over()
-        {
-            let bot = match bots.find(bot_id) {
-                Some(bot) => bot,
-                None => {
-                    let available_bots = bots.names().join(", ");
-                    return Err(bot_not_found_error(
-                        &params.api_version,
-                        bot_id,
-                        &available_bots,
-                    ));
-                }
-            };
+        if let Some(bot_id) = &session.bot_id {
+            if !session.game.check_game_over() {
+                let bot = match bots.find(bot_id) {
+                    Some(bot) => bot,
+                    None => {
+                        let available_bots = bots.names().join(", ");
+                        return Err(bot_not_found_error(
+                            &params.api_version,
+                            bot_id,
+                            &available_bots,
+                        ));
+                    }
+                };
 
-            let bot_coords = match bot.choose_move(&session.game) {
-                Some(coords) => coords,
-                None => {
-                    return Err(error_response(
-                        "No valid moves available for the bot",
-                        Some(params.api_version.clone()),
-                    ));
-                }
-            };
-
-            if let Some(bot_player) = session.game.next_player() {
-                session
-                    .game
-                    .add_move(Movement::Placement {
-                        player: bot_player,
-                        coords: bot_coords,
-                    })
-                    .map_err(|e| {
-                        error_response(
-                            &format!("Could not apply bot move: {}", e),
+                let bot_coords = match bot.choose_move(&session.game) {
+                    Some(coords) => coords,
+                    None => {
+                        return Err(error_response(
+                            "No valid moves available for the bot",
                             Some(params.api_version.clone()),
-                        )
-                    })?;
+                        ));
+                    }
+                };
+
+                if let Some(bot_player) = session.game.next_player() {
+                    session
+                        .game
+                        .add_move(Movement::Placement {
+                            player: bot_player,
+                            coords: bot_coords,
+                        })
+                        .map_err(|e| {
+                            error_response(
+                                &format!("Could not apply bot move: {}", e),
+                                Some(params.api_version.clone()),
+                            )
+                        })?;
+                }
             }
         }
 
@@ -256,6 +266,44 @@ pub async fn play_move(
     report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
+}
+
+/// Suggests the next move for the current human turn using the minimax bot.
+///
+/// # Route
+/// `POST /{api_version}/games/{game_id}/hint`
+pub async fn hint_game(
+    State(state): State<AppState>,
+    Path(params): Path<GameParams>,
+) -> Result<Json<HintResponse>, Json<ErrorResponse>> {
+    check_api_version(&params.api_version)?;
+
+    let games = state.games();
+    let guard = games.read().await;
+    let session = require_game_session(&guard, &params)?;
+    ensure_game_not_finished(&session.game, &params.api_version)?;
+
+    let current_player = current_player_or_finished(&session.game, &params.api_version)?;
+    if session.bot_id.is_some() && current_player != PlayerId::new(0) {
+        return Err(error_response(
+            "Hint is only available on the human player's turn",
+            Some(params.api_version.clone()),
+        ));
+    }
+
+    let bot = MinimaxBot::default();
+    let coords = bot.choose_move(&session.game).ok_or_else(|| {
+        error_response(
+            "No valid moves available for hint generation",
+            Some(params.api_version.clone()),
+        )
+    })?;
+
+    Ok(Json(HintResponse {
+        api_version: params.api_version,
+        game_id: params.game_id,
+        coords,
+    }))
 }
 
 /// Resigns the current game.

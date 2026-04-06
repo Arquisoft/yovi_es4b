@@ -27,11 +27,13 @@ function App() {
     loading,
     board,
     canPlayCell,
+    hintCoords,
     setMode,
     setBotDifficulty,
     updateBoardSize,
     createNewGame,
     resignCurrentGame,
+    requestHint,
     playCell,
   } = useGamey(auth.username ?? undefined);
 
@@ -157,7 +159,9 @@ function App() {
               board={board}
               canPlayCell={canPlayCell}
               loading={loading}
+              hintCoords={hintCoords}
               resignCurrentGame={resignCurrentGame}
+              requestHint={requestHint}
               playCell={playCell}
               onBack={() => setView('dashboard')}
             />

@@ -1,4 +1,4 @@
-use gamey::{Command, Mode, parse_command, parse_idx};
+use gamey::{parse_command, parse_idx, Command, Mode};
 
 // =============================================================================
 // parse_command Tests
