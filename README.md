@@ -126,6 +126,9 @@ This command will build the Docker images and start the full stack behind the ga
 - Web application: [http://localhost](http://localhost)
 - User service API (through gateway): [http://localhost/users/createuser](http://localhost/users/createuser)
 - Gamey API (through gateway): [http://localhost/api/v1/games](http://localhost/api/v1/games)
+- External bot API documentation (through gateway): [http://localhost/external/docs](http://localhost/external/docs)
+- External bot OpenAPI contract (through gateway): [Invoke-RestMethod -Uri "http://localhost/external/v1/bots"
+](http://localhost/external/docs/openapi.json)
 
 ### Without Docker
 
