@@ -17,6 +17,22 @@ type Props = {
   winningCellKeys?: Set<string>;
 };
 
+function resolvePieceOwner(
+  isOccupied: boolean,
+  humanSymbol: string | null,
+  cellSymbol: string,
+): PieceOwner {
+  if (!isOccupied) {
+    return 'empty';
+  }
+
+  if (humanSymbol && cellSymbol === humanSymbol) {
+    return 'human';
+  }
+
+  return 'opponent';
+}
+
 const CellView: React.FC<{
   color?: string;
   onClick?: () => void;
@@ -75,11 +91,7 @@ const TriangularBoard: React.FC<Props> = ({
               const coordsKey = toCoordsKey(cell.coords);
               const isHighlighted = winningCellKeys.has(coordsKey);
               const isOccupied = cell.symbol !== BOARD_CELL_UI.emptySymbol;
-              const owner: PieceOwner = !isOccupied
-                ? 'empty'
-                : humanSymbol && cell.symbol === humanSymbol
-                  ? 'human'
-                  : 'opponent';
+              const owner = resolvePieceOwner(isOccupied, humanSymbol, cell.symbol);
               const isMuted = hasWinningHighlight && isOccupied && !isHighlighted;
               const handleClick = () => {
                 if (!clickable) return;

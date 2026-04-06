@@ -19,8 +19,11 @@ export interface CreateGameRequest {
   bot_id?: string;
 }
 
+export type GameCompletionReason = 'win_condition' | 'resignation' | 'disconnect_timeout';
+
 export interface MoveRequest {
   coords: Coordinates;
+  player_token?: string;
 }
 
 export interface GameStateResponse {
@@ -32,10 +35,27 @@ export interface GameStateResponse {
   game_over: boolean;
   next_player: number | null;
   winner: number | null;
+  completion_reason?: GameCompletionReason | null;
+  player0_user_id?: string | null;
+  player1_user_id?: string | null;
+  opponent_inactivity_timeout_remaining_ms?: number | null;
 }
 
 interface ApiErrorResponse {
   message: string;
+}
+
+export type MatchmakingStatus = 'waiting' | 'matched' | 'cancelled';
+
+export interface MatchmakingTicketResponse {
+  api_version: string;
+  ticket_id: string;
+  status: MatchmakingStatus;
+  poll_after_ms: number | null;
+  position: number | null;
+  game_id: string | null;
+  player_id: number | null;
+  player_token: string | null;
 }
 
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
@@ -64,6 +84,20 @@ function withUserIdHeader(baseHeaders: Record<string, string>, userId?: string):
   return {
     ...baseHeaders,
     'x-user-id': userId.trim(),
+  };
+}
+
+function withPlayerTokenHeader(
+  baseHeaders: Record<string, string>,
+  playerToken?: string,
+): Record<string, string> {
+  if (!playerToken || playerToken.trim().length === 0) {
+    return baseHeaders;
+  }
+
+  return {
+    ...baseHeaders,
+    'x-player-token': playerToken.trim(),
   };
 }
 
@@ -128,9 +162,14 @@ export async function createGame(
   });
 }
 
-export async function getGame(gameId: string): Promise<GameStateResponse> {
+export async function getGame(
+  gameId: string,
+  userId?: string,
+  playerToken?: string,
+): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}`, {
     method: 'GET',
+    headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
   });
 }
 
@@ -142,9 +181,36 @@ export async function playMove(gameId: string, move: MoveRequest, userId?: strin
   });
 }
 
-export async function resignGame(gameId: string, userId?: string): Promise<GameStateResponse> {
+export async function resignGame(
+  gameId: string,
+  userId?: string,
+  playerToken?: string,
+): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}/resign`, {
     method: 'POST',
-    headers: withUserIdHeader({}, userId),
+    headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
+  });
+}
+
+export async function enqueueMatchmaking(
+  size = 7,
+  userId?: string,
+): Promise<MatchmakingTicketResponse> {
+  return requestJson<MatchmakingTicketResponse>('/v1/matchmaking/enqueue', {
+    method: 'POST',
+    headers: withUserIdHeader({ 'Content-Type': 'application/json' }, userId),
+    body: JSON.stringify({ size }),
+  });
+}
+
+export async function getMatchmakingTicket(ticketId: string): Promise<MatchmakingTicketResponse> {
+  return requestJson<MatchmakingTicketResponse>(`/v1/matchmaking/tickets/${ticketId}`, {
+    method: 'GET',
+  });
+}
+
+export async function cancelMatchmakingTicket(ticketId: string): Promise<MatchmakingTicketResponse> {
+  return requestJson<MatchmakingTicketResponse>(`/v1/matchmaking/tickets/${ticketId}/cancel`, {
+    method: 'POST',
   });
 }

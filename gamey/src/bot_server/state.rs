@@ -1,21 +1,68 @@
-﻿use crate::{GameY, YBotRegistry};
+use crate::{GameY, YBotRegistry};
+use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
     },
+    time::Instant,
 };
 use tokio::sync::RwLock;
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum GameCompletionReason {
+    WinCondition,
+    Resignation,
+    DisconnectTimeout,
+}
 
 /// In-memory state for a running game session.
 #[derive(Clone)]
 pub struct GameSession {
     pub game: GameY,
     pub bot_id: Option<String>,
+    pub created_at: Instant,
+    /// Token by player id for authenticated multiplayer matchmaking games.
+    pub player_tokens: Option<HashMap<u32, String>>,
+    /// Last time each online player contacted the server for this match.
+    pub last_seen_at_by_player_id: Option<HashMap<u32, Instant>>,
     pub player0_user_id: Option<String>,
     pub player1_user_id: Option<String>,
     pub stats_reported: bool,
+    pub completion_reason: Option<GameCompletionReason>,
+}
+
+/// Queue entry for matchmaking.
+#[derive(Clone, Debug)]
+pub struct MatchmakingQueueEntry {
+    pub ticket_id: String,
+    pub size: u32,
+    pub user_id: Option<String>,
+}
+
+/// Internal state for a matchmaking ticket.
+#[derive(Clone, Debug)]
+pub enum MatchmakingTicketStatus {
+    Waiting {
+        size: u32,
+        user_id: Option<String>,
+        enqueued_at: Instant,
+    },
+    Matched {
+        game_id: String,
+        player_id: u32,
+        player_token: String,
+    },
+    Cancelled,
+}
+
+/// Shared in-memory matchmaking structures.
+#[derive(Clone, Debug, Default)]
+pub struct MatchmakingState {
+    pub queue: VecDeque<MatchmakingQueueEntry>,
+    pub tickets: HashMap<String, MatchmakingTicketStatus>,
 }
 
 /// Shared application state for the bot server.
@@ -29,8 +76,16 @@ pub struct AppState {
     bots: Arc<YBotRegistry>,
     /// In-memory game sessions indexed by game id.
     games: Arc<RwLock<HashMap<String, GameSession>>>,
+    /// Active game id indexed by normalized user id.
+    active_game_id_by_user_id: Arc<RwLock<HashMap<String, String>>>,
+    /// In-memory matchmaking queue and ticket statuses.
+    matchmaking: Arc<RwLock<MatchmakingState>>,
     /// Counter used to generate unique game identifiers.
     next_game_id: Arc<AtomicU64>,
+    /// Counter used to generate unique ticket identifiers.
+    next_ticket_id: Arc<AtomicU64>,
+    /// Counter used to generate unique player tokens.
+    next_player_token_id: Arc<AtomicU64>,
 }
 
 impl AppState {
@@ -39,7 +94,11 @@ impl AppState {
         Self {
             bots: Arc::new(bots),
             games: Arc::new(RwLock::new(HashMap::new())),
+            active_game_id_by_user_id: Arc::new(RwLock::new(HashMap::new())),
+            matchmaking: Arc::new(RwLock::new(MatchmakingState::default())),
             next_game_id: Arc::new(AtomicU64::new(1)),
+            next_ticket_id: Arc::new(AtomicU64::new(1)),
+            next_player_token_id: Arc::new(AtomicU64::new(1)),
         }
     }
 
@@ -53,10 +112,32 @@ impl AppState {
         Arc::clone(&self.games)
     }
 
+    /// Returns the in-memory active-game ownership index.
+    pub fn active_game_id_by_user_id(&self) -> Arc<RwLock<HashMap<String, String>>> {
+        Arc::clone(&self.active_game_id_by_user_id)
+    }
+
+    /// Returns the in-memory matchmaking storage.
+    pub fn matchmaking(&self) -> Arc<RwLock<MatchmakingState>> {
+        Arc::clone(&self.matchmaking)
+    }
+
     /// Returns a new unique game identifier.
     pub fn new_game_id(&self) -> String {
         let id = self.next_game_id.fetch_add(1, Ordering::Relaxed);
         format!("game-{}", id)
+    }
+
+    /// Returns a new unique ticket identifier.
+    pub fn new_ticket_id(&self) -> String {
+        let id = self.next_ticket_id.fetch_add(1, Ordering::Relaxed);
+        format!("ticket-{}", id)
+    }
+
+    /// Returns a new unique player token.
+    pub fn new_player_token(&self) -> String {
+        let id = self.next_player_token_id.fetch_add(1, Ordering::Relaxed);
+        format!("ptk-{}", id)
     }
 }
 
@@ -86,6 +167,7 @@ mod tests {
         let cloned = state.clone();
         // Both should reference the same underlying data
         assert_eq!(state.bots().names(), cloned.bots().names());
+        assert!(state.new_ticket_id().starts_with("ticket-"));
     }
 
     #[test]
@@ -97,5 +179,4 @@ mod tests {
         // Both Arcs should point to the same registry
         assert_eq!(bots1.names(), bots2.names());
     }
-
 }

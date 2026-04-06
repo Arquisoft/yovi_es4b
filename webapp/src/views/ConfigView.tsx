@@ -9,6 +9,8 @@ type Props = {
   mode: GameMode;
   botDifficulty: BotDifficulty;
   loading: boolean;
+  isGameConfigurationLocked: boolean;
+  gameConfigurationLockMessage: string | null;
   setMode: (mode: GameMode) => void;
   setBotDifficulty: (difficulty: BotDifficulty) => void;
   updateBoardSize: (size: number) => void;
@@ -20,6 +22,8 @@ const ConfigView: React.FC<Props> = ({
   mode,
   botDifficulty,
   loading,
+  isGameConfigurationLocked,
+  gameConfigurationLockMessage,
   setMode,
   setBotDifficulty,
   updateBoardSize,
@@ -55,6 +59,7 @@ const ConfigView: React.FC<Props> = ({
             id="size-input"
             type="number"
             size="small"
+            disabled={isGameConfigurationLocked}
             value={sizeDraft}
             onChange={(event) => setSizeDraft(event.target.value)}
             onBlur={commitBoardSize}
@@ -76,6 +81,7 @@ const ConfigView: React.FC<Props> = ({
             <Button
               variant="outlined"
               sx={uiSx.configToggleButton(mode === 'human_vs_bot')}
+              disabled={isGameConfigurationLocked}
               onClick={() => setMode('human_vs_bot')}
             >
               Humano vs Bot
@@ -83,6 +89,7 @@ const ConfigView: React.FC<Props> = ({
             <Button
               variant="outlined"
               sx={uiSx.configToggleButton(mode === 'human_vs_human')}
+              disabled={isGameConfigurationLocked}
               onClick={() => setMode('human_vs_human')}
             >
               Humano vs Humano
@@ -100,7 +107,7 @@ const ConfigView: React.FC<Props> = ({
                 key={option.value}
                 variant="outlined"
                 sx={uiSx.configToggleButton(mode === 'human_vs_bot' && botDifficulty === option.value)}
-                disabled={mode !== 'human_vs_bot'}
+                disabled={mode !== 'human_vs_bot' || isGameConfigurationLocked}
                 onClick={() => setBotDifficulty(option.value)}
               >
                 {option.label}
@@ -111,10 +118,18 @@ const ConfigView: React.FC<Props> = ({
       </Box>
 
       <Box sx={uiSx.configActions}>
-        <Button sx={uiSx.configCreateButton} onClick={handleCreateGame} disabled={loading}>
+        <Button
+          sx={uiSx.configCreateButton}
+          onClick={handleCreateGame}
+          disabled={loading || isGameConfigurationLocked}
+        >
           {loading ? 'Cargando...' : 'Crear partida'}
         </Button>
       </Box>
+
+      {gameConfigurationLockMessage && (
+        <Box sx={uiSx.dashboardCardHint}>{gameConfigurationLockMessage}</Box>
+      )}
     </Paper>
   );
 };

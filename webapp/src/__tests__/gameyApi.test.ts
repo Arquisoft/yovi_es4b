@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { createGame, getGame, playMove, resignGame } from '../gameyApi';
+import {
+  cancelMatchmakingTicket,
+  createGame,
+  enqueueMatchmaking,
+  getGame,
+  getMatchmakingTicket,
+  playMove,
+  resignGame,
+} from '../gameyApi';
 
 const fetchMock = vi.fn();
 global.fetch = fetchMock as typeof fetch;
@@ -75,7 +83,10 @@ describe('gameyApi', () => {
     fetchMock.mockResolvedValue(okResponse(payload));
 
     await getGame('game-1');
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/games/game-1', { method: 'GET' });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/games/game-1', {
+      method: 'GET',
+      headers: {},
+    });
 
     await playMove('game-1', { coords: { x: 1, y: 0, z: -1 } }, 'adri');
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/games/game-1/moves', {
@@ -93,6 +104,40 @@ describe('gameyApi', () => {
       headers: {
         'x-user-id': 'adri',
       },
+    });
+  });
+
+  test('matchmaking endpoints call the expected routes', async () => {
+    const ticketPayload = JSON.stringify({
+      api_version: '1.0.0',
+      ticket_id: 'ticket-1',
+      status: 'waiting',
+      poll_after_ms: 1000,
+      position: 1,
+      game_id: null,
+      player_id: null,
+      player_token: null,
+    });
+    fetchMock.mockResolvedValue(okResponse(ticketPayload));
+
+    await enqueueMatchmaking(9, 'adri');
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/matchmaking/enqueue', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': 'adri',
+      },
+      body: JSON.stringify({ size: 9 }),
+    });
+
+    await getMatchmakingTicket('ticket-1');
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/matchmaking/tickets/ticket-1', {
+      method: 'GET',
+    });
+
+    await cancelMatchmakingTicket('ticket-1');
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/matchmaking/tickets/ticket-1/cancel', {
+      method: 'POST',
     });
   });
 

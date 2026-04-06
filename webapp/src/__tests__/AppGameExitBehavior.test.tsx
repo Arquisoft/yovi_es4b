@@ -1,27 +1,38 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
 
-const { createNewGameSpy, logoutSpy, refreshStatsSpy, resignCurrentGameSpy, confirmSpy } = vi.hoisted(() => ({
-  createNewGameSpy: vi.fn().mockResolvedValue(true),
+const { logoutSpy, refreshStatsSpy, resignCurrentGameSpy } = vi.hoisted(() => ({
   logoutSpy: vi.fn(),
   refreshStatsSpy: vi.fn().mockResolvedValue(undefined),
   resignCurrentGameSpy: vi.fn().mockResolvedValue(undefined),
-  confirmSpy: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('../hooks/useAuth', () => ({
-  useAuth: () => ({
-    isAuthenticated: true,
-    token: 'fake-token',
-    username: 'adri',
-    loading: false,
-    login: vi.fn(),
-    logout: logoutSpy,
-    getAuthHeader: () => ({}),
-  }),
+  useAuth: () => {
+    const [isAuthenticated, setIsAuthenticated] = React.useState(true);
+
+    return {
+      isAuthenticated,
+      isGuest: false,
+      hasSession: isAuthenticated,
+      displayName: isAuthenticated ? 'adri' : null,
+      token: isAuthenticated ? 'fake-token' : null,
+      username: isAuthenticated ? 'adri' : null,
+      loading: false,
+      login: vi.fn(),
+      logout: () => {
+        logoutSpy();
+        setIsAuthenticated(false);
+      },
+      continueAsGuest: vi.fn(),
+      openLogin: vi.fn(),
+      getAuthHeader: () => ({}),
+    };
+  },
 }));
 
 vi.mock('../useStats', () => ({
@@ -61,143 +72,78 @@ vi.mock('../useGamey', () => ({
     },
     error: null,
     loading: false,
+    restoringSession: false,
+    hasActiveGameInProgress: true,
+    gameIdPendingAutomaticOpen: null,
     board: [],
     canPlayCell: true,
     statusText: 'Turno',
+    myPlayerId: null,
+    matchmakingTicketId: null,
+    matchmakingStatus: 'idle' as const,
+    matchmakingPosition: null,
     setMode: vi.fn(),
     setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
-    createNewGame: createNewGameSpy,
+    createNewGame: vi.fn().mockResolvedValue(true),
+    startMatchmaking: vi.fn(),
+    cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: resignCurrentGameSpy,
     playCell: vi.fn(),
+    acknowledgeAutomaticGameOpen: vi.fn(),
   }),
 }));
 
 describe('App game exit behavior', () => {
-  let fetchSpy: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    createNewGameSpy.mockClear();
     logoutSpy.mockClear();
     refreshStatsSpy.mockClear();
     resignCurrentGameSpy.mockClear();
-    confirmSpy.mockReset();
-    confirmSpy.mockReturnValue(true);
-
-    fetchSpy = vi.fn().mockResolvedValue(
-      new Response('{}', {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
-    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
-    vi.stubGlobal('confirm', confirmSpy);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  test('resigns an active game when navigating to stats, help and dashboard', async () => {
-    render(<App />);
-    const user = userEvent.setup();
-    const sidebar = screen.getByRole('complementary');
-
-    await user.click(within(sidebar).getByRole('button', { name: /estadisticas/i }));
-    await user.click(within(sidebar).getByRole('button', { name: /ayuda/i }));
-    await user.click(screen.getByRole('button', { name: /^game y$/i }));
-
-    expect(resignCurrentGameSpy).toHaveBeenCalledTimes(3);
-    expect(refreshStatsSpy).toHaveBeenCalledTimes(1);
-    expect(confirmSpy).toHaveBeenCalledTimes(3);
-  });
-
-  test('keeps the active game when user cancels leaving from sidebar', async () => {
-    confirmSpy.mockReturnValue(false);
-
-    render(<App />);
-    const user = userEvent.setup();
-    const sidebar = screen.getByRole('complementary');
-
-    await user.click(within(sidebar).getByRole('button', { name: /estadisticas/i }));
-
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
-    expect(refreshStatsSpy).not.toHaveBeenCalled();
-    expect(screen.getByText(/configurar partida/i)).toBeInTheDocument();
-  });
-
-  test('resigns an active game before logout', async () => {
-    render(<App />);
-    const user = userEvent.setup();
-    const sidebar = screen.getByRole('complementary');
-
-    await user.click(within(sidebar).getByRole('button', { name: /logout/i }));
-
-    expect(resignCurrentGameSpy).toHaveBeenCalledTimes(1);
-    expect(logoutSpy).toHaveBeenCalledTimes(1);
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-  });
-
-  test('does not logout when user cancels leaving', async () => {
-    confirmSpy.mockReturnValue(false);
-
-    render(<App />);
-    const user = userEvent.setup();
-    const sidebar = screen.getByRole('complementary');
-
-    await user.click(within(sidebar).getByRole('button', { name: /logout/i }));
-
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
-    expect(logoutSpy).not.toHaveBeenCalled();
-  });
-
-  test('blocks popstate and f5 in game view and sends keepalive resign on beforeunload', async () => {
-    const pushStateSpy = vi.spyOn(window.history, 'pushState');
-
+  test('keeps the active game available when navigating away from the board', async () => {
     render(<App />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /crear partida/i }));
+    await user.click(screen.getByRole('button', { name: /volver a la partida/i }));
     await screen.findByText(/partida active-game/i);
 
+    const sidebar = screen.getByRole('complementary');
+    await user.click(within(sidebar).getByRole('button', { name: /estadisticas/i }));
+    expect(refreshStatsSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/historial completo/i)).toBeInTheDocument();
+    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
+
+    await user.click(within(sidebar).getByRole('button', { name: /ayuda/i }));
+    expect(screen.getByText(/reglas basicas/i)).toBeInTheDocument();
+    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: /^game y$/i }));
+
     await waitFor(() => {
-      expect(pushStateSpy).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /volver a la partida/i })).toBeInTheDocument();
     });
 
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    expect(pushStateSpy).toHaveBeenCalledTimes(2);
+    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
+  });
 
-    const keydownEvent = new KeyboardEvent('keydown', { key: 'F5', cancelable: true });
-    window.dispatchEvent(keydownEvent);
-    expect(keydownEvent.defaultPrevented).toBe(true);
+  test('logs out without resigning the active game', async () => {
+    render(<App />);
+    const user = userEvent.setup();
+    const sidebar = screen.getByRole('complementary');
 
-    const beforeUnloadEvent = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent & {
-      returnValue?: string;
-    };
-    Object.defineProperty(beforeUnloadEvent, 'returnValue', {
-      configurable: true,
-      value: undefined,
-      writable: true,
+    await user.click(within(sidebar).getByRole('button', { name: /logout/i }));
+
+    await waitFor(() => {
+      expect(logoutSpy).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/welcome to gamey/i)).toBeInTheDocument();
     });
 
-    window.dispatchEvent(beforeUnloadEvent);
-
-    expect(beforeUnloadEvent.defaultPrevented).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/games/active-game/resign'),
-      expect.objectContaining({
-        keepalive: true,
-        method: 'POST',
-      }),
-    );
-
-    const lastCall = fetchSpy.mock.calls.at(-1);
-    const requestOptions = lastCall?.[1] as RequestInit;
-    const requestHeaders = requestOptions.headers as Headers;
-    expect(requestHeaders.get('x-user-id')).toBe('adri');
+    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
   });
 });

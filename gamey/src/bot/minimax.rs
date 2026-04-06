@@ -286,8 +286,7 @@ impl MinimaxBot {
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> f64 {
         match board.status() {
-            crate::GameStatus::Finished { winner } =>
-                if *winner == player { 10000.0 } else { -10000.0 },
+            crate::GameStatus::Finished { .. } => Self::evaluate_board(board, player),
             crate::GameStatus::Ongoing { .. } =>
                 Self::connectivity(pc, oc, root_occupied, n, nbrs)
                     - Self::connectivity(oc, pc, root_occupied, n, nbrs),

@@ -22,16 +22,17 @@
 pub mod choose;
 pub mod error;
 pub mod games;
+pub mod matchmaking;
 pub mod state;
 pub mod version;
 use axum::response::IntoResponse;
-use std::sync::Arc;
 pub use choose::MoveResponse;
 pub use error::ErrorResponse;
+use std::sync::Arc;
 pub use version::*;
 
-use crate::{GameYError, RandomBot, BiasedRandomBot, GreedyBot, MinimaxBot, YBotRegistry};
 use self::state::AppState;
+use crate::{BiasedRandomBot, GameYError, GreedyBot, MinimaxBot, RandomBot, YBotRegistry};
 
 /// Creates the Axum router with the given state.
 ///
@@ -43,8 +44,14 @@ pub fn create_router(state: AppState) -> axum::Router {
             "/{api_version}/ybot/choose/{bot_id}",
             axum::routing::post(choose::choose),
         )
-        .route("/{api_version}/games", axum::routing::post(games::create_game))
-        .route("/{api_version}/games/{game_id}", axum::routing::get(games::get_game))
+        .route(
+            "/{api_version}/games",
+            axum::routing::post(games::create_game),
+        )
+        .route(
+            "/{api_version}/games/{game_id}",
+            axum::routing::get(games::get_game),
+        )
         .route(
             "/{api_version}/games/{game_id}/moves",
             axum::routing::post(games::play_move),
@@ -52,6 +59,18 @@ pub fn create_router(state: AppState) -> axum::Router {
         .route(
             "/{api_version}/games/{game_id}/resign",
             axum::routing::post(games::resign_game),
+        )
+        .route(
+            "/{api_version}/matchmaking/enqueue",
+            axum::routing::post(matchmaking::enqueue),
+        )
+        .route(
+            "/{api_version}/matchmaking/tickets/{ticket_id}",
+            axum::routing::get(matchmaking::get_ticket),
+        )
+        .route(
+            "/{api_version}/matchmaking/tickets/{ticket_id}/cancel",
+            axum::routing::post(matchmaking::cancel_ticket),
         )
         .with_state(state)
 }
@@ -81,14 +100,17 @@ pub fn create_default_state() -> AppState {
 /// - The server encounters an error while running
 pub async fn run_bot_server(port: u16) -> Result<(), GameYError> {
     let state = create_default_state();
+    matchmaking::start_matchmaking_worker(state.clone());
+    games::start_inactive_online_game_monitor(state.clone());
     let app = create_router(state);
 
     let addr = format!("0.0.0.0:{}", port);
-    let listener = tokio::net::TcpListener::bind(&addr)
-        .await
-        .map_err(|e| GameYError::ServerError {
-            message: format!("Failed to bind to {}: {}", addr, e),
-        })?;
+    let listener =
+        tokio::net::TcpListener::bind(&addr)
+            .await
+            .map_err(|e| GameYError::ServerError {
+                message: format!("Failed to bind to {}: {}", addr, e),
+            })?;
 
     println!("Server mode: Listening on http://{}", addr);
     axum::serve(listener, app)
