@@ -215,8 +215,12 @@ Each component has its own set of scripts defined in its `package.json`. Here ar
 
 ### Webapp (`webapp/package.json`)
 
+Run these commands from `webapp/` (or from repo root using `npm --prefix webapp ...`).
+
 - `npm run dev`: Starts the development server for the webapp.
-- `npm test`: Runs the unit tests.
+- `npm test`: Runs the unit tests in watch mode.
+- `npm run test -- --run`: Runs the unit tests once.
+- `npm run test -- --run src/__tests__/AppGameExitBehavior.test.tsx`: Runs a specific test file.
 - `npm run test:e2e`: Runs the end-to-end tests.
 - `npm run start:all`: A convenience script to start `webapp`, `gateway`, and `auth_service` concurrently.
 

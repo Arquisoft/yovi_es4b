@@ -4,11 +4,12 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import App from '../App';
 
-const { createNewGameSpy, logoutSpy, refreshStatsSpy, resignCurrentGameSpy } = vi.hoisted(() => ({
+const { createNewGameSpy, logoutSpy, refreshStatsSpy, resignCurrentGameSpy, confirmSpy } = vi.hoisted(() => ({
   createNewGameSpy: vi.fn().mockResolvedValue(true),
   logoutSpy: vi.fn(),
   refreshStatsSpy: vi.fn().mockResolvedValue(undefined),
   resignCurrentGameSpy: vi.fn().mockResolvedValue(undefined),
+  confirmSpy: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('../hooks/useAuth', () => ({
@@ -81,6 +82,8 @@ describe('App game exit behavior', () => {
     logoutSpy.mockClear();
     refreshStatsSpy.mockClear();
     resignCurrentGameSpy.mockClear();
+    confirmSpy.mockReset();
+    confirmSpy.mockReturnValue(true);
 
     fetchSpy = vi.fn().mockResolvedValue(
       new Response('{}', {
@@ -89,6 +92,7 @@ describe('App game exit behavior', () => {
       }),
     );
     vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
+    vi.stubGlobal('confirm', confirmSpy);
   });
 
   afterEach(() => {
@@ -107,6 +111,22 @@ describe('App game exit behavior', () => {
 
     expect(resignCurrentGameSpy).toHaveBeenCalledTimes(3);
     expect(refreshStatsSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test('keeps the active game when user cancels leaving from sidebar', async () => {
+    confirmSpy.mockReturnValue(false);
+
+    render(<App />);
+    const user = userEvent.setup();
+    const sidebar = screen.getByRole('complementary');
+
+    await user.click(within(sidebar).getByRole('button', { name: /estadisticas/i }));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
+    expect(refreshStatsSpy).not.toHaveBeenCalled();
+    expect(screen.getByText(/configurar partida/i)).toBeInTheDocument();
   });
 
   test('resigns an active game before logout', async () => {
@@ -118,6 +138,21 @@ describe('App game exit behavior', () => {
 
     expect(resignCurrentGameSpy).toHaveBeenCalledTimes(1);
     expect(logoutSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not logout when user cancels leaving', async () => {
+    confirmSpy.mockReturnValue(false);
+
+    render(<App />);
+    const user = userEvent.setup();
+    const sidebar = screen.getByRole('complementary');
+
+    await user.click(within(sidebar).getByRole('button', { name: /logout/i }));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(resignCurrentGameSpy).not.toHaveBeenCalled();
+    expect(logoutSpy).not.toHaveBeenCalled();
   });
 
   test('blocks popstate and f5 in game view and sends keepalive resign on beforeunload', async () => {

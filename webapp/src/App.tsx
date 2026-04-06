@@ -46,7 +46,18 @@ function App() {
     }
   }
 
+  function confirmLeaveActiveGame(): boolean {
+    if (!game || game.game_over) {
+      return true;
+    }
+
+    return window.confirm('Tienes una partida en curso. Si sales, perderas la partida. Continuar?');
+  }
+
   function handleOpenPlay() {
+    if (!confirmLeaveActiveGame()) {
+      return;
+    }
     if (game && !game.game_over) {
       void resignCurrentGame();
     }
@@ -54,6 +65,9 @@ function App() {
   }
 
   function handleOpenStats() {
+    if (!confirmLeaveActiveGame()) {
+      return;
+    }
     if (game && !game.game_over) {
       void resignCurrentGame();
     }
@@ -62,6 +76,9 @@ function App() {
   }
 
   function handleOpenHelp() {
+    if (!confirmLeaveActiveGame()) {
+      return;
+    }
     if (game && !game.game_over) {
       void resignCurrentGame();
     }
@@ -69,6 +86,9 @@ function App() {
   }
 
   function handleLogout() {
+    if (!confirmLeaveActiveGame()) {
+      return;
+    }
     if (game && !game.game_over) {
       void resignCurrentGame();
     }
