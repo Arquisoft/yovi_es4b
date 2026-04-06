@@ -358,7 +358,7 @@ fn test_check_player_turn_correct_player() {
 }
 
 // ============================================================================
-// Game Actions Tests (Resign, Swap)
+// Game Actions Tests (Resign, Swap, PassTurn)
 // ============================================================================
 
 #[test]
@@ -440,6 +440,40 @@ fn test_swap_after_opening_move() {
     .unwrap();
 
     // Now it's player 0's turn again
+    assert_eq!(game.next_player(), Some(PlayerId::new(0)));
+    assert!(!game.check_game_over());
+}
+
+#[test]
+fn test_pass_turn_changes_next_player() {
+    let mut game = GameY::new(5);
+
+    game.add_move(Movement::Action {
+        player: PlayerId::new(0),
+        action: GameAction::PassTurn,
+    })
+    .unwrap();
+
+    assert!(!game.check_game_over());
+    assert_eq!(game.next_player(), Some(PlayerId::new(1)));
+}
+
+#[test]
+fn test_pass_turn_after_opening_move_returns_turn_to_player_0() {
+    let mut game = GameY::new(5);
+
+    game.add_move(Movement::Placement {
+        player: PlayerId::new(0),
+        coords: Coordinates::new(2, 1, 1),
+    })
+    .unwrap();
+
+    game.add_move(Movement::Action {
+        player: PlayerId::new(1),
+        action: GameAction::PassTurn,
+    })
+    .unwrap();
+
     assert_eq!(game.next_player(), Some(PlayerId::new(0)));
     assert!(!game.check_game_over());
 }

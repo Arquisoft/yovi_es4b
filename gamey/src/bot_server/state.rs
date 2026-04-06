@@ -24,6 +24,7 @@ pub struct GameSession {
     pub game: GameY,
     pub bot_id: Option<String>,
     pub created_at: Instant,
+    pub turn_started_at: Option<Instant>,
     /// Token by player id for authenticated multiplayer matchmaking games.
     pub player_tokens: Option<HashMap<u32, String>>,
     /// Last time each online player contacted the server for this match.

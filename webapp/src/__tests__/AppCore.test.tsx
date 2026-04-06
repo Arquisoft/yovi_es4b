@@ -44,6 +44,7 @@ type GameyMock = {
   cancelCurrentMatchmaking: () => void;
   refreshCurrentGame: () => void;
   resignCurrentGame: () => void;
+  passCurrentTurn: () => void;
   playCell: (coords: unknown) => void;
   acknowledgeAutomaticGameOpen: () => void;
 };
@@ -107,6 +108,7 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
     cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
+    passCurrentTurn: vi.fn(),
     playCell: vi.fn(),
     acknowledgeAutomaticGameOpen: vi.fn(),
     ...overrides,

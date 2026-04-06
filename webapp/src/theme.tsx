@@ -37,6 +37,7 @@ export const uiColors = {
 
 type HistoryStatTone = 'neutral' | 'win' | 'loss' | 'info';
 type GameOutcomeTone = 'success' | 'danger' | 'accent';
+type GameCountdownTone = 'self' | 'opponent' | 'disconnect';
 type BoardOwner = 'human' | 'opponent' | 'empty';
 
 function getHistoryStatBorderColor(tone: HistoryStatTone): string {
@@ -92,6 +93,50 @@ function getGameOutcomeShadowColor(tone: GameOutcomeTone): string {
       return '0 8px 16px rgba(47, 64, 31, 0.12)';
     default:
       return '0 8px 16px rgba(78, 34, 34, 0.12)';
+  }
+}
+
+function getGameCountdownBorderColor(tone: GameCountdownTone): string {
+  switch (tone) {
+    case 'self':
+      return 'rgba(146, 195, 92, 0.66)';
+    case 'opponent':
+      return 'rgba(212, 104, 104, 0.62)';
+    default:
+      return 'rgba(146, 195, 92, 0.66)';
+  }
+}
+
+function getGameCountdownBackgroundColor(tone: GameCountdownTone): string {
+  switch (tone) {
+    case 'self':
+      return 'rgba(129, 182, 76, 0.12)';
+    case 'opponent':
+      return 'rgba(189, 84, 84, 0.12)';
+    default:
+      return 'rgba(129, 182, 76, 0.12)';
+  }
+}
+
+function getGameCountdownShadowColor(tone: GameCountdownTone): string {
+  switch (tone) {
+    case 'self':
+      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+    case 'opponent':
+      return '0 8px 16px rgba(78, 34, 34, 0.12)';
+    default:
+      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+  }
+}
+
+function getGameCountdownFillGradient(tone: GameCountdownTone): string {
+  switch (tone) {
+    case 'self':
+      return 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))';
+    case 'opponent':
+      return 'linear-gradient(90deg, rgba(232, 126, 126, 0.95), rgba(208, 107, 107, 0.95))';
+    default:
+      return 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))';
   }
 }
 
@@ -1055,6 +1100,16 @@ export const uiSx = {
       backgroundColor: 'rgba(74, 72, 67, 0.6)',
     },
   } satisfies SxProps<Theme>,
+  gamePassTurnButton: {
+    minWidth: 150,
+    borderColor: 'rgba(131, 158, 141, 0.7)',
+    color: '#e7efe6',
+    backgroundColor: 'rgba(56, 76, 65, 0.42)',
+    '&:hover': {
+      borderColor: 'rgba(157, 188, 167, 0.88)',
+      backgroundColor: 'rgba(69, 96, 80, 0.6)',
+    },
+  } satisfies SxProps<Theme>,
   gameOutcomeBanner: (tone: GameOutcomeTone): SxProps<Theme> => {
     const borderColor = getGameOutcomeBorderColor(tone);
     const backgroundColor = getGameOutcomeBackgroundColor(tone);
@@ -1080,28 +1135,35 @@ export const uiSx = {
     fontSize: { xs: '1.16rem', sm: '1.34rem' },
     letterSpacing: 0.25,
   } satisfies SxProps<Theme>,
-  gameOpponentInactivityCountdownCard: {
+  gameCountdownCard: (tone: GameCountdownTone): SxProps<Theme> => ({
     width: '100%',
     maxWidth: 760,
     px: { xs: 1.5, sm: 1.9 },
     py: { xs: 1.2, sm: 1.4 },
     borderRadius: 2,
-    border: '1px solid rgba(146, 195, 92, 0.66)',
-    backgroundColor: 'rgba(129, 182, 76, 0.12)',
-    boxShadow: '0 8px 16px rgba(47, 64, 31, 0.12)',
+    border: `1px solid ${getGameCountdownBorderColor(tone)}`,
+    backgroundColor: getGameCountdownBackgroundColor(tone),
+    boxShadow: getGameCountdownShadowColor(tone),
     display: 'flex',
     flexDirection: 'column',
     gap: 0.7,
     textAlign: 'center',
+  }),
+  gameCountdownSlot: {
+    width: '100%',
+    maxWidth: 760,
+    minHeight: { xs: 142, sm: 154 },
+    display: 'flex',
+    alignItems: 'stretch',
   } satisfies SxProps<Theme>,
-  gameOpponentInactivityCountdownLabel: {
+  gameCountdownLabel: {
     fontSize: '0.8rem',
     fontWeight: 700,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     color: uiColors.text.secondary,
   } satisfies SxProps<Theme>,
-  gameOpponentInactivityCountdownValue: {
+  gameCountdownValue: {
     fontSize: { xs: '1.7rem', sm: '2rem' },
     fontWeight: 900,
     lineHeight: 1,
@@ -1109,21 +1171,21 @@ export const uiSx = {
     fontVariantNumeric: 'tabular-nums',
     letterSpacing: 1,
   } satisfies SxProps<Theme>,
-  gameOpponentInactivityCountdownTrack: {
+  gameCountdownTrack: {
     width: '100%',
     height: 8,
     borderRadius: 999,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
   } satisfies SxProps<Theme>,
-  gameOpponentInactivityCountdownFill: (percent: number): SxProps<Theme> => ({
+  gameCountdownFill: (percent: number, tone: GameCountdownTone): SxProps<Theme> => ({
     width: `${Math.max(0, Math.min(100, percent))}%`,
     height: '100%',
     borderRadius: 999,
-    background: 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))',
+    background: getGameCountdownFillGradient(tone),
     transition: 'width 0.2s linear',
   }),
-  gameOpponentInactivityCountdownHint: {
+  gameCountdownHint: {
     color: uiColors.text.secondary,
     fontSize: '0.88rem',
   } satisfies SxProps<Theme>,

@@ -43,6 +43,7 @@ function App() {
     startMatchmaking,
     cancelCurrentMatchmaking,
     resignCurrentGame,
+    passCurrentTurn,
     playCell,
     acknowledgeAutomaticGameOpen,
   } = useGamey(auth.username ?? undefined);
@@ -235,6 +236,7 @@ function App() {
                 myPlayerId={myPlayerId}
                 currentUserId={auth.username}
                 resignCurrentGame={resignCurrentGame}
+                passCurrentTurn={passCurrentTurn}
                 playCell={playCell}
               />
             )}
