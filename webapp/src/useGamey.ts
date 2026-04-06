@@ -7,6 +7,7 @@ import {
   getHint,
   getMatchmakingTicket,
   playMove,
+  passTurnGame,
   resignGame,
   type Coordinates,
   type GameMode,
@@ -595,6 +596,16 @@ export function useGamey(userId?: string) {
     );
   }
 
+  async function passCurrentTurn() {
+    if (!game || !canPlayCell || loading) {
+      return;
+    }
+
+    await runGameRequest(
+      passTurnGame(game.game_id, normalizedCurrentUserId, myPlayerToken ?? undefined),
+    );
+  }
+
   async function playCell(coords: Coordinates) {
     if (!game || !canPlayCell || loading) {
       return;
@@ -765,6 +776,7 @@ export function useGamey(userId?: string) {
     refreshCurrentGame,
     resignCurrentGame,
     requestHint,
+    passCurrentTurn,
     playCell,
     acknowledgeAutomaticGameOpen,
   };

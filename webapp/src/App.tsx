@@ -45,6 +45,7 @@ function App() {
     cancelCurrentMatchmaking,
     resignCurrentGame,
     requestHint,
+    passCurrentTurn,
     playCell,
     acknowledgeAutomaticGameOpen,
   } = useGamey(auth.username ?? undefined);
@@ -239,6 +240,7 @@ function App() {
                 hintCoords={hintCoords}
                 resignCurrentGame={resignCurrentGame}
                 requestHint={requestHint}
+                passCurrentTurn={passCurrentTurn}
                 playCell={playCell}
                 onBack={() => setView('dashboard')}
               />

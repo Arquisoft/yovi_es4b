@@ -4,12 +4,16 @@ import TriangularBoard from '../components/board/TriangularBoard';
 import type { Coordinates, GameStateResponse } from '../gameyApi';
 import type { BoardCell } from '../gameyUi';
 import { findWinningConnectionCellKeys } from '../gameyUi';
+import { botHistoryLabels } from '../stats/types';
 import { uiSx } from '../theme';
 
 const OPPONENT_INACTIVITY_COUNTDOWN_VISIBILITY_THRESHOLD_MS = 55_000;
 const OPPONENT_INACTIVITY_TIMEOUT_TOTAL_MS = 60_000;
+const ONLINE_TURN_TIMEOUT_TOTAL_MS = 60_000;
+const LOCAL_TURN_TIMEOUT_TOTAL_MS = 30_000;
 
 type GameOutcomeBannerTone = 'accent' | 'success' | 'danger';
+type CountdownTone = 'self' | 'opponent' | 'disconnect';
 
 function getOutcomeTitle(hasWinner: boolean, isHumanWinner: boolean): string {
   if (!hasWinner) {
@@ -60,6 +64,73 @@ function getOutcomeBannerTone(
   return isHumanWinner ? 'success' : 'danger';
 }
 
+function getBotOpponentLabel(botId: string | null): string {
+  if (!botId) {
+    return 'Bot';
+  }
+
+  const label = botHistoryLabels[botId] ?? botId.replace(/_bot$/i, '').replace(/_/g, ' ');
+  return `Bot ${label}`.trim();
+}
+
+function useSynchronizedCountdown(syncKey: string | undefined, remainingMs: number | null): number | null {
+  const [displayedRemainingMs, setDisplayedRemainingMs] = React.useState<number | null>(remainingMs);
+
+  React.useEffect(() => {
+    if (typeof remainingMs !== 'number') {
+      setDisplayedRemainingMs(null);
+      return;
+    }
+
+    const synchronizedAt = Date.now();
+    setDisplayedRemainingMs(remainingMs);
+
+    const intervalId = window.setInterval(() => {
+      const elapsedSinceSynchronization = Date.now() - synchronizedAt;
+      setDisplayedRemainingMs(Math.max(0, remainingMs - elapsedSinceSynchronization));
+    }, 250);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [syncKey, remainingMs]);
+
+  return displayedRemainingMs;
+}
+
+type CountdownCardProps = {
+  tone: CountdownTone;
+  label: string;
+  hint: string;
+  remainingMs: number;
+  totalMs: number;
+};
+
+function formatCountdownLabel(remainingMs: number): string {
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+const CountdownCard: React.FC<CountdownCardProps> = ({ tone, label, hint, remainingMs, totalMs }) => {
+  const progressPercent = (remainingMs / totalMs) * 100;
+
+  return (
+    <Box sx={uiSx.gameCountdownCard(tone)}>
+      <Typography sx={uiSx.gameCountdownLabel}>{label}</Typography>
+      <Typography sx={uiSx.gameCountdownValue}>{formatCountdownLabel(remainingMs)}</Typography>
+      <Box sx={uiSx.gameCountdownTrack}>
+        <Box sx={uiSx.gameCountdownFill(progressPercent, tone)} />
+      </Box>
+      <Typography variant="body2" sx={uiSx.gameCountdownHint}>
+        {hint}
+      </Typography>
+    </Box>
+  );
+};
+
 type Props = {
   game: GameStateResponse | null;
   board: BoardCell[][];
@@ -70,6 +141,7 @@ type Props = {
   currentUserId?: string | null;
   resignCurrentGame: () => void;
   requestHint?: () => Promise<boolean> | void;
+  passCurrentTurn: () => void;
   playCell: (coords: Coordinates) => Promise<void> | void;
   onBack?: () => void;
 };
@@ -84,33 +156,28 @@ const GameView: React.FC<Props> = ({
   currentUserId = null,
   resignCurrentGame,
   requestHint,
+  passCurrentTurn,
   playCell,
   onBack,
 }) => {
-  const [displayedOpponentInactivityTimeoutRemainingMs, setDisplayedOpponentInactivityTimeoutRemainingMs] =
-    React.useState<number | null>(game?.opponent_inactivity_timeout_remaining_ms ?? null);
-
-  React.useEffect(() => {
-    const nextRemainingMs = game?.opponent_inactivity_timeout_remaining_ms ?? null;
-    if (typeof nextRemainingMs !== 'number') {
-      setDisplayedOpponentInactivityTimeoutRemainingMs(null);
-      return;
-    }
-
-    const synchronizedAt = Date.now();
-    setDisplayedOpponentInactivityTimeoutRemainingMs(nextRemainingMs);
-
-    const intervalId = window.setInterval(() => {
-      const elapsedSinceSynchronization = Date.now() - synchronizedAt;
-      setDisplayedOpponentInactivityTimeoutRemainingMs(
-        Math.max(0, nextRemainingMs - elapsedSinceSynchronization),
-      );
-    }, 250);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [game?.game_id, game?.opponent_inactivity_timeout_remaining_ms]);
+  const lastAutoPassTurnKeyRef = React.useRef<string | null>(null);
+  const displayedOpponentInactivityTimeoutRemainingMs = useSynchronizedCountdown(
+    game?.game_id,
+    game?.opponent_inactivity_timeout_remaining_ms ?? null,
+  );
+  const displayedServerTurnTimeoutRemainingMs = useSynchronizedCountdown(
+    game?.game_id,
+    game?.turn_timeout_remaining_ms ?? null,
+  );
+  const fallbackTurnCountdownKey = game
+    ? `${game.game_id}:${game.yen.layout}:${game.next_player ?? 'none'}:${loading ? 'loading' : 'ready'}`
+    : undefined;
+  const displayedFallbackTurnTimeoutRemainingMs = useSynchronizedCountdown(
+    fallbackTurnCountdownKey,
+    game && !game.game_over && game.turn_timeout_remaining_ms == null && !loading
+      ? LOCAL_TURN_TIMEOUT_TOTAL_MS
+      : null,
+  );
 
   if (!game) return <div>No hay partida activa.</div>;
 
@@ -126,6 +193,8 @@ const GameView: React.FC<Props> = ({
   const normalizedCurrentUser = currentUserId?.trim().toLowerCase() || null;
   const currentIsPlayer0 = normalizedCurrentUser !== null && player0UserId?.toLowerCase() === normalizedCurrentUser;
   const currentIsPlayer1 = normalizedCurrentUser !== null && player1UserId?.toLowerCase() === normalizedCurrentUser;
+  const resolvedOnlinePlayerId =
+    myPlayerId ?? (currentIsPlayer0 ? 0 : currentIsPlayer1 ? 1 : null);
   const rawOpponentUserId = resolveOpponentUserId(
     currentIsPlayer0,
     currentIsPlayer1,
@@ -133,34 +202,117 @@ const GameView: React.FC<Props> = ({
     player0UserId,
     player1UserId,
   );
-  const shouldShowOpponent = player0UserId !== null || player1UserId !== null;
-  const opponentUserId = rawOpponentUserId || (player1UserId ?? player0UserId);
-  const opponentLabel = opponentUserId ?? 'desconocido';
+  const shouldShowOpponent =
+    game.mode === 'human_vs_bot'
+      ? true
+      : resolvedOnlinePlayerId !== null && (player0UserId !== null || player1UserId !== null);
+  const opponentUserId = rawOpponentUserId
+    ?? (currentIsPlayer0 ? player1UserId : currentIsPlayer1 ? player0UserId : null);
+  const opponentLabel = game.mode === 'human_vs_bot'
+    ? getBotOpponentLabel(game.bot_id)
+    : opponentUserId ?? 'desconocido';
   const isWaitingForOnlineOpponentMove =
     !game.game_over &&
-    myPlayerId !== null &&
+    resolvedOnlinePlayerId !== null &&
     game.next_player !== null &&
-    game.next_player !== myPlayerId;
+    game.next_player !== resolvedOnlinePlayerId;
   const shouldShowOpponentInactivityCountdown =
     isWaitingForOnlineOpponentMove &&
     typeof displayedOpponentInactivityTimeoutRemainingMs === 'number' &&
     displayedOpponentInactivityTimeoutRemainingMs <=
       OPPONENT_INACTIVITY_COUNTDOWN_VISIBILITY_THRESHOLD_MS;
-  const inactivityCountdownProgressPercent =
-    typeof displayedOpponentInactivityTimeoutRemainingMs === 'number'
-      ? (displayedOpponentInactivityTimeoutRemainingMs / OPPONENT_INACTIVITY_TIMEOUT_TOTAL_MS) * 100
-      : 0;
+  const shouldShowTurnCountdown =
+    !game.game_over &&
+    !shouldShowOpponentInactivityCountdown &&
+    (
+      typeof displayedServerTurnTimeoutRemainingMs === 'number' ||
+      (
+        typeof displayedFallbackTurnTimeoutRemainingMs === 'number' &&
+        (game.mode !== 'human_vs_bot' || game.next_player === 0)
+      )
+    );
   const outcomeBannerTone = getOutcomeBannerTone(game, isHumanWinner);
+  const isLocalPlayersTurn =
+    resolvedOnlinePlayerId !== null &&
+    game.next_player !== null &&
+    game.next_player === resolvedOnlinePlayerId;
+  const displayedTurnTimeoutRemainingMs =
+    displayedServerTurnTimeoutRemainingMs ?? displayedFallbackTurnTimeoutRemainingMs;
+  const turnCountdownRemainingMs =
+    shouldShowTurnCountdown && displayedTurnTimeoutRemainingMs !== null
+      ? displayedTurnTimeoutRemainingMs
+      : null;
 
-  function formatCountdownLabel(remainingMs: number): string {
-    const totalSeconds = Math.ceil(remainingMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+  let turnCountdownLabel = 'Turno';
+  let turnCountdownHint = 'Si llega a cero, se cedera el turno automaticamente.';
+  let turnCountdownTone: CountdownTone = 'self';
 
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  if (game.mode === 'human_vs_bot') {
+    const isHumanTurn = game.next_player === 0;
+    turnCountdownLabel = isHumanTurn ? 'Tu turno' : 'Turno del bot';
+    turnCountdownHint = isHumanTurn
+      ? 'Si llega a cero, cederas el turno automaticamente.'
+      : 'Esperando el movimiento del bot.';
+    turnCountdownTone = isHumanTurn ? 'self' : 'opponent';
+  } else if (resolvedOnlinePlayerId !== null) {
+    turnCountdownLabel = isLocalPlayersTurn ? 'Tu turno' : 'Turno del rival';
+    turnCountdownHint = isLocalPlayersTurn
+      ? 'Si llega a cero, cederas el turno automaticamente.'
+      : 'Si llega a cero, el rival cedera el turno automaticamente.';
+    turnCountdownTone = isLocalPlayersTurn ? 'self' : 'opponent';
+  } else {
+    const currentPlayerNumber = (game.next_player ?? 0) + 1;
+    turnCountdownLabel = `Turno del jugador ${currentPlayerNumber}`;
+    turnCountdownHint = 'Si llega a cero, se cedera el turno automaticamente.';
+    turnCountdownTone = (game.next_player ?? 0) === 0 ? 'self' : 'opponent';
   }
 
   const canRequestHint = !loading && !game.game_over && canPlayCell;
+
+  const activeCountdownCard = shouldShowOpponentInactivityCountdown ? (
+    <CountdownCard
+      tone="disconnect"
+      label="Rival desconectado"
+      remainingMs={displayedOpponentInactivityTimeoutRemainingMs}
+      totalMs={OPPONENT_INACTIVITY_TIMEOUT_TOTAL_MS}
+      hint="Si no vuelve antes de que llegue a cero, ganaras por abandono."
+    />
+  ) : turnCountdownRemainingMs !== null ? (
+    <CountdownCard
+      tone={turnCountdownTone}
+      label={turnCountdownLabel}
+      remainingMs={turnCountdownRemainingMs}
+      totalMs={displayedServerTurnTimeoutRemainingMs !== null ? ONLINE_TURN_TIMEOUT_TOTAL_MS : LOCAL_TURN_TIMEOUT_TOTAL_MS}
+      hint={turnCountdownHint}
+    />
+  ) : null;
+
+  React.useEffect(() => {
+    if (
+      !game ||
+      game.game_over ||
+      typeof displayedFallbackTurnTimeoutRemainingMs !== 'number' ||
+      displayedFallbackTurnTimeoutRemainingMs > 0 ||
+      loading ||
+      !canPlayCell
+    ) {
+      return;
+    }
+
+    const currentTurnKey = `${game.game_id}:${game.yen.turn}:${game.next_player ?? 'none'}`;
+    if (lastAutoPassTurnKeyRef.current === currentTurnKey) {
+      return;
+    }
+
+    lastAutoPassTurnKeyRef.current = currentTurnKey;
+    void passCurrentTurn();
+  }, [
+    canPlayCell,
+    displayedFallbackTurnTimeoutRemainingMs,
+    game,
+    loading,
+    passCurrentTurn,
+  ]);
 
   return (
     <Box sx={uiSx.centeredColumn}>
@@ -173,20 +325,9 @@ const GameView: React.FC<Props> = ({
         </Box>
       )}
 
-      {shouldShowOpponentInactivityCountdown && (
-        <Box sx={uiSx.gameOpponentInactivityCountdownCard}>
-          <Typography sx={uiSx.gameOpponentInactivityCountdownLabel}>
-            Esperando al rival
-          </Typography>
-          <Typography sx={uiSx.gameOpponentInactivityCountdownValue}>
-            {formatCountdownLabel(displayedOpponentInactivityTimeoutRemainingMs)}
-          </Typography>
-          <Box sx={uiSx.gameOpponentInactivityCountdownTrack}>
-            <Box sx={uiSx.gameOpponentInactivityCountdownFill(inactivityCountdownProgressPercent)} />
-          </Box>
-          <Typography variant="body2" sx={uiSx.gameOpponentInactivityCountdownHint}>
-            Si no vuelve antes de que llegue a cero, ganaras por abandono.
-          </Typography>
+      {!game.game_over && (
+        <Box sx={uiSx.gameCountdownSlot}>
+          {activeCountdownCard}
         </Box>
       )}
 
@@ -213,10 +354,13 @@ const GameView: React.FC<Props> = ({
         <Box sx={uiSx.centeredRow}>
           <Button
             variant="outlined"
-            sx={uiSx.gameResignButton}
-            onClick={resignCurrentGame}
-            disabled={loading || game.game_over}
+            sx={uiSx.gamePassTurnButton}
+            onClick={passCurrentTurn}
+            disabled={loading || game.game_over || !canPlayCell}
           >
+            Ceder turno
+          </Button>
+          <Button variant="outlined" sx={uiSx.gameResignButton} onClick={resignCurrentGame} disabled={loading || game.game_over}>
             Rendirse
           </Button>
 

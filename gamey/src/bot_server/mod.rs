@@ -65,6 +65,10 @@ pub fn create_router(state: AppState) -> axum::Router {
             axum::routing::post(games::resign_game),
         )
         .route(
+            "/{api_version}/games/{game_id}/pass",
+            axum::routing::post(games::pass_turn),
+        )
+        .route(
             "/{api_version}/matchmaking/enqueue",
             axum::routing::post(matchmaking::enqueue),
         )

@@ -8,6 +8,8 @@ pub enum GameAction {
     /// The swap rule: allows the second player to swap colors after the first move.
     /// This is commonly used in games like Hex and Y to balance first-move advantage.
     Swap,
+    /// The player skips placing a piece and gives the turn to the opponent.
+    PassTurn,
     /// The player resigns the game, conceding victory to the opponent.
     Resign,
 }
@@ -16,6 +18,7 @@ impl Display for GameAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GameAction::Swap => write!(f, "Swap"),
+            GameAction::PassTurn => write!(f, "PassTurn"),
             GameAction::Resign => write!(f, "Resign"),
         }
     }
@@ -36,8 +39,14 @@ mod tests {
     }
 
     #[test]
+    fn test_display_pass_turn() {
+        assert_eq!(format!("{}", GameAction::PassTurn), "PassTurn");
+    }
+
+    #[test]
     fn test_equality() {
         assert_eq!(GameAction::Swap, GameAction::Swap);
+        assert_eq!(GameAction::PassTurn, GameAction::PassTurn);
         assert_eq!(GameAction::Resign, GameAction::Resign);
         assert_ne!(GameAction::Swap, GameAction::Resign);
     }

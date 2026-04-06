@@ -17,7 +17,8 @@ use std::{
 use tracing::warn;
 
 const ONLINE_PLAYER_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60);
-const ONLINE_PLAYER_INACTIVITY_CHECK_INTERVAL: Duration = Duration::from_secs(5);
+const ONLINE_TURN_TIMEOUT: Duration = Duration::from_secs(60);
+const ONLINE_GAME_TIMEOUT_CHECK_INTERVAL: Duration = Duration::from_secs(1);
 
 /// Supported game modes for the HTTP API.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -77,6 +78,8 @@ pub struct GameStateResponse {
     pub player1_user_id: Option<String>,
     /// Remaining time before the opponent loses by inactivity, from the requesting player's perspective.
     pub opponent_inactivity_timeout_remaining_ms: Option<u64>,
+    /// Remaining time before the current online turn is automatically passed.
+    pub turn_timeout_remaining_ms: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -102,10 +105,10 @@ pub struct GameParams {
 
 pub fn start_inactive_online_game_monitor(state: AppState) {
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(ONLINE_PLAYER_INACTIVITY_CHECK_INTERVAL);
+        let mut interval = tokio::time::interval(ONLINE_GAME_TIMEOUT_CHECK_INTERVAL);
         loop {
             interval.tick().await;
-            if let Err(error) = forfeit_inactive_online_games(&state).await {
+            if let Err(error) = process_online_game_timeouts(&state).await {
                 warn!("inactive online game monitor error: {}", error);
             }
         }
@@ -168,6 +171,7 @@ pub async fn create_game(
         game: GameY::new(request.size),
         bot_id: bot_id.clone(),
         created_at: Instant::now(),
+        turn_started_at: None,
         player_tokens: None,
         last_seen_at_by_player_id: None,
         player0_user_id,
@@ -313,6 +317,8 @@ pub async fn play_move(
             }
         }
 
+        reset_turn_timer(session);
+
         pending_report = prepare_stats_report_if_needed(&params.game_id, session);
         user_ids_to_release_from_active_game_index =
             build_finished_game_user_id_list(session);
@@ -425,6 +431,8 @@ pub async fn resign_game(
                 )
             })?;
 
+        reset_turn_timer(session);
+
         pending_report = prepare_stats_report_if_needed(&params.game_id, session);
         user_ids_to_release_from_active_game_index =
             build_finished_game_user_id_list(session);
@@ -445,6 +453,122 @@ pub async fn resign_game(
     )
     .await;
     report_finished_match_if_needed(pending_report).await;
+
+    Ok(Json(response))
+}
+
+/// Passes the current turn to the opponent.
+///
+/// In `human_vs_bot`, player 0 can pass and the bot immediately plays its turn.
+/// In `human_vs_human`, the current player passes and the opponent becomes active.
+///
+/// # Route
+/// `POST /{api_version}/games/{game_id}/pass`
+pub async fn pass_turn(
+    State(state): State<AppState>,
+    Path(params): Path<GameParams>,
+    headers: HeaderMap,
+) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
+    check_api_version(&params.api_version)?;
+
+    let bots = state.bots();
+    let games = state.games();
+    let mut guard = games.write().await;
+
+    let response = {
+        let session = require_game_session_mut(&mut guard, &params)?;
+        ensure_game_not_finished(&session.game, &params.api_version)?;
+
+        let current_player = current_player_or_finished(&session.game, &params.api_version)?;
+        let passing_player = match &session.player_tokens {
+            Some(_) => {
+                validate_player_token_for_turn(
+                    session,
+                    current_player,
+                    read_header_string(&headers, "x-player-token").as_deref(),
+                    &params.api_version,
+                )?;
+                current_player
+            }
+            None => match &session.bot_id {
+                Some(_) => {
+                    if current_player != PlayerId::new(0) {
+                        return Err(error_response(
+                            "Human turn passing is only allowed on player 0 turn in human_vs_bot mode",
+                            Some(params.api_version.clone()),
+                        ));
+                    }
+                    current_player
+                }
+                None => current_player,
+            },
+        };
+
+        record_online_player_presence(session, passing_player);
+
+        session
+            .game
+            .add_move(Movement::Action {
+                player: passing_player,
+                action: GameAction::PassTurn,
+            })
+            .map_err(|e| {
+                error_response(
+                    &format!("Could not pass turn: {}", e),
+                    Some(params.api_version.clone()),
+                )
+            })?;
+
+        if let Some(bot_id) = &session.bot_id
+            && !session.game.check_game_over()
+        {
+            let bot = match bots.find(bot_id) {
+                Some(bot) => bot,
+                None => {
+                    let available_bots = bots.names().join(", ");
+                    return Err(bot_not_found_error(
+                        &params.api_version,
+                        bot_id,
+                        &available_bots,
+                    ));
+                }
+            };
+
+            let bot_coords = match bot.choose_move(&session.game) {
+                Some(coords) => coords,
+                None => {
+                    return Err(error_response(
+                        "No valid moves available for the bot",
+                        Some(params.api_version.clone()),
+                    ));
+                }
+            };
+
+            if let Some(bot_player) = session.game.next_player() {
+                session
+                    .game
+                    .add_move(Movement::Placement {
+                        player: bot_player,
+                        coords: bot_coords,
+                    })
+                    .map_err(|e| {
+                        error_response(
+                            &format!("Could not apply bot move after passing turn: {}", e),
+                            Some(params.api_version.clone()),
+                        )
+                    })?;
+            }
+        }
+
+        reset_turn_timer(session);
+
+        build_game_state_response(
+            &params.api_version,
+            &params.game_id,
+            session,
+            Some(passing_player),
+        )
+    };
 
     Ok(Json(response))
 }
@@ -582,7 +706,7 @@ async fn report_finished_match_if_needed(pending_report: Option<FinishedMatchReq
     }
 }
 
-async fn forfeit_inactive_online_games(state: &AppState) -> Result<(), String> {
+async fn process_online_game_timeouts(state: &AppState) -> Result<(), String> {
     let mut pending_reports = Vec::new();
     let mut finished_games_to_unregister = Vec::new();
     let now = Instant::now();
@@ -614,6 +738,7 @@ async fn forfeit_inactive_online_games(state: &AppState) -> Result<(), String> {
                     error
                 )
             })?;
+        reset_turn_timer(session);
 
         if let Some(pending_report) = prepare_stats_report_if_needed(game_id, session) {
             pending_reports.push(pending_report);
@@ -622,6 +747,31 @@ async fn forfeit_inactive_online_games(state: &AppState) -> Result<(), String> {
         if let Some(user_ids_to_unregister) = build_finished_game_user_id_list(session) {
             finished_games_to_unregister.push((game_id.clone(), user_ids_to_unregister));
         }
+
+        continue;
+    }
+
+    for (_game_id, session) in games_guard.iter_mut() {
+        let Some(player_to_auto_pass) =
+            find_player_to_auto_pass_for_turn_timeout(session, now, ONLINE_TURN_TIMEOUT)
+        else {
+            continue;
+        };
+
+        session
+            .game
+            .add_move(Movement::Action {
+                player: player_to_auto_pass,
+                action: GameAction::PassTurn,
+            })
+            .map_err(|error| {
+                format!(
+                    "could not auto-pass player {} after turn timeout: {}",
+                    player_to_auto_pass.id(),
+                    error
+                )
+            })?;
+        reset_turn_timer(session);
     }
 
     drop(games_guard);
@@ -668,12 +818,45 @@ fn find_player_to_forfeit_for_inactivity(
     }
 }
 
+fn find_player_to_auto_pass_for_turn_timeout(
+    session: &GameSession,
+    now: Instant,
+    turn_timeout: Duration,
+) -> Option<PlayerId> {
+    if session.player_tokens.is_none() || session.game.check_game_over() {
+        return None;
+    }
+
+    let next_player = session.game.next_player()?;
+    let turn_started_at = session.turn_started_at?;
+    let elapsed = now.saturating_duration_since(turn_started_at);
+
+    if elapsed > turn_timeout {
+        Some(next_player)
+    } else {
+        None
+    }
+}
+
 fn record_online_player_presence(session: &mut GameSession, player_id: PlayerId) {
     let Some(last_seen_at_by_player_id) = &mut session.last_seen_at_by_player_id else {
         return;
     };
 
     last_seen_at_by_player_id.insert(player_id.id(), Instant::now());
+}
+
+fn reset_turn_timer(session: &mut GameSession) {
+    if session.player_tokens.is_none() {
+        session.turn_started_at = None;
+        return;
+    }
+
+    session.turn_started_at = if session.game.check_game_over() {
+        None
+    } else {
+        Some(Instant::now())
+    };
 }
 
 fn find_player_id_from_header_token(
@@ -1021,6 +1204,7 @@ fn build_game_state_response(
                 requesting_player_id,
                 Instant::now(),
             ),
+        turn_timeout_remaining_ms: calculate_turn_timeout_remaining_ms(session, Instant::now()),
     }
 }
 
@@ -1042,6 +1226,18 @@ fn calculate_opponent_inactivity_timeout_remaining_ms(
         .unwrap_or(session.created_at);
     let elapsed = now.saturating_duration_since(opponent_last_seen_at);
     let remaining = ONLINE_PLAYER_INACTIVITY_TIMEOUT.saturating_sub(elapsed);
+
+    Some(remaining.as_millis().min(u128::from(u64::MAX)) as u64)
+}
+
+fn calculate_turn_timeout_remaining_ms(session: &GameSession, now: Instant) -> Option<u64> {
+    if session.game.check_game_over() || session.player_tokens.is_none() {
+        return None;
+    }
+
+    let turn_started_at = session.turn_started_at?;
+    let elapsed = now.saturating_duration_since(turn_started_at);
+    let remaining = ONLINE_TURN_TIMEOUT.saturating_sub(elapsed);
 
     Some(remaining.as_millis().min(u128::from(u64::MAX)) as u64)
 }
@@ -1089,6 +1285,7 @@ mod tests {
             created_at: now
                 .checked_sub(Duration::from_secs(61))
                 .expect("instant subtraction should succeed"),
+            turn_started_at: Some(now),
             player_tokens: Some(HashMap::from([
                 (0, "player-0-token".to_string()),
                 (1, "player-1-token".to_string()),
@@ -1107,6 +1304,34 @@ mod tests {
         );
 
         assert_eq!(forfeiting_player, Some(PlayerId::new(0)));
+    }
+
+    #[test]
+    fn test_find_player_to_auto_pass_for_turn_timeout_returns_current_turn_player() {
+        let now = Instant::now();
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: now,
+            turn_started_at: Some(
+                now.checked_sub(Duration::from_secs(61))
+                    .expect("instant subtraction should succeed"),
+            ),
+            player_tokens: Some(HashMap::from([
+                (0, "player-0-token".to_string()),
+                (1, "player-1-token".to_string()),
+            ])),
+            last_seen_at_by_player_id: Some(HashMap::from([(0, now), (1, now)])),
+            player0_user_id: Some("fernando".to_string()),
+            player1_user_id: Some("jose".to_string()),
+            stats_reported: false,
+            completion_reason: None,
+        };
+
+        let timed_out_player =
+            find_player_to_auto_pass_for_turn_timeout(&session, now, Duration::from_secs(60));
+
+        assert_eq!(timed_out_player, Some(PlayerId::new(0)));
     }
 
     #[tokio::test]

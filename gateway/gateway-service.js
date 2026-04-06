@@ -593,11 +593,15 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
   }));
 
   router.get('/v1/games/:gameId', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
     const result = await fetchJson(
       fetchImpl,
       'gamey service',
       `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}`,
-      { method: 'GET' },
+      {
+        method: 'GET',
+        headers: buildForwardHeaders(req, user),
+      },
     );
 
     sendPayload(res, result.status, result.payload);
@@ -623,6 +627,21 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
       fetchImpl,
       'gamey service',
       `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/resign`,
+      {
+        method: 'POST',
+        headers: buildForwardHeaders(req, user),
+      },
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.post('/v1/games/:gameId/pass', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/pass`,
       {
         method: 'POST',
         headers: buildForwardHeaders(req, user),

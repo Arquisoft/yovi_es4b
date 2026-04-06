@@ -39,6 +39,7 @@ export interface GameStateResponse {
   player0_user_id?: string | null;
   player1_user_id?: string | null;
   opponent_inactivity_timeout_remaining_ms?: number | null;
+  turn_timeout_remaining_ms?: number | null;
 }
 
 interface ApiErrorResponse {
@@ -199,6 +200,17 @@ export async function resignGame(
   playerToken?: string,
 ): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}/resign`, {
+    method: 'POST',
+    headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
+  });
+}
+
+export async function passTurnGame(
+  gameId: string,
+  userId?: string,
+  playerToken?: string,
+): Promise<GameStateResponse> {
+  return requestJson<GameStateResponse>(`/v1/games/${gameId}/pass`, {
     method: 'POST',
     headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
   });

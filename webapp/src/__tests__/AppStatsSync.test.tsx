@@ -70,6 +70,7 @@ vi.mock('../useGamey', () => ({
     cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
+    passCurrentTurn: vi.fn(),
     playCell: vi.fn(),
     acknowledgeAutomaticGameOpen: vi.fn(),
   }),

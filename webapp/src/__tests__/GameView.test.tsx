@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import type React from 'react';
@@ -34,6 +34,7 @@ function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = 
     loading: false,
     resignCurrentGame: vi.fn(),
     requestHint: vi.fn(),
+    passCurrentTurn: vi.fn(),
     playCell: vi.fn(),
     ...overrides,
   };
@@ -59,6 +60,30 @@ function buildGame(overrides: Partial<GameStateResponse> = {}): GameStateRespons
 }
 
 describe('GameView', () => {
+  test('auto-passes the turn when the fallback local countdown reaches zero', () => {
+    vi.useFakeTimers();
+
+    const passCurrentTurn = vi.fn();
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            mode: 'human_vs_human',
+            next_player: 0,
+          }),
+          passCurrentTurn,
+        })}
+      />,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(30_250);
+    });
+
+    expect(passCurrentTurn).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   test('shows empty-state message when there is no active game', () => {
     render(<GameView {...buildProps({ game: null })} />);
 
@@ -69,7 +94,9 @@ describe('GameView', () => {
     render(<GameView {...buildProps()} />);
 
     expect(screen.getByText(/partida game-123/i)).toBeInTheDocument();
-    expect(screen.queryByText(/^rival:/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/^rival: bot$/i)).toBeInTheDocument();
+    expect(screen.getByText(/tu turno/i)).toBeInTheDocument();
+    expect(screen.getByText('00:30')).toBeInTheDocument();
 
     const boardProps = screen.getByTestId('triangular-board-mock');
     expect(boardProps).toHaveTextContent('"humanSymbol":"B"');
@@ -91,18 +118,49 @@ describe('GameView', () => {
 
     expect(screen.queryByText(/turno:/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^bot:/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/^rival: bot dificil$/i)).toBeInTheDocument();
   });
 
-  test('calls resign, hint and back actions from buttons', () => {
+  test('falls back to a readable bot label when the bot id is unknown', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            bot_id: 'custom_training_bot',
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/^rival: bot custom training$/i)).toBeInTheDocument();
+  });
+
+  test('passes null human symbol when players are missing', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            yen: { size: 7, turn: 0, players: [], layout: 'B/R' },
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":null');
+  });
+
+  test('calls resign, pass-turn and hint actions from their buttons', () => {
     const requestHint = vi.fn();
     const onBack = vi.fn();
     const props = buildProps({ requestHint, onBack });
     render(<GameView {...props} />);
 
+    fireEvent.click(screen.getByRole('button', { name: /ceder turno/i }));
     fireEvent.click(screen.getByRole('button', { name: /rendirse/i }));
     fireEvent.click(screen.getByRole('button', { name: /solicitar pista/i }));
     fireEvent.click(screen.getByRole('button', { name: /volver/i }));
 
+    expect(props.passCurrentTurn).toHaveBeenCalledTimes(1);
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
     expect(requestHint).toHaveBeenCalledTimes(1);
     expect(onBack).toHaveBeenCalledTimes(1);
@@ -111,10 +169,19 @@ describe('GameView', () => {
   test('disables action buttons when loading or game is over', () => {
     const { rerender } = render(<GameView {...buildProps({ loading: true, game: buildGame() })} />);
 
+    expect(screen.getByRole('button', { name: /ceder turno/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
 
     rerender(<GameView {...buildProps({ loading: false, game: buildGame({ game_over: true }) })} />);
+    expect(screen.getByRole('button', { name: /ceder turno/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /rendirse/i })).toBeDisabled();
+  });
+
+  test('disables pass turn when the current user cannot act', () => {
+    render(<GameView {...buildProps({ canPlayCell: false })} />);
+
+    expect(screen.getByRole('button', { name: /ceder turno/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /rendirse/i })).toBeEnabled();
   });
 
   test('shows victory state and highlights the winning connection component', () => {
@@ -213,14 +280,114 @@ describe('GameView', () => {
             player0_user_id: 'fernando',
             player1_user_id: 'jose',
             opponent_inactivity_timeout_remaining_ms: 45_000,
+            turn_timeout_remaining_ms: 42_000,
           }),
         })}
       />,
     );
 
-    expect(screen.getByText(/esperando al rival/i)).toBeInTheDocument();
+    expect(screen.getByText(/rival desconectado/i)).toBeInTheDocument();
     expect(screen.getByText('00:45')).toBeInTheDocument();
     expect(screen.getByText(/ganaras por abandono/i)).toBeInTheDocument();
+    expect(screen.queryByText(/turno del rival/i)).not.toBeInTheDocument();
+  });
+
+  test('shows the turn countdown while waiting for the rival move when they are still connected', () => {
+    render(
+      <GameView
+        {...buildProps({
+          currentUserId: 'jose',
+          myPlayerId: 1,
+          canPlayCell: false,
+          game: buildGame({
+            mode: 'human_vs_human',
+            next_player: 0,
+            player0_user_id: 'fernando',
+            player1_user_id: 'jose',
+            opponent_inactivity_timeout_remaining_ms: 59_000,
+            turn_timeout_remaining_ms: 45_000,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/turno del rival/i)).toBeInTheDocument();
+    expect(screen.getByText('00:45')).toBeInTheDocument();
+    expect(screen.getByText(/cedera el turno automaticamente/i)).toBeInTheDocument();
+  });
+
+  test('shows the turn countdown during the local player turn in online games', () => {
+    render(
+      <GameView
+        {...buildProps({
+          currentUserId: 'jose',
+          myPlayerId: 1,
+          canPlayCell: true,
+          game: buildGame({
+            mode: 'human_vs_human',
+            next_player: 1,
+            player0_user_id: 'fernando',
+            player1_user_id: 'jose',
+            turn_timeout_remaining_ms: 48_000,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/tu turno/i)).toBeInTheDocument();
+    expect(screen.getByText('00:48')).toBeInTheDocument();
+    expect(screen.getByText(/cederas el turno automaticamente/i)).toBeInTheDocument();
+  });
+
+  test('shows a fallback countdown in local human-vs-human games', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            mode: 'human_vs_human',
+            next_player: 1,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/turno del jugador 2/i)).toBeInTheDocument();
+    expect(screen.getByText('00:30')).toBeInTheDocument();
+    expect(screen.getByText(/se cedera el turno automaticamente/i)).toBeInTheDocument();
+  });
+
+  test('does not show rival details in local human-vs-human games without online identities', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            mode: 'human_vs_human',
+            player0_user_id: null,
+            player1_user_id: null,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(/^rival:/i)).not.toBeInTheDocument();
+  });
+
+  test('hides the local countdown while waiting for the bot response', () => {
+    render(
+      <GameView
+        {...buildProps({
+          loading: true,
+          game: buildGame({
+            mode: 'human_vs_bot',
+            bot_id: 'greedy_bot',
+            next_player: 0,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(/tu turno/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/^rival: bot intermedio$/i)).toBeInTheDocument();
   });
 
   test('resolves opponent by current user when myPlayerId is missing', () => {
