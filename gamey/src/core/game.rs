@@ -210,7 +210,7 @@ impl GameY {
                     winner: other_player(player),
                 };
             }
-            GameAction::Swap => {
+            GameAction::Swap | GameAction::PassTurn => {
                 self.status = GameStatus::Ongoing {
                     next_player: other_player(player),
                 };

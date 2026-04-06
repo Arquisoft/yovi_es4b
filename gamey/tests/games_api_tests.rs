@@ -300,3 +300,33 @@ async fn play_move_returns_error_when_game_does_not_exist() {
     assert_eq!(status, StatusCode::OK);
     assert!(body["message"].as_str().unwrap().contains("Game not found"));
 }
+
+#[tokio::test]
+async fn pass_turn_updates_turn_in_human_vs_human_game() {
+    let app = test_app();
+
+    let (_, created) = request_json(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_human"
+        })),
+    )
+    .await;
+
+    let game_id = created["game_id"].as_str().unwrap();
+
+    let (status, passed) = request_json(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/pass"),
+        None,
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(passed["game_over"], false);
+    assert_eq!(passed["next_player"], 1);
+}

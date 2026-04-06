@@ -243,6 +243,7 @@ async fn process_once(state: &AppState) -> Result<(), String> {
             game: GameY::new(a.size),
             bot_id: None,
             created_at: Instant::now(),
+            turn_started_at: Some(Instant::now()),
             player_tokens: Some(player_tokens),
             last_seen_at_by_player_id: Some(HashMap::new()),
             player0_user_id: a.user_id.clone(),
