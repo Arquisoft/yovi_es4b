@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
@@ -132,6 +132,11 @@ describe('App additional flows', () => {
     loginSpy.mockReset();
     createNewGameSpy.mockReset();
     statsState.error = null;
+    vi.stubGlobal('confirm', vi.fn(() => true));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   test('logs in from the unauthenticated view and shows the dashboard', async () => {

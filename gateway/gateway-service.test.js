@@ -85,24 +85,21 @@ test('createApp sets expected proxy configuration for each route', () => {
   const env = {
     GAMEY_SERVICE_URL: 'http://gamey.local:4000',
     AUTH_SERVICE_URL: 'http://auth.local:3500',
-    USERS_SERVICE_URL: 'http://users.local:3000',
     STATS_SERVICE_URL: 'http://stats.local:3001',
     WEBAPP_SERVICE_URL: 'http://web.local:80',
   };
 
   createApp({ env, proxyFactory });
 
-  assert.equal(capturedConfigs.length, 5);
+  assert.equal(capturedConfigs.length, 4);
 
   const gameyProxy = capturedConfigs.find((config) => config.target === env.GAMEY_SERVICE_URL);
   const authProxy = capturedConfigs.find((config) => config.target === env.AUTH_SERVICE_URL);
-  const usersProxy = capturedConfigs.find((config) => config.target === env.USERS_SERVICE_URL);
   const statsProxy = capturedConfigs.find((config) => config.target === env.STATS_SERVICE_URL);
   const webappProxy = capturedConfigs.find((config) => config.target === env.WEBAPP_SERVICE_URL);
 
   assert.deepEqual(gameyProxy.pathRewrite, { '^/api': '' });
   assert.deepEqual(authProxy.pathRewrite, { '^/auth': '' });
-  assert.deepEqual(usersProxy.pathRewrite, { '^/users': '' });
   assert.deepEqual(statsProxy.pathRewrite, { '^/stats': '' });
   assert.equal(webappProxy.pathRewrite, undefined);
 });

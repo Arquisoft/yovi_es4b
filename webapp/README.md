@@ -1,3 +1,19 @@
+# Webapp (Game Y)
+
+## Quick Commands
+
+Run these commands from this folder (`webapp/`).
+From the repository root, use the equivalent form `npm --prefix webapp <command>`.
+
+- `npm install`: installs dependencies.
+- `npm run dev`: starts the Vite dev server.
+- `npm run build`: builds the webapp.
+- `npm test`: runs tests in watch mode.
+- `npm run test -- --run`: runs tests once.
+- `npm run test -- --run src/__tests__/AppGameExitBehavior.test.tsx`: runs one test file.
+- `npm run test:e2e:run`: runs e2e scenarios only.
+- `npm run test:e2e`: starts required services and executes e2e tests.
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

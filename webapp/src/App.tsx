@@ -1,4 +1,5 @@
 import './App.css';
+
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
@@ -55,6 +56,11 @@ function App() {
     if (created) {
       setView('game');
     }
+  }
+
+  function handleOpenHome() {
+    setRestrictedModalOpen(false);
+    setView(auth.hasSession ? 'dashboard' : 'login');
   }
 
   function handleOpenPlay() {
@@ -145,12 +151,7 @@ function App() {
     <Box sx={uiSx.appShell}>
       <Box sx={uiSx.appHeader}>
         <Box sx={uiSx.appHeaderUserRow}>
-          <Typography
-            component="button"
-            type="button"
-            sx={uiSx.appHeaderTitleLink}
-            onClick={() => setView(auth.hasSession ? 'dashboard' : 'login')}
-          >
+          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={handleOpenHome}>
             GAME Y
           </Typography>
 

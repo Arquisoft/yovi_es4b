@@ -57,10 +57,6 @@ Reason: game rules and bot logic are isolated in a specialized service with stro
 +
 Reason: dedicated storage and query API for player statistics and match history.
 
-* `Users Service`: `users` with Node.js + Express (+ Swagger UI/OpenAPI).
-+
-Reason: keeps user-related API capabilities independent from authentication and gameplay concerns.
-
 * `Data Storage`: MongoDB with separated instances (`mongo-auth`, `mongo-stats`).
 +
 Reason: separation of concerns, independent lifecycle, and persistent volumes.
@@ -97,11 +93,7 @@ Responsibility: game state lifecycle, move validation, and bot decisions.
 +
 Responsibility: match result persistence and player stats/history queries.
 
-6. `Users Service`
-+
-Responsibility: user-related API endpoints not covered by authentication/game runtime.
-
-7. `Data Stores (MongoDB)`
+6. `Data Stores (MongoDB)`
 +
 Responsibility: persistent storage for auth identities and game statistics.
 
@@ -113,7 +105,6 @@ External communication is `Browser -> Gateway -> Internal Service`:
 * `/auth/*` -> `auth_service`
 * `/api/*` -> `gamey`
 * `/stats/*` -> `stats`
-* `/users/*` -> `users`
 
 Internal communication relevant for gameplay:
 
@@ -142,7 +133,7 @@ Most calls are synchronous HTTP/JSON. Stats reporting is executed as a runtime s
 |Isolated containers, explicit upstream-failure handling in `gateway` (`502 Bad Gateway`), and graceful degradation when stats reporting fails.
 
 |Maintainability and Testability
-|Clear bounded services (`webapp`, `gateway`, `auth_service`, `gamey`, `stats`, `users`) with service-level tests and explicit HTTP contracts.
+|Clear bounded services (`webapp`, `gateway`, `auth_service`, `gamey`, `stats`) with service-level tests and explicit HTTP contracts.
 |===
 
 === 4.4 Organizational Decisions

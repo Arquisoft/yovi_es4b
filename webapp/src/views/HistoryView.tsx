@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -12,6 +12,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Typography,
 } from '@mui/material';
@@ -37,6 +38,8 @@ function resultLabel(result: MatchHistoryItem['result']) {
 
 const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
   const [selectedMatch, setSelectedMatch] = useState<MatchHistoryItem | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const selectedFinalBoard = selectedMatch?.finalBoard ?? null;
   const winRate = playerStats.totalGames > 0 ? Math.round((playerStats.victories / playerStats.totalGames) * 100) : 0;
   const updatedAtText = playerStats.updatedAt
@@ -52,6 +55,25 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
     () => (selectedFinalBoard ? findWinningConnectionCellKeysFromBoard(selectedFinalBoard) : new Set<string>()),
     [selectedFinalBoard],
   );
+
+  const paginatedMatches = useMemo(() => {
+    const start = page * rowsPerPage;
+    const end = start + rowsPerPage;
+    return matches.slice(start, end);
+  }, [matches, page, rowsPerPage]);
+
+  const maxPage = matches.length > 0 ? Math.ceil(matches.length / rowsPerPage) - 1 : 0;
+  const safePage = Math.min(page, maxPage);
+
+  useEffect(() => {
+    if (safePage !== page) {
+      setPage(safePage);
+    }
+  }, [page, safePage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [matches]);
 
   const historyBoardStageSx = {
     ...uiSx.gameBoardStage,
@@ -114,7 +136,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
       </Typography>
 
       <TableContainer sx={uiSx.historyTableContainer}>
-        <Table size="small" stickyHeader>
+        <Table size="small" stickyHeader sx={uiSx.historyTable}>
           <TableHead>
             <TableRow>
               <TableCell sx={uiSx.historyTableHeadCell}>Partida</TableCell>
@@ -134,7 +156,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
                 <TableCell colSpan={7}>Todavia no hay partidas registradas.</TableCell>
               </TableRow>
             )}
-            {matches.map((match) => {
+            {paginatedMatches.map((match) => {
               const canOpenBoard = Boolean(match.finalBoard);
               const openBoard = () => {
                 if (!canOpenBoard) {
@@ -198,6 +220,23 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {matches.length > 0 && (
+        <TablePagination
+          component="div"
+          count={matches.length}
+          page={safePage}
+          onPageChange={(_event, nextPage) => setPage(nextPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(event) => {
+            setRowsPerPage(Number.parseInt(event.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[5, 10, 20]}
+          labelRowsPerPage="Filas por pagina"
+          sx={uiSx.historyPagination}
+        />
+      )}
 
       <Dialog
         open={Boolean(selectedFinalBoard)}

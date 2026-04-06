@@ -18,15 +18,14 @@ and deployment requirements.
 @startuml
 title Business Context Diagram
 
-actor Administrator
 actor Player
 actor Bot
 
 package "Docker Compose Environment" {
-    node "Gateway (ngnix)" as Gateway
+    node "Gateway (nginx)" as Gateway
     node "webapp\n(React + Vite + TS)" as WebApp
-    node "users\n(Node.js + Express)\nmanagement API" as Users
-    node "AuthService\n(Node.js + Express)\nport: 3500" as Auth
+    node "Auth Service\n(Node.js + Express)\nport: 3500" as Auth
+    node "stats\n(Node.js + Express)\nport: 3001" as Stats
     node "gamey\n(Rust Engine + Bot Service)" as Gamey
     database "Base de Datos de Usuarios \n(Autenticación - MongoDB)" as UserDB
     database "Base de Datos de Partidas" as GameDB
@@ -35,25 +34,25 @@ package "Docker Compose Environment" {
 ' Relaciones de actores
 Player --> Gateway : Access via web-browser\nPlay games\nView stats
 Gateway --> WebApp : FrontEnd
-Administrator --> Users : User management\nSystem monitoring
-Bot --> Gamey : View user stats\nPlay games
+Bot --> Gamey : Play games
+Bot --> Stats : View user stats
 
  ' Internal services interactions
 Gateway --> Auth : Authentication (JWT)\n
-Gateway --> Users : User management
 Gateway --> Gamey : Request games\nCheck game status
+Gateway --> Stats : Request user stats\nand match history
 Auth --> UserDB : User authentication (password hashes)
-Gamey --> GameDB : Save games\nQuery statistics
+Gamey --> Stats : Report finished matches
+Stats --> GameDB : Save games\nQuery statistics
 @enduml
 ----
 
 === Elements Description
 * **Player**: The end-user who interacts with the system through a web browser to play games and view statistics.
-* **Administrator**: Responsible for managing users and monitoring the system.
-* **Bot**: An automated agent that can interact with the game engine to play games and view user stats.
+* **Bot**: An automated agent that interacts directly with Gamey for gameplay and with Stats for user statistics queries.
 * **WebApp**: The front-end application built with React and Vite, serving the user interface and handling user interactions.
-* **Users**: The back-end service responsible for user management, built with Node.js.
 * **AuthService**: Dedicated authentication microservice (Node.js + Express) that handles registration, login, stores password hashes in MongoDB and emits/verifies JWTs.
+* **StatsService**: Service responsible for player statistics and match history read/query operations.
 * **Gamey**: The game engine and bot service implemented in Rust, responsible for game logic and interactions with bots.
 * **UserDB**: The database used to persist user password for authentication.
 * **Game**: The database used to persist game statistics.
@@ -86,15 +85,14 @@ endif::arc42help[]
 title Technical Context - Deployment & Interfaces
 
 actor "Player (Browser)" as Browser
-actor "Administrator" as Admin
 actor "External Bot" as ExternalBot
 
 package "Docker Compose Environment" {
 
     node "Gateway\n(nginx)\nports: 80/443" as Gateway
     node "WebApp\n(React + Vite + TypeScript)\nports: 80 (prod) / 5173 (dev)" as WebApp
-    node "Users\n(Node.js + Express)\nmanagement API\nport: 3000" as Users
     node "Auth\n(Node.js + Express)\nport: 3500" as Auth
+    node "Stats\n(Node.js + Express)\nport: 3001" as Stats
     node "Gamey\n(Rust engine + Bot service)\nport: 4000" as Gamey
 
     database "User Authentication DB\n(MongoDB)\nstores password hashes\nport: 27017" as UserDB
@@ -107,20 +105,21 @@ package "Docker Compose Environment" {
 ' --- External interactions ---
 Browser --> Gateway : HTTPS (443) / HTTP (80)
 Browser --> WebApp : HTTP (dev 5173)
-Admin --> Users : HTTPS (3000) - admin API
-ExternalBot --> Gamey : HTTPS JSON (4000) - bot API
+
+ExternalBot --> Gamey : HTTPS JSON (4000) - game API
+ExternalBot --> Stats : HTTPS JSON (3001) - stats API
 
 ' --- Internal service communication ---
 Gateway --> WebApp : HTTP (internal)
 Gateway --> Auth : HTTP JSON (REST) - auth endpoints (JWT)
-Gateway --> Users : HTTP JSON (REST) - management API
+Gateway --> Stats : HTTP JSON (REST) - user stats and history
 Gateway --> Gamey : HTTP JSON (REST)
 Auth --> UserDB : TCP (DB driver) - auth data
-Users --> UserDB : TCP (DB driver) - user management
-Gamey --> GameDB : TCP (DB driver)
+Gamey --> Stats : HTTP /internal/v1/matches/finished + x-service-token
+Stats --> GameDB : TCP (DB driver) - stats data
 
 ' --- Monitoring ---
-Users --> Prometheus : HTTP /metrics
+Auth --> Prometheus : HTTP /metrics
 Gamey --> Prometheus : HTTP /metrics
 Prometheus --> Grafana : HTTP (data source)
 
@@ -162,40 +161,37 @@ endif::arc42help[]
 | Web navigation, gameplay actions, requests to the frontend
 | HTTPS (via Reverse Proxy) / HTTP (dev 5173)
 
-| Administrator
-| Administration actions, user management requests
-| HTTPS (Users API)
-
 | External Bot
-| Game actions, statistics queries, automated gameplay
-| HTTPS JSON (Gamey API)
+| Game actions and statistics queries (separate calls)
+| HTTPS JSON (Gamey API and Stats API)
 
 | Reverse Proxy (nginx)
 | Incoming HTTP/HTTPS traffic, routing to internal services
 | HTTPS externally / HTTP internally
 
 | WebApp (React + Vite + TypeScript)
-| User interactions, REST API calls to Users and Gamey
+| User interactions, REST API calls to Auth, Gamey, and Stats
 | HTTP (internal REST)
-
-| Users (Node.js + Express)
-| User management, admin APIs, metrics endpoint
-| HTTP (internal REST) / TCP (database driver)
 
 | AuthService (Node.js + Express)
 | Login, registration, JWT issuance/verification; stores password hashes in MongoDB
-| HTTP (REST) for auth endpoints (`/register`, `/login`, `/me`) / TCP (MongoDB driver)
+| HTTP (REST) for auth endpoints (`/register`, `/login`, `/verify`) / TCP (MongoDB driver)
 
 | Gamey (Rust Engine + Bot Service)
-| Game logic, bot API, metrics endpoint
-| HTTP (internal REST) / TCP (database driver)
+| Game logic, bot API, and match result reporting to Stats
+| HTTP (internal REST)
+
+| StatsService (Node.js + Express)
+| User stats/history queries and persistence of finished match outcomes
+| HTTP (REST) for `/v1/me`, `/v1/me/history`, `/internal/v1/matches/finished` / TCP (MongoDB driver)
 
 | Databases (Mongo)
-| One database for storage of users and other for game statistics
+| One database for auth identities and another for game statistics/history
+| TCP (MongoDB wire protocol)
 
 
 | Prometheus
-| Metrics scraping from Users and Gamey
+| Metrics scraping from Auth and Gamey
 | HTTP (/metrics)
 
 | Grafana
