@@ -234,6 +234,35 @@ describe('useGamey', () => {
     expect(passTurnGame).toHaveBeenCalledWith('game-1', 'adri', undefined);
   });
 
+  test('does not pass the turn while a request is already loading', async () => {
+    let resolveRequest: ((value: ReturnType<typeof buildGame>) => void) | null = null;
+    createGame.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useGamey('adri'));
+
+    act(() => {
+      void result.current.createNewGame();
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.passCurrentTurn();
+    });
+
+    expect(passTurnGame).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveRequest?.(buildGame());
+    });
+  });
+
   test('exposes loading during an in-flight request', async () => {
     let resolveRequest: ((value: ReturnType<typeof buildGame>) => void) | null = null;
     createGame.mockImplementation(

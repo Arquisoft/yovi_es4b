@@ -119,6 +119,20 @@ describe('GameView', () => {
     expect(screen.getByText(/^rival: bot dificil$/i)).toBeInTheDocument();
   });
 
+  test('falls back to a readable bot label when the bot id is unknown', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            bot_id: 'custom_training_bot',
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/^rival: bot custom training$/i)).toBeInTheDocument();
+  });
+
   test('passes null human symbol when players are missing', () => {
     render(
       <GameView
@@ -320,6 +334,22 @@ describe('GameView', () => {
     expect(screen.getByText(/turno del jugador 2/i)).toBeInTheDocument();
     expect(screen.getByText('00:30')).toBeInTheDocument();
     expect(screen.getByText(/se cedera el turno automaticamente/i)).toBeInTheDocument();
+  });
+
+  test('does not show rival details in local human-vs-human games without online identities', () => {
+    render(
+      <GameView
+        {...buildProps({
+          game: buildGame({
+            mode: 'human_vs_human',
+            player0_user_id: null,
+            player1_user_id: null,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(/^rival:/i)).not.toBeInTheDocument();
   });
 
   test('hides the local countdown while waiting for the bot response', () => {
