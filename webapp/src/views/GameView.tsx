@@ -62,7 +62,13 @@ const GameView: React.FC<Props> = ({
             Rendirse
           </Button>
 
-          <Button sx={uiSx.gameBackButton} onClick={onBack}>Volver</Button>
+          <Button
+            sx={uiSx.gameBackButton}
+            onClick={game.game_over ? onBack : undefined}
+            disabled={!game.game_over || loading}
+          >
+            Volver
+          </Button>
         </Box>
       </Box>
     </Box>

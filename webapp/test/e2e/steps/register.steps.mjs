@@ -12,7 +12,10 @@ Given('the register page is open', async function () {
 When('I enter {string} as the username and submit', async function (username) {
   const page = this.page
   if (!page) throw new Error('Page not initialized')
-  await page.fill('#register-username', username)
+  
+  this.uniqueUsername = username + Date.now();
+  
+  await page.fill('#register-username', this.uniqueUsername)
   await page.fill('#register-password', 'Test1234')
   await page.fill('#register-confirm-password', 'Test1234')
   await page.getByRole('button', { name: 'Register' }).click()
@@ -26,5 +29,8 @@ Then('I should see a welcome message containing {string}', async function (expec
   await greeting.waitFor({ timeout: 10000 })
   const parent = greeting.locator('..')
   const text = await parent.textContent()
-  assert.ok(text && text.toLowerCase().includes(expected.toLowerCase()), `Expected greeting to include "${expected}", got: "${text}"`)
+  
+  const expectedText = (this.uniqueUsername || expected).toLowerCase()
+  
+  assert.ok(text && text.toLowerCase().includes(expectedText), `Expected greeting to include "${expectedText}", got: "${text}"`)
 })

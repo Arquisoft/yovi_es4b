@@ -4,24 +4,38 @@ This project includes a simple BDD-style E2E setup that uses Playwright for brow
 
 Quick commands:
 
+- Set auth environment variables in your terminal session (required by `auth_service`):
+
+  ```powershell
+  $env:JWT_SECRET="change_this_secret"
+  $env:MONGO_AUTH_DB="mongodb://localhost:27017/auth"
+  ```
+
 - Install Playwright browsers (once):
 
   ```bash
   npm run test:e2e:install-browsers
   ```
 
-- Run E2E tests (requires both the app and the users service running):
+- Run E2E tests (requires the app, gateway, and auth service running):
 
-  - Start both dev servers and run tests automatically:
-
-    ```bash
-    npm run test:e2e:dev
-    ```
-
-  - Or, start the dev server yourself (`npm run dev`) and the users service (`(cd ../users && npm start)`) then run:
+  - Start required services and run tests automatically:
 
     ```bash
     npm run test:e2e
+    ```
+
+  - Or, start services manually and run only the Cucumber flow:
+
+    ```bash
+    npm run start:all
+    npm run test:e2e:run
+    ```
+
+  - Alternative manual startup for auth (outside `start:all`):
+
+    ```bash
+    (cd ../auth_service && npm start)
     ```
 
 Files of interest:
@@ -29,26 +43,6 @@ Files of interest:
 - `test/e2e/steps` - step definitions
 - `test/e2e/support` - Cucumber World and Playwright hooks
 
-Run tests in a visible browser / slow motion
-
-- Run tests with a visible browser (headed):
-
-  ```bash
-  npm run test:e2e:headed
-  ```
-
-- Run tests in visible slow motion (helpful to watch actions):
-
-  ```bash
-  npm run test:e2e:slow
-  ```
-
-- Debug mode (headed + slow motion + open devtools):
-
-  ```bash
-  npm run test:e2e:debug
-  ```
-
 Notes:
 - For CI, ensure Playwright browsers are installed (e.g. `npx playwright install --with-deps`).
-- The `test:e2e:dev` script uses `concurrently` to start both Vite and the `users` service and then runs the Cucumber tests.
+- `npm run start:all` starts Vite (`webapp`), `gateway`, and `auth_service` concurrently.

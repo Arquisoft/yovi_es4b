@@ -67,11 +67,6 @@ function getProxyRoutes(env = process.env) {
       stripPrefix: '/auth',
     },
     {
-      mountPath: '/users',
-      target: env.USERS_SERVICE_URL ?? 'http://users:3000',
-      stripPrefix: '/users',
-    },
-    {
       mountPath: '/stats',
       target: env.STATS_SERVICE_URL ?? 'http://stats:3001',
       stripPrefix: '/stats',

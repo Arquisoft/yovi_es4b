@@ -103,8 +103,8 @@ Mapping of Building Blocks to Infrastructure::
 | Building Block         | Infrastructure Element                       |
 | ---------------------- | -------------------------------------------- |
 | React SPA (Webapp)     | Webapp Container                             |
-| User Management Logic  | Users Service Container                      |
-| User Persistence Layer | Database Container                           |
+| Authentication Logic   | Auth Service Container                       |
+| Auth Persistence Layer | Mongo Auth Container                         |
 | Game Core & Bots       | Gamey Container                              |
 | Client Interface       | Web Browser                                  |
 | Communication          | Docker Internal Network (HTTP + DB protocol) |
@@ -140,21 +140,21 @@ The Webapp container:
 
  - Acts as the primary system entry point.
 
-==== _<Users Service Container>_
+==== _<Auth Service Container>_
 
 image::07_diagram_3.png[]
 
-The Users Service container:
+The Auth Service container:
 
- - Exposes REST endpoints (e.g., /createuser).
+ - Exposes REST endpoints (`/register`, `/login`, `/verify`).
 
- - Implements business logic for user registration.
+ - Implements authentication and token verification logic.
 
- - Contains a persistence layer responsible for storing user data.
+ - Contains a persistence layer responsible for storing password hashes and identities.
 
- - Connects to an external database container.
+ - Connects to the `mongo-auth` database container.
 
- - Ensures separation between API layer, business logic, and data access.
+ - Ensures separation between API layer, auth logic, and data access.
 
 
 
@@ -174,18 +174,19 @@ The Gamey container:
 
  - Does not directly depend on the user database.
 
-Gamey remains logically independent from user management.
+Gamey remains logically independent from authentication persistence.
 
-==== _<Database Container>_
+==== _<Mongo Auth Container>_
 
 
+The Mongo Auth container:
 
-The database container:
+ - Stores user authentication data persistently.
 
- - Stores user registration data persistently.
-
- - Is accessed exclusively by the Users Service.
+ - Is accessed exclusively by the Auth Service.
 
  - Is not directly exposed to the frontend or Gamey.
 
  - Ensures data durability and separation of concerns.
+
+Mongo Stats is a separate database container used by the `stats` service.

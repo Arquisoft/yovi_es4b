@@ -1,6 +1,7 @@
 import './App.css';
+
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
+import { Alert, Box, Typography } from '@mui/material';
 import { useGamey } from './useGamey';
 import { useStats } from './useStats';
 import { useAuth } from './hooks/useAuth';
@@ -17,7 +18,6 @@ function App() {
   const stats = useStats(auth.username ?? undefined);
   const { refreshStats } = stats;
   const lastSyncedFinishedGameRef = useRef<string | null>(null);
-  const [restrictedModalOpen, setRestrictedModalOpen] = useState(false);
 
   const {
     boardSize,
@@ -36,7 +36,9 @@ function App() {
     playCell,
   } = useGamey(auth.username ?? undefined);
 
-  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>(auth.isAuthenticated ? 'dashboard' : 'login');
+  const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>(
+    auth.isAuthenticated ? 'dashboard' : 'login',
+  );
 
   async function handleCreateNewGame() {
     const created = await createNewGame();
@@ -45,37 +47,53 @@ function App() {
     }
   }
 
+  function confirmLeaveActiveGame(): boolean {
+    if (!game || game.game_over) {
+      return true;
+    }
+
+    return window.confirm('Tienes una partida en curso. Si sales, perderas la partida. Continuar?');
+  }
+
   function handleOpenPlay() {
+    if (!confirmLeaveActiveGame()) {
+      return;
+    }
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
     setView('dashboard');
   }
 
   function handleOpenStats() {
-    if (!auth.isAuthenticated) {
-      setRestrictedModalOpen(true);
+    if (!confirmLeaveActiveGame()) {
       return;
+    }
+    if (game && !game.game_over) {
+      void resignCurrentGame();
     }
     setView('history');
     void refreshStats();
   }
 
-  function handleContinueAsGuest() {
-    auth.continueAsGuest();
-    setView('dashboard');
-  }
-
-  function handleGoToLogin() {
-    auth.openLogin();
-    setRestrictedModalOpen(false);
-    setView('login');
-  }
-
-  function handleSessionAction() {
-    if (auth.isAuthenticated) {
-      auth.logout();
-    } else {
-      auth.openLogin();
+  function handleOpenHelp() {
+    if (!confirmLeaveActiveGame()) {
+      return;
     }
-    setView('login');
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
+    setView('help');
+  }
+
+  function handleLogout() {
+    if (!confirmLeaveActiveGame()) {
+      return;
+    }
+    if (game && !game.game_over) {
+      void resignCurrentGame();
+    }
+    auth.logout();
   }
 
   useEffect(() => {
@@ -98,19 +116,76 @@ function App() {
     void refreshStats();
   }, [game, refreshStats]);
 
-  // If auth is still verifying the token, show nothing
+  useEffect(() => {
+    if (!game || game.game_over || view !== 'game') {
+      return;
+    }
+
+    const blockedState = { gameNavigationBlocked: true };
+    const pushBlockedState = () => window.history.pushState(blockedState, '');
+
+    const sendResignKeepalive = () => {
+      if (!game || game.game_over) {
+        return;
+      }
+      const gameyApiUrl = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
+      const url = `${gameyApiUrl}/v1/games/${game.game_id}/resign`;
+      const headers = new Headers();
+      if (auth.username) {
+        headers.set('x-user-id', auth.username.trim());
+      }
+      void fetch(url, {
+        method: 'POST',
+        keepalive: true,
+        headers,
+      });
+    };
+
+    const onPopState = () => {
+      if (!game || game.game_over) {
+        return;
+      }
+      pushBlockedState();
+    };
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!game || game.game_over) {
+        return;
+      }
+      sendResignKeepalive();
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!game || game.game_over) {
+        return;
+      }
+      if (event.key === 'F5') {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    pushBlockedState();
+    window.addEventListener('popstate', onPopState);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [auth.username, game, view]);
+
   if (auth.loading) return null;
 
   return (
     <Box sx={uiSx.appShell}>
       <Box sx={uiSx.appHeader}>
         <Box sx={uiSx.appHeaderUserRow}>
-          <Typography
-            component="button"
-            type="button"
-            sx={uiSx.appHeaderTitleLink}
-            onClick={() => setView(auth.hasSession ? 'dashboard' : 'login')}
-          >
+          <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={handleOpenPlay}>
             GAME Y
           </Typography>
 
@@ -127,86 +202,64 @@ function App() {
         </Box>
       </Box>
 
-      {view === 'login' ? (
-        <Box sx={uiSx.appRoot}>
-          <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} onContinueAsGuest={handleContinueAsGuest} />
+      <Box sx={uiSx.appBody}>
+        <SidebarView
+          onOpenPlay={handleOpenPlay}
+          onOpenStats={handleOpenStats}
+          onOpenHelp={handleOpenHelp}
+          onLogout={handleLogout}
+        />
+
+        <Box sx={uiSx.appMain}>
+          {error && (
+            <Alert severity="error" sx={uiSx.errorText}>
+              {error}
+            </Alert>
+          )}
+
+          {stats.error && (
+            <Alert severity="warning" sx={uiSx.errorText}>
+              {stats.error}
+            </Alert>
+          )}
+
+          {view === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
+
+          {view === 'dashboard' && (
+            <DashboardView
+              boardSize={boardSize}
+              mode={mode}
+              botDifficulty={botDifficulty}
+              loading={loading}
+              setMode={setMode}
+              setBotDifficulty={setBotDifficulty}
+              updateBoardSize={updateBoardSize}
+              createNewGame={handleCreateNewGame}
+            />
+          )}
+
+          {view === 'history' && (
+            <HistoryView
+              playerStats={stats.playerStats}
+              matches={stats.matches}
+            />
+          )}
+
+          {view === 'help' && <HelpView />}
+
+          {view === 'game' && (
+            <GameView
+              game={game}
+              board={board}
+              canPlayCell={canPlayCell}
+              loading={loading}
+              resignCurrentGame={resignCurrentGame}
+              playCell={playCell}
+              onBack={() => setView('dashboard')}
+            />
+          )}
         </Box>
-      ) : (
-        <Box sx={uiSx.appBody}>
-          <SidebarView
-            onOpenPlay={handleOpenPlay}
-            onOpenStats={handleOpenStats}
-            onOpenHelp={() => setView('help')}
-            onSessionAction={handleSessionAction}
-            sessionActionLabel={auth.isAuthenticated ? 'Logout' : 'Iniciar sesión'}
-            isAuthenticated={auth.isAuthenticated}
-          />
-
-          <Box sx={uiSx.appMain}>
-            {error && (
-              <Alert severity="error" sx={uiSx.errorText}>
-                {error}
-              </Alert>
-            )}
-
-            {auth.isAuthenticated && stats.error && (
-              <Alert severity="warning" sx={uiSx.errorText}>
-                {stats.error}
-              </Alert>
-            )}
-
-            {view === 'dashboard' && (
-              <DashboardView
-                boardSize={boardSize}
-                mode={mode}
-                botDifficulty={botDifficulty}
-                loading={loading}
-                setMode={setMode}
-                setBotDifficulty={setBotDifficulty}
-                updateBoardSize={updateBoardSize}
-                createNewGame={handleCreateNewGame}
-              />
-            )}
-
-            {view === 'history' && auth.isAuthenticated && (
-              <HistoryView
-                playerStats={stats.playerStats}
-                matches={stats.matches}
-              />
-            )}
-
-            {view === 'help' && <HelpView />}
-
-            {view === 'game' && (
-              <GameView
-                game={game}
-                board={board}
-                canPlayCell={canPlayCell}
-                loading={loading}
-                resignCurrentGame={resignCurrentGame}
-                playCell={playCell}
-                onBack={() => setView('dashboard')}
-              />
-            )}
-          </Box>
-        </Box>
-      )}
-
-      <Dialog open={restrictedModalOpen} onClose={() => setRestrictedModalOpen(false)} PaperProps={{ sx: uiSx.accessDialogPaper }}>
-        <DialogTitle sx={uiSx.accessDialogTitle}>Registro necesario</DialogTitle>
-        <DialogContent sx={uiSx.accessDialogContent}>
-          <Typography sx={uiSx.accessDialogText}>
-            Las estadisticas solo estan disponibles para cuentas registradas. Si inicias sesion o te registras podremos
-            guardar tus partidas y mostrar tu historial.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={uiSx.accessDialogActions}>
-          <Button variant="text" onClick={() => setRestrictedModalOpen(false)}>
-            Ahora no
-          </Button>
-          <Button onClick={handleGoToLogin}>Ir a registro</Button>
-        </DialogActions>
-      </Dialog>
+      </Box>
     </Box>
   );
 }

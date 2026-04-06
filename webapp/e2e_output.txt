@@ -1,0 +1,19 @@
+....................F.
+
+Failures:
+
+1) Scenario: Successful registration # test\e2e\features\register.feature:4
+   ÔêÜ Before # file:\C:\WS\ASW\project\yovi_es4b\webapp\test\e2e\support\setup.mjs:13
+   ÔêÜ Given the register page is open # file:\C:\WS\ASW\project\yovi_es4b\webapp\test\e2e\steps\register.steps.mjs:4
+   ÔêÜ When I enter "Alice" as the username and submit # file:\C:\WS\ASW\project\yovi_es4b\webapp\test\e2e\steps\register.steps.mjs:12
+   ├ù Then I should see a welcome message containing "alice" # file:\C:\WS\ASW\project\yovi_es4b\webapp\test\e2e\steps\register.steps.mjs:21
+       locator.waitFor: Timeout 10000ms exceeded.
+       Call log:
+       [2m  - waiting for locator('text=Hello,') to be visible[22m
+
+           at CustomWorld.<anonymous> (C:\WS\ASW\project\yovi_es4b\webapp\test\e2e\steps\register.steps.mjs:26:18)
+   ÔêÜ After # file:\C:\WS\ASW\project\yovi_es4b\webapp\test\e2e\support\setup.mjs:26
+
+3 scenarios (1 failed, 2 passed)
+16 steps (1 failed, 15 passed)
+0m12.774s (executing steps: 0m12.751s)

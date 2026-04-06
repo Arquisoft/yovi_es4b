@@ -622,8 +622,12 @@ export const uiSx = {
   historyTableContainer: {
     border: `1px solid ${uiColors.border.faint}`,
     borderRadius: 1.6,
-    overflow: 'hidden',
+    overflowX: 'auto',
+    overflowY: 'hidden',
     backgroundColor: 'rgba(44, 42, 39, 0.55)',
+  } satisfies SxProps<Theme>,
+  historyTable: {
+    minWidth: 760,
   } satisfies SxProps<Theme>,
   historyTableHeadCell: {
     backgroundColor: 'rgba(49, 46, 43, 0.96)',
@@ -720,6 +724,18 @@ export const uiSx = {
           opacity: 0.7,
         }),
   }),
+  historyPagination: {
+    mt: -0.2,
+    px: 0.6,
+    '& .MuiTablePagination-toolbar': {
+      px: { xs: 0.2, sm: 0.8 },
+      minHeight: 44,
+    },
+    '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+      fontSize: '0.82rem',
+      color: 'text.secondary',
+    },
+  } satisfies SxProps<Theme>,
   appTitle: {
     mb: 2,
     textAlign: 'center',

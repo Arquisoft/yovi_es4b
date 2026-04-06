@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [webapp, users]
+        service: [webapp, gateway, stats, auth_service]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,10 +68,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install users dependencies
-        run: |
-          cd users
-          npm ci
       - name: Install auth_service dependencies
         run: |
           cd auth_service
@@ -91,26 +87,6 @@ jobs:
         run: |
           cd webapp
           npm run test:e2e
-
-  docker-push-users:
-    name: Publish users image
-    runs-on: ubuntu-latest
-    needs: e2e
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Publish to Registry (users)
-        uses: elgohr/Publish-Docker-Github-Action@v5
-        with:
-          name: ${{ github.repository_owner }}/${{ github.event.repository.name }}-users
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: ghcr.io
-          workdir: users
 
   docker-push-webapp:
     name: Publish webapp image
@@ -215,7 +191,7 @@ jobs:
   deploy:
     name: Deploy over SSH
     runs-on: ubuntu-latest
-    needs: [docker-push-users, docker-push-webapp, docker-push-gateway, docker-push-gamey, docker-push-auth, docker-push-stats]
+    needs: [docker-push-webapp, docker-push-gateway, docker-push-gamey, docker-push-auth, docker-push-stats]
     steps:
       - name: Deploy over SSH
         uses: fifsky/ssh-action@master
