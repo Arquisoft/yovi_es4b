@@ -23,6 +23,7 @@ services:
 
   stats:
     container_name: stats
+    image: ghcr.io/arquisoft/yovi_es4b-stats:latest
     build:
       context: ./stats
       dockerfile: Dockerfile
@@ -39,6 +40,7 @@ services:
 
   gateway:
     container_name: gateway
+    image: ghcr.io/arquisoft/yovi_es4b-gateway:latest
     build:
       context: ./gateway
       dockerfile: Dockerfile
@@ -46,29 +48,20 @@ services:
       - "80:8080"
     environment:
       - WEBAPP_SERVICE_URL=http://webapp:80
-      - USERS_SERVICE_URL=http://users:3000
       - GAMEY_SERVICE_URL=http://gamey:4000
       - AUTH_SERVICE_URL=http://auth:3500
       - STATS_SERVICE_URL=http://stats:3001
     depends_on:
       - webapp
-      - users
       - gamey
       - stats
       - auth
     networks:
       - monitor-net
 
-  users:
-    container_name: users
-    build:
-      context: ./users
-      dockerfile: Dockerfile
-    networks:
-      - monitor-net
-
   webapp:
     container_name: webapp
+    image: ghcr.io/arquisoft/yovi_es4b-webapp:latest
     build:
       context: ./webapp
       dockerfile: Dockerfile
@@ -77,6 +70,7 @@ services:
 
   gamey:
     container_name: gamey
+    image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
     build:
       context: ./gamey
       dockerfile: Dockerfile
@@ -88,6 +82,7 @@ services:
 
   auth:
     container_name: auth
+    image: ghcr.io/arquisoft/yovi_es4b-auth:latest
     build:
       context: ./auth_service
       dockerfile: Dockerfile

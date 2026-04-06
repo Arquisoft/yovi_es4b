@@ -64,7 +64,7 @@ These concepts ensure architectural consistency, reduce complexity, and support 
 
 
 
-The domain of the system is centered around user management and Game Y execution.
+The domain of the system is centered around authentication, player profiles, and Game Y execution.
 
 Key domain concepts include:
 
@@ -117,14 +117,7 @@ The system follows a service-oriented and layered architecture, applying the fol
 
      - Webapp: User interaction and presentation
 
-     - Users Service: User management and persistence
-
-     - Gamey: Game logic and bot execution
-
- - API-first Design
-    All communication between components is performed through HTTP-based APIs.
-
-This approach ensures loose coupling and enables independent evolution of components.
+    - Auth Service: Registration, login, token verification, and credential persistence
 
      - Gamey: Game logic and bot execution
 
@@ -138,17 +131,17 @@ This approach ensures loose coupling and enables independent evolution of compon
 
 
 
-The system implements basic security concepts, appropriate for a development or educational environment:
+The system implements the following security concepts:
 
- - No authentication or authorization mechanisms are currently enforced.
+ - User authentication is enforced with JWT-based sessions (`/register`, `/login`, `/verify`).
 
- - No sensitive credentials are stored.
+ - Passwords are never stored in plain text; they are hashed with `bcrypt`.
 
- - Database access is restricted to the Users Service.
+ - Auth persistence is isolated in MongoDB (`mongo-auth`) and only accessed by `auth_service`.
 
- - Services communicate within a trusted internal network.
+ - Internal service communication is isolated in the Docker network; the public entry point is the gateway.
 
- - Security considerations are intentionally simplified to keep the architectural focus on modularity and clarity.
+ - Stats internal endpoints are protected with a service token to avoid unauthorized writes.
 
 
 === _<Development Concepts>_

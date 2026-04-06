@@ -1,5 +1,5 @@
-# Use a Rust base image for compilation
-FROM rust:latest AS builder
+# Use a fixed Rust base image for compilation to avoid broken latest tags
+FROM --platform=linux/amd64 rust:1.94.0-bookworm AS builder
 
 WORKDIR /app/gamey
 
@@ -11,7 +11,7 @@ COPY src/ ./src/
 RUN cargo build --release
 
 # Use a minimal image for the final stage
-FROM debian:bookworm-slim
+FROM --platform=linux/amd64 debian:bookworm-slim
 
 WORKDIR /app/gamey
 

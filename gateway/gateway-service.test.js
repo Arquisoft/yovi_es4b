@@ -1,8 +1,13 @@
 const assert = require('node:assert/strict');
+const http = require('node:http');
 const { once } = require('node:events');
 const test = require('node:test');
 
-const { buildProxy, createApp } = require('./gateway-service');
+const {
+  DEFAULT_EXTERNAL_BOT_ID,
+  applyBotMoveToYen,
+  createApp,
+} = require('./gateway-service');
 
 function noopProxyFactory() {
   return (_req, _res, next) => next();
@@ -18,8 +23,42 @@ async function withServer(app, run) {
   try {
     await run(baseUrl);
   } finally {
+    server.closeIdleConnections?.();
+    server.closeAllConnections?.();
     await new Promise((resolve) => server.close(resolve));
   }
+}
+
+async function withJsonServer(handler, run) {
+  const server = http.createServer(async (req, res) => {
+    let rawBody = '';
+
+    for await (const chunk of req) {
+      rawBody += chunk;
+    }
+
+    const parsedBody = rawBody.length > 0 ? JSON.parse(rawBody) : null;
+    await handler(req, res, parsedBody);
+  });
+
+  server.listen(0);
+  await once(server, 'listening');
+
+  const { port } = server.address();
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    await run(baseUrl);
+  } finally {
+    server.closeIdleConnections?.();
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+function jsonResponse(res, status, payload) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
 }
 
 // GET /health returns service status.
@@ -46,24 +85,21 @@ test('createApp sets expected proxy configuration for each route', () => {
   const env = {
     GAMEY_SERVICE_URL: 'http://gamey.local:4000',
     AUTH_SERVICE_URL: 'http://auth.local:3500',
-    USERS_SERVICE_URL: 'http://users.local:3000',
     STATS_SERVICE_URL: 'http://stats.local:3001',
     WEBAPP_SERVICE_URL: 'http://web.local:80',
   };
 
   createApp({ env, proxyFactory });
 
-  assert.equal(capturedConfigs.length, 5);
+  assert.equal(capturedConfigs.length, 4);
 
   const gameyProxy = capturedConfigs.find((config) => config.target === env.GAMEY_SERVICE_URL);
   const authProxy = capturedConfigs.find((config) => config.target === env.AUTH_SERVICE_URL);
-  const usersProxy = capturedConfigs.find((config) => config.target === env.USERS_SERVICE_URL);
   const statsProxy = capturedConfigs.find((config) => config.target === env.STATS_SERVICE_URL);
   const webappProxy = capturedConfigs.find((config) => config.target === env.WEBAPP_SERVICE_URL);
 
   assert.deepEqual(gameyProxy.pathRewrite, { '^/api': '' });
   assert.deepEqual(authProxy.pathRewrite, { '^/auth': '' });
-  assert.deepEqual(usersProxy.pathRewrite, { '^/users': '' });
   assert.deepEqual(statsProxy.pathRewrite, { '^/stats': '' });
   assert.equal(webappProxy.pathRewrite, undefined);
 });
@@ -71,6 +107,8 @@ test('createApp sets expected proxy configuration for each route', () => {
 // buildProxy returns a 502 response when upstream fails.
 test('buildProxy returns a 502 response when upstream fails', () => {
   let capturedConfig;
+
+  const { buildProxy } = require('./gateway-service');
 
   buildProxy(
     { target: 'http://example.local', stripPrefix: '/api' },
@@ -99,4 +137,237 @@ test('buildProxy returns a 502 response when upstream fails', () => {
   assert.equal(response.statusCode, 502);
   assert.deepEqual(response.headers, { 'Content-Type': 'application/json' });
   assert.equal(response.body, JSON.stringify({ message: 'Bad Gateway' }));
+});
+
+// The external OpenAPI document is served by the gateway.
+test('GET /external/docs/openapi.json exposes the external API contract', async () => {
+  const { app } = createApp({ proxyFactory: noopProxyFactory });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/external/docs/openapi.json`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.info.title, 'Yovi External Bot API');
+    assert.ok(body.paths['/external/v1/play']);
+  });
+});
+
+// The docs route serves a Swagger UI page over the OpenAPI contract.
+test('GET /external/docs serves Swagger UI for the external API', async () => {
+  const { app } = createApp({ proxyFactory: noopProxyFactory });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/external/docs`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /SwaggerUIBundle/);
+    assert.match(body, /OpenAPI JSON/);
+  });
+});
+
+// GET /external/v1/users/me aggregates auth identity and player stats.
+test('GET /external/v1/users/me aggregates auth and stats services', async () => {
+  await withJsonServer(async (req, res, body) => {
+    assert.equal(req.method, 'GET');
+    assert.equal(req.url, '/verify');
+    assert.equal(req.headers.authorization, 'Bearer valid-token');
+    assert.equal(body, null);
+
+    jsonResponse(res, 200, {
+      valid: true,
+      user: { id: 'user-123', username: 'ada' },
+    });
+  }, async (authUrl) => {
+    await withJsonServer(async (req, res, body) => {
+      assert.equal(req.method, 'GET');
+      assert.equal(req.url, '/v1/me');
+      assert.equal(req.headers['x-user-id'], 'user-123');
+      assert.equal(body, null);
+
+      jsonResponse(res, 200, {
+        userId: 'user-123',
+        totalGames: 7,
+        victories: 5,
+        defeats: 2,
+        updatedAt: null,
+      });
+    }, async (statsUrl) => {
+      const { app } = createApp({
+        proxyFactory: noopProxyFactory,
+        env: {
+          AUTH_SERVICE_URL: authUrl,
+          STATS_SERVICE_URL: statsUrl,
+        },
+      });
+
+      await withServer(app, async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/external/v1/users/me`, {
+          headers: {
+            Authorization: 'Bearer valid-token',
+          },
+        });
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.deepEqual(body, {
+          id: 'user-123',
+          username: 'ada',
+          stats: {
+            userId: 'user-123',
+            totalGames: 7,
+            victories: 5,
+            defeats: 2,
+            updatedAt: null,
+          },
+        });
+      });
+    });
+  });
+});
+
+// POST /external/v1/games forwards authenticated player and opponent identifiers.
+test('POST /external/v1/games forwards user identity and opponent to gamey', async () => {
+  await withJsonServer(async (req, res) => {
+    assert.equal(req.method, 'GET');
+    assert.equal(req.url, '/verify');
+
+    jsonResponse(res, 200, {
+      valid: true,
+      user: { id: 'player-0', username: 'ada' },
+    });
+  }, async (authUrl) => {
+    await withJsonServer(async (req, res, body) => {
+      assert.equal(req.method, 'POST');
+      assert.equal(req.url, '/v1/games');
+      assert.equal(req.headers['x-user-id'], 'player-0');
+      assert.equal(req.headers['x-opponent-user-id'], 'player-1');
+      assert.deepEqual(body, {
+        size: 7,
+        mode: 'human_vs_human',
+      });
+
+      jsonResponse(res, 200, {
+        api_version: 'v1',
+        game_id: 'game-123',
+        mode: 'human_vs_human',
+        bot_id: null,
+        yen: {
+          size: 7,
+          turn: 0,
+          players: ['B', 'R'],
+          layout: './../.../..../...../....../.......',
+        },
+        game_over: false,
+        next_player: 0,
+        winner: null,
+      });
+    }, async (gameyUrl) => {
+      const { app } = createApp({
+        proxyFactory: noopProxyFactory,
+        env: {
+          AUTH_SERVICE_URL: authUrl,
+          GAMEY_SERVICE_URL: gameyUrl,
+        },
+      });
+
+      await withServer(app, async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/external/v1/games`, {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer valid-token',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            size: 7,
+            mode: 'human_vs_human',
+            opponent_user_id: 'player-1',
+          }),
+        });
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(body.game_id, 'game-123');
+      });
+    });
+  });
+});
+
+// POST /external/v1/play returns the chosen move and the resulting YEN position.
+test('POST /external/v1/play returns resulting YEN move for bots', async () => {
+  await withJsonServer(async (req, res, body) => {
+    assert.equal(req.method, 'POST');
+    assert.equal(req.url, `/v1/ybot/choose/${DEFAULT_EXTERNAL_BOT_ID}`);
+    assert.deepEqual(body, {
+      size: 3,
+      turn: 0,
+      players: ['B', 'R'],
+      layout: './../...',
+    });
+
+    jsonResponse(res, 200, {
+      api_version: 'v1',
+      bot_id: DEFAULT_EXTERNAL_BOT_ID,
+      coords: { x: 2, y: 0, z: 0 },
+    });
+  }, async (gameyUrl) => {
+    const { app } = createApp({
+      proxyFactory: noopProxyFactory,
+      env: {
+        GAMEY_SERVICE_URL: gameyUrl,
+      },
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/external/v1/play`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          position: {
+            size: 3,
+            turn: 0,
+            players: ['B', 'R'],
+            layout: './../...',
+          },
+        }),
+      });
+      const body = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(body, {
+        api_version: 'v1',
+        bot_id: DEFAULT_EXTERNAL_BOT_ID,
+        coords: { x: 2, y: 0, z: 0 },
+        move: {
+          size: 3,
+          turn: 1,
+          players: ['B', 'R'],
+          layout: 'B/../...',
+        },
+      });
+    });
+  });
+});
+
+// applyBotMoveToYen updates the right YEN cell and derives the next turn.
+test('applyBotMoveToYen updates YEN positions deterministically', () => {
+  const nextPosition = applyBotMoveToYen(
+    {
+      size: 3,
+      turn: 1,
+      players: ['B', 'R'],
+      layout: 'B/R./...',
+    },
+    { x: 0, y: 2, z: 0 },
+  );
+
+  assert.deepEqual(nextPosition, {
+    size: 3,
+    turn: 1,
+    players: ['B', 'R'],
+    layout: 'B/R./..B',
+  });
 });

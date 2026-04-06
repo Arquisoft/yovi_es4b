@@ -15,20 +15,20 @@ This project is a template with some basic functionality for the ASW labs.
 
 ## Project Structure
 
-The project is divided into four main components, each in its own directory:
+The project is divided into these main components, each in its own directory:
 
-- `gateway/`: A Node.js reverse proxy that routes all incoming requests to the correct microservice.
-- `webapp/`: A frontend application built with React, Vite, and TypeScript.
-- `users/`: A backend service for managing users, built with Node.js and Express.
-- `gamey/`: A Rust game engine and bot service.
-- `docs/`: Architecture documentation sources following Arc42 template
+- `webapp/`: Frontend application built with React, Vite, and TypeScript.
+- `gateway/`: Node.js reverse proxy that routes incoming traffic to internal services.
+- `auth_service/`: Authentication microservice (register/login/verify) with JWT + MongoDB.
+- `gamey/`: Rust game engine and bot service.
+- `stats/`: Node.js service for match history and player statistics.
+- `docs/`: Architecture documentation sources following Arc42 template.
 
 Each component includes the scripts/configuration needed to run and test the application.
 
 ## Basic Features
 
 - **User Registration**: The web application provides a simple form to register new users.
-- **User Service**: The user service receives the registration request, simulates some processing, and returns a welcome message.
 - **GameY**: A basic Game engine which only chooses a random piece.
 
 ## Components
@@ -43,19 +43,11 @@ The `webapp` is a single-page application (SPA) created with [Vite](https://vite
 - `vite.config.ts`: Configuration file for Vite.
 - `Dockerfile`: Defines the Docker image for the webapp.
 
-### Users Service
-
-The `users` service is a simple REST API built with [Node.js](https://nodejs.org/) and [Express](https://expressjs.com/).
-
-- `users-service.js`: The main file for the user service. It defines an endpoint `/createuser` to handle user creation.
-- `package.json`: Contains scripts to start the service.
-- `Dockerfile`: Defines the Docker image for the user service.
-
 ### Gateway
 
 The `gateway` service is a Node.js reverse proxy built with [Express](https://expressjs.com/) and [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware).
 
-- `gateway-service.js`: Central route map for forwarding traffic to `webapp`, `users`, and `gamey`.
+- `gateway-service.js`: Central route map for forwarding traffic to `webapp`, `auth`, `gamey`, and `stats`.
 - `package.json`: Contains scripts to start the gateway.
 - `Dockerfile`: Defines the Docker image for the gateway service.
 
@@ -74,12 +66,12 @@ The `gamey` component is a Rust-based game engine with bot support, built with [
 
 ### Auth Service
 
-A new microservice lives under `auth_service/`. It provides user registration and login using
+A dedicated microservice lives under `auth_service/`. It provides user registration and login using
 JSON Web Tokens (JWT) and persists accounts in MongoDB. This allows sessions to be
 authenticated across the platform.
 
 - `auth-service.js`: main application file, implements `/register`, `/login`, and a
-  protected `/me` endpoint.
+  protected `/verify` endpoint.
 - `models/user.js`: Mongoose schema for users (username + passwordHash).
 - `package.json` / `package-lock.json`: npm configuration.
 - `Dockerfile`: builds the Node.js image for the service.
@@ -91,7 +83,7 @@ authenticated across the platform.
 |---------------|--------|-----------------------------------|---------------|
 | `/register`   | POST   | Create account (username+password)| no            |
 | `/login`      | POST   | Obtain JWT token                  | no            |
-| `/me`         | GET    | Get current user info             | yes (Bearer)  |
+| `/verify`     | GET    | Verify JWT token validity         | yes (Bearer)  |
 
 Example request body for `/register`:
 ```json
@@ -100,7 +92,7 @@ Example request body for `/register`:
 
 Successful login returns:
 ```json
-{ "token": "<jwt>", "expires_in": "XXh" }
+{ "id": "<userId>", "username": "alice", "token": "<jwt>", "message": "Welcome back alice!" }
 ```
 
 ## Running the Project
@@ -111,7 +103,7 @@ You can run this project using Docker (recommended) or locally without Docker.
 
 This is the easiest way to get the project running. You need to have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
 
-The `docker-compose.yml` in this repository is configured to build first-party services (`webapp`, `gateway`, `users`, `gamey`, `auth`, `stats`) directly from local source code in this repo.
+The `docker-compose.yml` in this repository is configured to build first-party services (`webapp`, `gateway`, `auth`, `gamey`, `stats`) directly from local source code in this repo.
 
 1. **Build and run the containers:**
     From the root directory of the project, run:
@@ -124,8 +116,11 @@ This command will build the Docker images and start the full stack behind the ga
 
 2.**Access the application:**
 - Web application: [http://localhost](http://localhost)
-- User service API (through gateway): [http://localhost/users/createuser](http://localhost/users/createuser)
+- Auth API (through gateway): [http://localhost/auth/register](http://localhost/auth/register), [http://localhost/auth/login](http://localhost/auth/login), [http://localhost/auth/verify](http://localhost/auth/verify)
 - Gamey API (through gateway): [http://localhost/api/v1/games](http://localhost/api/v1/games)
+- External bot API documentation (through gateway): [http://localhost/external/docs](http://localhost/external/docs)
+- External bot OpenAPI contract (through gateway): [Invoke-RestMethod -Uri "http://localhost/external/v1/bots"
+](http://localhost/external/docs/openapi.json)
 
 ### Without Docker
 
@@ -135,13 +130,14 @@ To run the project locally without Docker, you will need to run each component i
 
 * [Node.js](https://nodejs.org/) and npm installed.
 * [Rust](https://www.rust-lang.org/) and Cargo installed (for `gamey`).
+* MongoDB available locally if running `auth_service` or `stats` outside Docker.
 
-#### 1. Running the User Service
+#### 1. Running the Auth Service
 
-Navigate to the `users` directory:
+Navigate to the `auth_service` directory:
 
 ```bash
-cd users
+cd auth_service
 ```
 
 Install dependencies:
@@ -153,10 +149,10 @@ npm install
 Run the service:
 
 ```bash
-npm start
+$env:JWT_SECRET="change_this_secret"; $env:MONGO_AUTH_DB="mongodb://localhost:27017/auth"; npm start
 ```
 
-The user service will be available at `http://localhost:3000`.
+The auth service will be available at `http://localhost:3500`.
 
 #### 2. Running the GameY Service
 
@@ -211,7 +207,7 @@ npm install
 Run the gateway:
 
 ```bash
-$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:USERS_SERVICE_URL="http://localhost:3000"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; npm start
+$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:AUTH_SERVICE_URL="http://localhost:3500"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; $env:STATS_SERVICE_URL="http://localhost:3001"; npm start
 ```
 
 The gateway will be available at `http://localhost:8080`.
@@ -222,14 +218,18 @@ Each component has its own set of scripts defined in its `package.json`. Here ar
 
 ### Webapp (`webapp/package.json`)
 
+Run these commands from `webapp/` (or from repo root using `npm --prefix webapp ...`).
+
 - `npm run dev`: Starts the development server for the webapp.
-- `npm test`: Runs the unit tests.
+- `npm test`: Runs the unit tests in watch mode.
+- `npm run test -- --run`: Runs the unit tests once.
+- `npm run test -- --run src/__tests__/AppGameExitBehavior.test.tsx`: Runs a specific test file.
 - `npm run test:e2e`: Runs the end-to-end tests.
-- `npm run start:all`: A convenience script to start both the `webapp` and the `users` service concurrently.
+- `npm run start:all`: A convenience script to start `webapp`, `gateway`, and `auth_service` concurrently.
 
-### Users (`users/package.json`)
+### Auth Service (`auth_service/package.json`)
 
-- `npm start`: Starts the user service.
+- `npm start`: Starts the auth service.
 - `npm test`: Runs the tests for the service.
 
 ### Gateway (`gateway/package.json`)

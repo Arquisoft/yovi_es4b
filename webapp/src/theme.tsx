@@ -35,6 +35,139 @@ export const uiColors = {
   },
 } as const;
 
+type HistoryStatTone = 'neutral' | 'win' | 'loss' | 'info';
+type GameOutcomeTone = 'success' | 'danger' | 'accent';
+type BoardOwner = 'human' | 'opponent' | 'empty';
+
+function getHistoryStatBorderColor(tone: HistoryStatTone): string {
+  switch (tone) {
+    case 'win':
+      return 'rgba(127, 166, 80, 0.58)';
+    case 'loss':
+      return 'rgba(208, 107, 107, 0.58)';
+    case 'info':
+      return 'rgba(164, 164, 158, 0.52)';
+    default:
+      return uiColors.border.faint;
+  }
+}
+
+function getHistoryStatAccentColor(tone: HistoryStatTone): string {
+  switch (tone) {
+    case 'win':
+      return '#7fa650';
+    case 'loss':
+      return '#d06b6b';
+    case 'info':
+      return 'rgba(172, 170, 162, 0.85)';
+    default:
+      return 'rgba(172, 170, 162, 0.7)';
+  }
+}
+
+function getGameOutcomeBorderColor(tone: GameOutcomeTone): string {
+  switch (tone) {
+    case 'success':
+    case 'accent':
+      return 'rgba(146, 195, 92, 0.66)';
+    default:
+      return 'rgba(212, 104, 104, 0.62)';
+  }
+}
+
+function getGameOutcomeBackgroundColor(tone: GameOutcomeTone): string {
+  switch (tone) {
+    case 'success':
+    case 'accent':
+      return 'rgba(129, 182, 76, 0.12)';
+    default:
+      return 'rgba(189, 84, 84, 0.12)';
+  }
+}
+
+function getGameOutcomeShadowColor(tone: GameOutcomeTone): string {
+  switch (tone) {
+    case 'success':
+    case 'accent':
+      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+    default:
+      return '0 8px 16px rgba(78, 34, 34, 0.12)';
+  }
+}
+
+function getBoardOwnerMutedFilter(owner: BoardOwner): string {
+  switch (owner) {
+    case 'human':
+      return 'saturate(0.56) brightness(0.82) contrast(0.96)';
+    case 'opponent':
+      return 'saturate(0.5) brightness(0.8) contrast(0.95)';
+    default:
+      return 'none';
+  }
+}
+
+function getBoardOwnerBorderColor(owner: BoardOwner): string {
+  switch (owner) {
+    case 'human':
+      return 'rgba(158, 235, 185, 0.84)';
+    case 'opponent':
+      return 'rgba(255, 186, 186, 0.9)';
+    default:
+      return 'rgba(255, 255, 255, 0.72)';
+  }
+}
+
+function getBoardOwnerMutedPattern(owner: BoardOwner): string {
+  switch (owner) {
+    case 'human':
+      return 'repeating-linear-gradient(135deg, rgba(255,255,255,0.28) 0 2px, rgba(255,255,255,0) 2px 6px)';
+    case 'opponent':
+      return 'repeating-linear-gradient(45deg, rgba(255,255,255,0.28) 0 2px, rgba(255,255,255,0) 2px 6px)';
+    default:
+      return 'none';
+  }
+}
+
+function getBoardHexFilter(highlighted: boolean, muted: boolean, mutedFilter: string): string {
+  if (highlighted) {
+    return 'saturate(1.12) brightness(1.02)';
+  }
+
+  if (muted) {
+    return mutedFilter;
+  }
+
+  return 'none';
+}
+
+function getBoardHexBorderStyle(
+  highlighted: boolean,
+  owner: BoardOwner,
+  ownerBorderColor: string,
+): string {
+  if (highlighted) {
+    return '2px solid rgba(255,255,255,0.98)';
+  }
+
+  if (owner === 'human') {
+    return `2px dashed ${ownerBorderColor}`;
+  }
+
+  return `2px dotted ${ownerBorderColor}`;
+}
+
+function getBoardHexHoverFilter(highlighted: boolean, muted: boolean, mutedFilter: string): string {
+  if (highlighted) {
+    return 'saturate(1.12) brightness(1.02)';
+  }
+
+  if (muted) {
+    return mutedFilter;
+  }
+
+  return 'brightness(0.92)';
+}
+
 const theme = createTheme({
   typography: {
     fontFamily: "'Segoe UI Variable', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
@@ -339,6 +472,13 @@ export const uiSx = {
     objectFit: 'contain',
     flexShrink: 0,
   } satisfies SxProps<Theme>,
+  sidebarSessionIcon: {
+    width: 24,
+    height: 24,
+    display: 'block',
+    objectFit: 'contain',
+    flexShrink: 0,
+  } satisfies SxProps<Theme>,
   sidebarBottom: {
     mt: 'auto',
     pt: 1.5,
@@ -367,6 +507,16 @@ export const uiSx = {
     gap: 1.25,
     minHeight: 252,
     height: '100%',
+  } satisfies SxProps<Theme>,
+  activeGameCard: {
+    p: 2.4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(129, 182, 76, 0.1)',
+    border: '1px solid rgba(146, 195, 92, 0.4)',
+    boxShadow: '0 12px 24px rgba(62, 84, 39, 0.16)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1.25,
   } satisfies SxProps<Theme>,
   dashboardCardTitle: {
     position: 'relative',
@@ -475,6 +625,17 @@ export const uiSx = {
     px: 2.1,
     letterSpacing: 0.2,
   } satisfies SxProps<Theme>,
+  activeGameResumeButton: {
+    minWidth: 210,
+    height: 42,
+    borderRadius: 1.4,
+    color: '#10210a',
+    backgroundColor: 'rgba(157, 206, 103, 0.95)',
+    border: '1px solid rgba(179, 224, 131, 0.55)',
+    '&:hover': {
+      backgroundColor: 'rgba(168, 216, 113, 1)',
+    },
+  } satisfies SxProps<Theme>,
   dashboardConfigControls: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -482,6 +643,50 @@ export const uiSx = {
     alignItems: 'center',
     mt: 'auto',
   } satisfies SxProps<Theme>,
+  onlineActionsRow: {
+    mt: 'auto',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 1,
+    alignItems: 'center',
+  } satisfies SxProps<Theme>,
+  onlinePrimaryButton: {
+    minWidth: 160,
+    height: 38,
+    borderColor: 'rgba(146, 195, 92, 0.66)',
+    color: uiColors.text.primary,
+    backgroundColor: 'rgba(129, 182, 76, 0.14)',
+    '&:hover': {
+      borderColor: uiColors.accent.light,
+      backgroundColor: 'rgba(129, 182, 76, 0.22)',
+    },
+  } satisfies SxProps<Theme>,
+  onlineSecondaryButton: {
+    minWidth: 160,
+    height: 38,
+    borderColor: 'rgba(164, 164, 158, 0.45)',
+    color: uiColors.text.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    '&:hover': {
+      borderColor: 'rgba(196, 196, 188, 0.72)',
+      backgroundColor: 'rgba(255, 255, 255, 0.07)',
+      color: uiColors.text.primary,
+    },
+  } satisfies SxProps<Theme>,
+  onlineStatusBadge: (waiting: boolean): SxProps<Theme> => ({
+    mt: 1.2,
+    px: 1.2,
+    py: 0.8,
+    borderRadius: 1.4,
+    border: `1px solid ${
+      waiting ? 'rgba(129, 182, 76, 0.45)' : 'rgba(164, 164, 158, 0.4)'
+    }`,
+    backgroundColor: waiting ? 'rgba(129, 182, 76, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+    color: 'text.secondary',
+    fontSize: '0.86rem',
+    fontWeight: 600,
+    letterSpacing: 0.1,
+  }),
   statsRows: {
     display: 'flex',
     flexDirection: 'column',
@@ -539,43 +744,33 @@ export const uiSx = {
     gap: 1.2,
     mt: 0.2,
   } satisfies SxProps<Theme>,
-  historyStatCard: (tone: 'neutral' | 'win' | 'loss' | 'info'): SxProps<Theme> => ({
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: 1.5,
-    border: `1px solid ${
-      tone === 'win'
-        ? 'rgba(127, 166, 80, 0.58)'
-        : tone === 'loss'
-          ? 'rgba(208, 107, 107, 0.58)'
-          : tone === 'info'
-            ? 'rgba(164, 164, 158, 0.52)'
-            : uiColors.border.faint
-    }`,
-    backgroundColor: 'rgba(44, 42, 39, 0.82)',
-    px: 1.3,
-    py: 1.1,
-    minHeight: 96,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: 3,
-      backgroundColor:
-        tone === 'win'
-          ? '#7fa650'
-          : tone === 'loss'
-            ? '#d06b6b'
-            : tone === 'info'
-              ? 'rgba(172, 170, 162, 0.85)'
-              : 'rgba(172, 170, 162, 0.7)',
-    },
-  }),
+  historyStatCard: (tone: HistoryStatTone): SxProps<Theme> => {
+    const borderColor = getHistoryStatBorderColor(tone);
+    const accentColor = getHistoryStatAccentColor(tone);
+
+    return {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 1.5,
+      border: `1px solid ${borderColor}`,
+      backgroundColor: 'rgba(44, 42, 39, 0.82)',
+      px: 1.3,
+      py: 1.1,
+      minHeight: 96,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+        backgroundColor: accentColor,
+      },
+    };
+  },
   historyStatLabel: {
     fontSize: '0.78rem',
     letterSpacing: 0.34,
@@ -615,8 +810,12 @@ export const uiSx = {
   historyTableContainer: {
     border: `1px solid ${uiColors.border.faint}`,
     borderRadius: 1.6,
-    overflow: 'hidden',
+    overflowX: 'auto',
+    overflowY: 'hidden',
     backgroundColor: 'rgba(44, 42, 39, 0.55)',
+  } satisfies SxProps<Theme>,
+  historyTable: {
+    minWidth: 760,
   } satisfies SxProps<Theme>,
   historyTableHeadCell: {
     backgroundColor: 'rgba(49, 46, 43, 0.96)',
@@ -713,6 +912,18 @@ export const uiSx = {
           opacity: 0.7,
         }),
   }),
+  historyPagination: {
+    mt: -0.2,
+    px: 0.6,
+    '& .MuiTablePagination-toolbar': {
+      px: { xs: 0.2, sm: 0.8 },
+      minHeight: 44,
+    },
+    '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+      fontSize: '0.82rem',
+      color: 'text.secondary',
+    },
+  } satisfies SxProps<Theme>,
   appTitle: {
     mb: 2,
     textAlign: 'center',
@@ -760,6 +971,44 @@ export const uiSx = {
     borderRadius: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     overflow: 'hidden',
+  } satisfies SxProps<Theme>,
+  loginGuestActions: {
+    mt: 2,
+    pt: 1.6,
+    borderTop: `1px solid ${uiColors.border.faint}`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 1,
+  } satisfies SxProps<Theme>,
+  loginGuestHint: {
+    textAlign: 'center',
+    color: 'text.secondary',
+    fontSize: '0.9rem',
+    maxWidth: 360,
+  } satisfies SxProps<Theme>,
+  accessDialogPaper: {
+    maxWidth: 480,
+    borderRadius: 2.2,
+    backgroundColor: uiColors.bg.surface,
+    boxShadow: '0 18px 42px rgba(0, 0, 0, 0.32)',
+  } satisfies SxProps<Theme>,
+  accessDialogTitle: {
+    fontWeight: 800,
+    letterSpacing: 0.25,
+  } satisfies SxProps<Theme>,
+  accessDialogContent: {
+    pt: '6px !important',
+  } satisfies SxProps<Theme>,
+  accessDialogText: {
+    color: 'text.secondary',
+    lineHeight: 1.6,
+  } satisfies SxProps<Theme>,
+  accessDialogActions: {
+    px: 3,
+    pb: 2.4,
+    pt: 0.6,
+    gap: 1,
   } satisfies SxProps<Theme>,
   boardContainer: {
     display: 'flex',
@@ -829,30 +1078,77 @@ export const uiSx = {
     textAlign: 'center',
     color: '#d8e3ff',
   } satisfies SxProps<Theme>,
-  gameOutcomeBanner: (won: boolean): SxProps<Theme> => ({
-    width: '100%',
-    maxWidth: 760,
-    px: { xs: 1.6, sm: 2.1 },
-    py: { xs: 1.2, sm: 1.5 },
-    borderRadius: 2,
-    border: `1px solid ${
-      won
-        ? 'rgba(115, 229, 154, 0.62)'
-        : 'rgba(255, 119, 119, 0.62)'
-    }`,
-    backgroundColor: won ? 'rgba(73, 174, 114, 0.16)' : 'rgba(189, 84, 84, 0.2)',
-    boxShadow: won
-      ? '0 8px 20px rgba(36, 110, 69, 0.32)'
-      : '0 8px 20px rgba(116, 45, 45, 0.35)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 0.45,
-    textAlign: 'center',
-  }),
+  gameOutcomeBanner: (tone: GameOutcomeTone): SxProps<Theme> => {
+    const borderColor = getGameOutcomeBorderColor(tone);
+    const backgroundColor = getGameOutcomeBackgroundColor(tone);
+    const boxShadow = getGameOutcomeShadowColor(tone);
+
+    return {
+      width: '100%',
+      maxWidth: 760,
+      px: { xs: 1.6, sm: 2.1 },
+      py: { xs: 1.2, sm: 1.5 },
+      borderRadius: 2,
+      border: `1px solid ${borderColor}`,
+      backgroundColor,
+      boxShadow,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 0.45,
+      textAlign: 'center',
+    };
+  },
   gameOutcomeTitle: {
     fontWeight: 900,
     fontSize: { xs: '1.16rem', sm: '1.34rem' },
     letterSpacing: 0.25,
+  } satisfies SxProps<Theme>,
+  gameOpponentInactivityCountdownCard: {
+    width: '100%',
+    maxWidth: 760,
+    px: { xs: 1.5, sm: 1.9 },
+    py: { xs: 1.2, sm: 1.4 },
+    borderRadius: 2,
+    border: '1px solid rgba(146, 195, 92, 0.66)',
+    backgroundColor: 'rgba(129, 182, 76, 0.12)',
+    boxShadow: '0 8px 16px rgba(47, 64, 31, 0.12)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0.7,
+    textAlign: 'center',
+  } satisfies SxProps<Theme>,
+  gameOpponentInactivityCountdownLabel: {
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: uiColors.text.secondary,
+  } satisfies SxProps<Theme>,
+  gameOpponentInactivityCountdownValue: {
+    fontSize: { xs: '1.7rem', sm: '2rem' },
+    fontWeight: 900,
+    lineHeight: 1,
+    color: uiColors.text.primary,
+    fontVariantNumeric: 'tabular-nums',
+    letterSpacing: 1,
+  } satisfies SxProps<Theme>,
+  gameOpponentInactivityCountdownTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  } satisfies SxProps<Theme>,
+  gameOpponentInactivityCountdownFill: (percent: number): SxProps<Theme> => ({
+    width: `${Math.max(0, Math.min(100, percent))}%`,
+    height: '100%',
+    borderRadius: 999,
+    background: 'linear-gradient(90deg, rgba(157, 206, 103, 0.95), rgba(129, 182, 76, 0.95))',
+    transition: 'width 0.2s linear',
+  }),
+  gameOpponentInactivityCountdownHint: {
+    color: uiColors.text.secondary,
+    fontSize: '0.88rem',
   } satisfies SxProps<Theme>,
   boardRow: (size: number, rowIndex: number): SxProps<Theme> => ({
     display: 'flex',
@@ -867,26 +1163,12 @@ export const uiSx = {
     muted = false,
     owner: 'human' | 'opponent' | 'empty' = 'empty',
   ): SxProps<Theme> => {
-    const mutedFilter =
-      owner === 'human'
-        ? 'saturate(0.56) brightness(0.82) contrast(0.96)'
-        : owner === 'opponent'
-          ? 'saturate(0.5) brightness(0.8) contrast(0.95)'
-          : 'none';
-
-    const ownerBorderColor =
-      owner === 'human'
-        ? 'rgba(158, 235, 185, 0.84)'
-        : owner === 'opponent'
-          ? 'rgba(255, 186, 186, 0.9)'
-          : 'rgba(255, 255, 255, 0.72)';
-
-    const mutedPattern =
-      owner === 'human'
-        ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.28) 0 2px, rgba(255,255,255,0) 2px 6px)'
-        : owner === 'opponent'
-          ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.28) 0 2px, rgba(255,255,255,0) 2px 6px)'
-          : 'none';
+    const mutedFilter = getBoardOwnerMutedFilter(owner);
+    const ownerBorderColor = getBoardOwnerBorderColor(owner);
+    const mutedPattern = getBoardOwnerMutedPattern(owner);
+    const filter = getBoardHexFilter(highlighted, muted, mutedFilter);
+    const hoverFilter = getBoardHexHoverFilter(highlighted, muted, mutedFilter);
+    const borderStyle = getBoardHexBorderStyle(highlighted, owner, ownerBorderColor);
 
     return {
       width: 48,
@@ -909,11 +1191,7 @@ export const uiSx = {
       boxShadow: highlighted
         ? '0 0 0 2px rgba(255, 255, 255, 0.88)'
         : 'none',
-      filter: highlighted
-        ? 'saturate(1.12) brightness(1.02)'
-        : muted
-          ? mutedFilter
-          : 'none',
+      filter,
       transform: 'none',
       animation: 'none',
       '&::before':
@@ -937,21 +1215,13 @@ export const uiSx = {
               position: 'absolute',
               inset: highlighted ? 1 : 2,
               clipPath: 'inherit',
-              border: highlighted
-                ? '2px solid rgba(255,255,255,0.98)'
-                : owner === 'human'
-                  ? `2px dashed ${ownerBorderColor}`
-                  : `2px dotted ${ownerBorderColor}`,
+              border: borderStyle,
               pointerEvents: 'none',
             }
           : {},
       '&:hover': clickable
         ? {
-            filter: highlighted
-              ? 'saturate(1.12) brightness(1.02)'
-              : muted
-                ? mutedFilter
-                : 'brightness(0.92)',
+            filter: hoverFilter,
             cursor: 'pointer',
           }
         : {},

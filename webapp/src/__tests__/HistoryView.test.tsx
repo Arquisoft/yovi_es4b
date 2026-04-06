@@ -109,4 +109,27 @@ describe('HistoryView', () => {
     fireEvent.click(screen.getByRole('button', { name: /cerrar/i }));
     expect(screen.queryByText('Tablero final - match-1')).not.toBeInTheDocument();
   });
+
+  test('returns to first page when match history updates', () => {
+    const manyMatches = Array.from({ length: 11 }, (_, index) =>
+      buildMatch({
+        gameId: `match-${index + 1}`,
+      }),
+    );
+
+    const { rerender } = render(<HistoryView playerStats={PLAYER_STATS} matches={manyMatches} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /go to next page/i }));
+    expect(screen.getByText('match-11')).toBeInTheDocument();
+
+    const refreshedMatches = [
+      buildMatch({ gameId: 'match-new' }),
+      ...manyMatches,
+    ];
+
+    rerender(<HistoryView playerStats={PLAYER_STATS} matches={refreshedMatches} />);
+
+    expect(screen.getByText('match-new')).toBeInTheDocument();
+    expect(screen.queryByText('match-11')).not.toBeInTheDocument();
+  });
 });

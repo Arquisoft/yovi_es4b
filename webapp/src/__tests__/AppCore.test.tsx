@@ -6,29 +6,46 @@ import App from '../App';
 
 type AuthMock = {
   isAuthenticated: boolean;
+  isGuest: boolean;
+  hasSession: boolean;
+  displayName: string | null;
   token: string | null;
   username: string | null;
   loading: boolean;
   login: (token: string, username: string) => void;
   logout: () => void;
+  continueAsGuest: () => void;
+  openLogin: () => void;
   getAuthHeader: () => Record<string, string>;
 };
 
 type GameyMock = {
   boardSize: number;
   mode: 'human_vs_bot' | 'human_vs_human';
-  game: any | null;
+  botDifficulty: 'very_easy' | 'easy' | 'medium' | 'hard';
+  game: { game_id: string; game_over: boolean; yen: { players: string[]; size: number } } | null;
   error: string | null;
   loading: boolean;
-  board: any[];
+  restoringSession: boolean;
+  hasActiveGameInProgress: boolean;
+  gameIdPendingAutomaticOpen: string | null;
+  board: unknown[];
   canPlayCell: boolean;
   statusText: string;
+  myPlayerId: number | null;
+  matchmakingTicketId: string | null;
+  matchmakingStatus: 'idle' | 'waiting' | 'matched' | 'cancelled';
+  matchmakingPosition: number | null;
   setMode: (mode: 'human_vs_bot' | 'human_vs_human') => void;
+  setBotDifficulty: (difficulty: 'very_easy' | 'easy' | 'medium' | 'hard') => void;
   updateBoardSize: (size: number) => void;
   createNewGame: (next?: { mode?: 'human_vs_bot' | 'human_vs_human'; botId?: string }) => Promise<boolean>;
+  startMatchmaking: () => void;
+  cancelCurrentMatchmaking: () => void;
   refreshCurrentGame: () => void;
   resignCurrentGame: () => void;
-  playCell: (coords: any) => void;
+  playCell: (coords: unknown) => void;
+  acknowledgeAutomaticGameOpen: () => void;
 };
 
 let authState: AuthMock;
@@ -45,11 +62,16 @@ vi.mock('../useGamey', () => ({
 function buildAuth(overrides: Partial<AuthMock> = {}): AuthMock {
   return {
     isAuthenticated: true,
+    isGuest: false,
+    hasSession: true,
+    displayName: 'adri',
     token: 'fake-token',
     username: 'adri',
     loading: false,
     login: vi.fn(),
     logout: vi.fn(),
+    continueAsGuest: vi.fn(),
+    openLogin: vi.fn(),
     getAuthHeader: () => ({}),
     ...overrides,
   };
@@ -59,6 +81,7 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
   return {
     boardSize: 7,
     mode: 'human_vs_bot',
+    botDifficulty: 'easy',
     game: {
       game_id: 'app-game',
       game_over: false,
@@ -66,15 +89,26 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
     },
     error: null,
     loading: false,
+    restoringSession: false,
+    hasActiveGameInProgress: false,
+    gameIdPendingAutomaticOpen: null,
     board: [],
     canPlayCell: true,
     statusText: 'Turno',
+    myPlayerId: null,
+    matchmakingTicketId: null,
+    matchmakingStatus: 'idle',
+    matchmakingPosition: null,
     setMode: vi.fn(),
+    setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
     createNewGame: vi.fn().mockResolvedValue(true),
+    startMatchmaking: vi.fn(),
+    cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
     playCell: vi.fn(),
+    acknowledgeAutomaticGameOpen: vi.fn(),
     ...overrides,
   };
 }
@@ -94,7 +128,14 @@ describe('App core flows', () => {
   });
 
   test('shows login view when user is not authenticated', () => {
-    authState = buildAuth({ isAuthenticated: false, token: null, username: null });
+    authState = buildAuth({
+      isAuthenticated: false,
+      isGuest: false,
+      hasSession: false,
+      displayName: null,
+      token: null,
+      username: null,
+    });
 
     render(<App />);
 
@@ -122,5 +163,48 @@ describe('App core flows', () => {
       expect(createNewGame).toHaveBeenCalledWith();
       expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
     });
+  });
+
+  test('opens the game view when restoring an online game', async () => {
+    gameyState = buildGamey({ gameIdPendingAutomaticOpen: 'app-game' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
+    });
+
+    expect(gameyState.acknowledgeAutomaticGameOpen).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows a resume button in play menu when there is an active game', async () => {
+    gameyState = buildGamey({ hasActiveGameInProgress: true });
+
+    render(<App />);
+    const user = userEvent.setup();
+
+    expect(screen.getByRole('button', { name: /volver a la partida/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /volver a la partida/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
+    });
+  });
+
+  test('shows guest name inside the app header when the user continues without account', () => {
+    authState = buildAuth({
+      isAuthenticated: false,
+      isGuest: true,
+      hasSession: true,
+      displayName: 'Usuario anonimo',
+      token: null,
+      username: null,
+    });
+
+    render(<App />);
+
+    expect(screen.getByText(/hello,/i)).toBeInTheDocument();
+    expect(screen.getByText(/usuario anonimo/i)).toBeInTheDocument();
   });
 });

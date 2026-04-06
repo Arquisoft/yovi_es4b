@@ -1,0 +1,4 @@
+
+> gateway@1.0.0 test:coverage
+> node -e "require('fs').mkdirSync('coverage',{recursive:true})" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info
+

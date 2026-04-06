@@ -8,7 +8,8 @@
 
 use clap::{Parser, ValueEnum};
 use crate::{
-    BiasedRandomBot, Coordinates, GameAction, GameStatus, GameY, GreedyBot, MinimaxBot, Movement, PlayerId, RandomBot, RenderOptions, YBot, YBotRegistry,
+    BiasedRandomBot, Coordinates, GameAction, GameStatus, GameY, GreedyBot, MinimaxBot,
+    Movement, PlayerId, RandomBot, RenderOptions, YBot, YBotRegistry,
 };
 use anyhow::Result;
 use rustyline::DefaultEditor;
@@ -308,13 +309,7 @@ pub fn parse_idx(part: &str, bound: u32) -> Result<u32, String> {
 }
 
 /// Application logic for a Move command (Human + optional Bot response)
-fn handle_place_command(
-    game: &mut GameY,
-    idx: u32,
-    player: PlayerId,
-    mode: Mode,
-    bot: &dyn YBot,
-) {
+fn handle_place_command(game: &mut GameY, idx: u32, player: PlayerId, mode: Mode, bot: &dyn YBot) {
     let coords = Coordinates::from_index(idx, game.board_size());
     let movement = Movement::Placement { player, coords };
 
@@ -528,4 +523,3 @@ mod tests {
         assert!(debug.contains("5"));
     }
 }
-

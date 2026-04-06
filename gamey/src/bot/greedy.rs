@@ -76,10 +76,13 @@ impl YBot for GreedyBot {
 
             // Simulate the move
             let mut simulated_board = board.clone();
-            if simulated_board.add_move(crate::Movement::Placement {
-                player: current_player,
-                coords,
-            }).is_ok() {
+            if simulated_board
+                .add_move(crate::Movement::Placement {
+                    player: current_player,
+                    coords,
+                })
+                .is_ok()
+            {
                 let score = Self::evaluate_board(&simulated_board, current_player);
 
                 if score > best_score {
@@ -118,16 +121,33 @@ mod tests {
         let mut game = GameY::new(3);
         // set up a winning position for player 0 using known moves
         let winning_moves = vec![
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 2) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(2, 0, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 1, 1) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(1, 1, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 2, 0) },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 0, 2),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(2, 0, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 1, 1),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(1, 1, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 2, 0),
+            },
         ];
         for mv in winning_moves {
             game.add_move(mv).unwrap();
         }
-        assert!(matches!(game.status(), crate::GameStatus::Finished { winner } if *winner == crate::PlayerId::new(0)));
+        assert!(
+            matches!(game.status(), crate::GameStatus::Finished { winner } if *winner == crate::PlayerId::new(0))
+        );
 
         // evaluation for winner should be positive large, for loser negative
         let win_score = GreedyBot::evaluate_board(&game, crate::PlayerId::new(0));
@@ -142,9 +162,18 @@ mod tests {
         let mut game = GameY::new(2);
         // fill the board completely
         let fills = vec![
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(1, 0, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(0, 1, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 1) },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(1, 0, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(0, 1, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 0, 1),
+            },
         ];
         for mv in fills {
             game.add_move(mv).unwrap();
@@ -159,10 +188,22 @@ mod tests {
         let mut game = GameY::new(3);
         // all but the winning move have been made
         let moves = vec![
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 2) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(2, 0, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 1, 1) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(1, 1, 0) },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 0, 2),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(2, 0, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 1, 1),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(1, 1, 0),
+            },
         ];
         for mv in moves {
             game.add_move(mv).unwrap();

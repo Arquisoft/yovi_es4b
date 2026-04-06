@@ -35,7 +35,6 @@ function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = 
     resignCurrentGame: vi.fn(),
     requestHint: vi.fn(),
     playCell: vi.fn(),
-    onBack: vi.fn(),
     ...overrides,
   };
 }
@@ -70,6 +69,7 @@ describe('GameView', () => {
     render(<GameView {...buildProps()} />);
 
     expect(screen.getByText(/partida game-123/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^rival:/i)).not.toBeInTheDocument();
 
     const boardProps = screen.getByTestId('triangular-board-mock');
     expect(boardProps).toHaveTextContent('"humanSymbol":"B"');
@@ -93,23 +93,10 @@ describe('GameView', () => {
     expect(screen.queryByText(/^bot:/i)).not.toBeInTheDocument();
   });
 
-  test('passes null human symbol when players are missing', () => {
-    render(
-      <GameView
-        {...buildProps({
-          game: buildGame({
-            yen: { size: 7, turn: 0, players: [], layout: 'B/R' },
-          }),
-        })}
-      />,
-    );
-
-    expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":null');
-  });
-
   test('calls resign, hint and back actions from buttons', () => {
     const requestHint = vi.fn();
-    const props = buildProps({ requestHint });
+    const onBack = vi.fn();
+    const props = buildProps({ requestHint, onBack });
     render(<GameView {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: /rendirse/i }));
@@ -118,7 +105,7 @@ describe('GameView', () => {
 
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
     expect(requestHint).toHaveBeenCalledTimes(1);
-    expect(props.onBack).toHaveBeenCalledTimes(1);
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 
   test('disables action buttons when loading or game is over', () => {
@@ -184,5 +171,73 @@ describe('GameView', () => {
 
     expect(screen.getByText(/sugerencia:/i)).toBeInTheDocument();
     expect(screen.getByText(/1, 1, -2/)).toBeInTheDocument();
+  });
+
+  test('uses myPlayerId to resolve winner and local symbol in online games', () => {
+    render(
+      <GameView
+        {...buildProps({
+          currentUserId: 'jose',
+          myPlayerId: 1,
+          game: buildGame({
+            mode: 'human_vs_human',
+            game_over: true,
+            winner: 1,
+            player0_user_id: 'fernando',
+            player1_user_id: 'jose',
+            yen: {
+              size: 3,
+              turn: 1,
+              players: ['B', 'R'],
+              layout: 'R/RR/RRB',
+            },
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/^victoria$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^rival: fernando$/i)).toBeInTheDocument();
+    expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"humanSymbol":"R"');
+  });
+
+  test('shows the opponent inactivity countdown while waiting for an online rival that stopped responding', () => {
+    render(
+      <GameView
+        {...buildProps({
+          currentUserId: 'jose',
+          myPlayerId: 1,
+          game: buildGame({
+            mode: 'human_vs_human',
+            next_player: 0,
+            player0_user_id: 'fernando',
+            player1_user_id: 'jose',
+            opponent_inactivity_timeout_remaining_ms: 45_000,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/esperando al rival/i)).toBeInTheDocument();
+    expect(screen.getByText('00:45')).toBeInTheDocument();
+    expect(screen.getByText(/ganaras por abandono/i)).toBeInTheDocument();
+  });
+
+  test('resolves opponent by current user when myPlayerId is missing', () => {
+    render(
+      <GameView
+        {...buildProps({
+          currentUserId: 'fernando',
+          myPlayerId: null,
+          game: buildGame({
+            mode: 'human_vs_human',
+            player0_user_id: 'fernando',
+            player1_user_id: 'jose',
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/^rival: jose$/i)).toBeInTheDocument();
   });
 });

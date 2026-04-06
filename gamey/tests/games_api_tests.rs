@@ -17,7 +17,20 @@ async fn request_json(
     uri: &str,
     body: Option<Value>,
 ) -> (StatusCode, Value) {
+    request_json_with_headers(app, method, uri, body, &[]).await
+}
+
+async fn request_json_with_headers(
+    app: &axum::Router,
+    method: Method,
+    uri: &str,
+    body: Option<Value>,
+    headers: &[(&str, &str)],
+) -> (StatusCode, Value) {
     let mut builder = Request::builder().method(method).uri(uri);
+    for (name, value) in headers {
+        builder = builder.header(*name, *value);
+    }
 
     let request = match body {
         Some(payload) => {
@@ -76,6 +89,74 @@ async fn create_and_get_human_vs_human_game() {
     assert_eq!(fetched["next_player"], 0);
 }
 
+#[tokio::test]
+async fn create_game_exposes_player_user_ids_from_headers() {
+    let app = test_app();
+
+    let (create_status, created) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_human"
+        })),
+        &[("x-user-id", "fernando"), ("x-opponent-user-id", "jose")],
+    )
+    .await;
+
+    assert_eq!(create_status, StatusCode::OK);
+    assert_eq!(created["player0_user_id"], "fernando");
+    assert_eq!(created["player1_user_id"], "jose");
+
+    let game_id = created["game_id"].as_str().unwrap().to_string();
+    let (get_status, fetched) =
+        request_json(&app, Method::GET, &format!("/v1/games/{game_id}"), None).await;
+
+    assert_eq!(get_status, StatusCode::OK);
+    assert_eq!(fetched["player0_user_id"], "fernando");
+    assert_eq!(fetched["player1_user_id"], "jose");
+}
+
+#[tokio::test]
+async fn create_game_rejects_second_active_game_for_same_user() {
+    let app = test_app();
+
+    let (first_status, _) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot"
+        })),
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    assert_eq!(first_status, StatusCode::OK);
+
+    let (second_status, second_body) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot"
+        })),
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    assert_eq!(second_status, StatusCode::OK);
+    assert!(
+        second_body["message"]
+            .as_str()
+            .unwrap()
+            .contains("already has an active game")
+    );
+}
+
 // Test: create game rejects size zero.
 #[tokio::test]
 async fn create_game_rejects_size_zero() {
@@ -93,10 +174,12 @@ async fn create_game_rejects_size_zero() {
     .await;
 
     assert_eq!(status, StatusCode::OK);
-    assert!(body["message"]
-        .as_str()
-        .unwrap()
-        .contains("Board size must be >= 1"));
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap()
+            .contains("Board size must be >= 1")
+    );
 }
 
 // Test: create human vs human rejects bot id.
@@ -117,10 +200,12 @@ async fn create_human_vs_human_rejects_bot_id() {
     .await;
 
     assert_eq!(status, StatusCode::OK);
-    assert!(body["message"]
-        .as_str()
-        .unwrap()
-        .contains("bot_id is only valid in human_vs_bot mode"));
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap()
+            .contains("bot_id is only valid in human_vs_bot mode")
+    );
 }
 
 // Test: play move updates turn in human vs human game.
@@ -189,10 +274,12 @@ async fn play_move_rejects_invalid_coordinates() {
     .await;
 
     assert_eq!(status, StatusCode::OK);
-    assert!(body["message"]
-        .as_str()
-        .unwrap()
-        .contains("Invalid coordinates"));
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap()
+            .contains("Invalid coordinates")
+    );
 }
 
 // Test: play move returns error when game does not exist.

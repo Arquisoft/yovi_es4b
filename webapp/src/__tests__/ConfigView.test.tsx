@@ -12,6 +12,8 @@ function renderConfig(overrides: ConfigOverrides = {}) {
     mode: 'human_vs_bot',
     botDifficulty: 'easy',
     loading: false,
+    isGameConfigurationLocked: false,
+    gameConfigurationLockMessage: null,
     setMode: vi.fn(),
     setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
@@ -92,5 +94,15 @@ describe('ConfigView', () => {
     renderConfig({ loading: true });
 
     expect(screen.getByRole('button', { name: /cargando/i })).toBeDisabled();
+  });
+
+  test('shows configuration lock message and disables create button when a game is active', () => {
+    renderConfig({
+      isGameConfigurationLocked: true,
+      gameConfigurationLockMessage: 'Tienes una partida activa. Retomala antes de iniciar otra.',
+    });
+
+    expect(screen.getByRole('button', { name: /crear partida/i })).toBeDisabled();
+    expect(screen.getByText(/tienes una partida activa/i)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 use super::{
     error::ErrorResponse,
-    state::{AppState, GameSession},
+    state::{AppState, GameCompletionReason, GameSession},
     version::check_api_version,
 };
 use crate::{Coordinates, GameAction, GameStatus, GameY, MinimaxBot, Movement, PlayerId, YEN, bot::ybot::YBot};
@@ -10,8 +10,14 @@ use axum::{
     http::HeaderMap,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 use tracing::warn;
+
+const ONLINE_PLAYER_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60);
+const ONLINE_PLAYER_INACTIVITY_CHECK_INTERVAL: Duration = Duration::from_secs(5);
 
 /// Supported game modes for the HTTP API.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -40,6 +46,8 @@ pub struct CreateGameRequest {
 pub struct MoveRequest {
     /// Coordinates where the current player places a piece.
     pub coords: Coordinates,
+    /// Authentication token for multiplayer matchmaking games.
+    pub player_token: Option<String>,
 }
 
 /// Response payload containing full game state after each operation.
@@ -61,6 +69,14 @@ pub struct GameStateResponse {
     pub next_player: Option<u32>,
     /// Winner player id if game is finished.
     pub winner: Option<u32>,
+    /// Why the game finished, when available.
+    pub completion_reason: Option<GameCompletionReason>,
+    /// User id associated with player 0 (when available).
+    pub player0_user_id: Option<String>,
+    /// User id associated with player 1 (when available).
+    pub player1_user_id: Option<String>,
+    /// Remaining time before the opponent loses by inactivity, from the requesting player's perspective.
+    pub opponent_inactivity_timeout_remaining_ms: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -82,6 +98,18 @@ pub struct ApiVersionParams {
 pub struct GameParams {
     api_version: String,
     game_id: String,
+}
+
+pub fn start_inactive_online_game_monitor(state: AppState) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(ONLINE_PLAYER_INACTIVITY_CHECK_INTERVAL);
+        loop {
+            interval.tick().await;
+            if let Err(error) = forfeit_inactive_online_games(&state).await {
+                warn!("inactive online game monitor error: {}", error);
+            }
+        }
+    });
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -128,19 +156,32 @@ pub async fn create_game(
     }
 
     let bot_id = resolve_bot_id(&state, request.mode, request.bot_id, &params.api_version)?;
+    let player0_user_id = read_header_string(&headers, "x-user-id");
+    let player1_user_id = read_header_string(&headers, "x-opponent-user-id");
+
+    ensure_user_id_is_available_for_new_game(&state, player0_user_id.as_deref(), &params.api_version)
+        .await?;
+    ensure_user_id_is_available_for_new_game(&state, player1_user_id.as_deref(), &params.api_version)
+        .await?;
+
     let session = GameSession {
         game: GameY::new(request.size),
         bot_id: bot_id.clone(),
-        player0_user_id: read_header_string(&headers, "x-user-id"),
-        player1_user_id: read_header_string(&headers, "x-opponent-user-id"),
+        created_at: Instant::now(),
+        player_tokens: None,
+        last_seen_at_by_player_id: None,
+        player0_user_id,
+        player1_user_id,
         stats_reported: false,
+        completion_reason: None,
     };
 
     let game_id = state.new_game_id();
-    let response = build_game_state_response(&params.api_version, &game_id, &session);
+    let response = build_game_state_response(&params.api_version, &game_id, &session, None);
 
     let games = state.games();
-    games.write().await.insert(game_id, session);
+    games.write().await.insert(game_id.clone(), session.clone());
+    register_active_game_for_session_users(&state, &game_id, &session).await;
 
     Ok(Json(response))
 }
@@ -152,17 +193,24 @@ pub async fn create_game(
 pub async fn get_game(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
+    headers: HeaderMap,
 ) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
     check_api_version(&params.api_version)?;
 
     let games = state.games();
-    let guard = games.read().await;
-    let session = require_game_session(&guard, &params)?;
+    let mut guard = games.write().await;
+    let session = require_game_session_mut(&mut guard, &params)?;
+    let requesting_player_id = find_player_id_from_header_token(session, &headers);
+
+    if let Some(requesting_player_id) = requesting_player_id {
+        record_online_player_presence(session, requesting_player_id);
+    }
 
     Ok(Json(build_game_state_response(
         &params.api_version,
         &params.game_id,
         session,
+        requesting_player_id,
     )))
 }
 
@@ -182,6 +230,7 @@ pub async fn play_move(
     let mut guard = games.write().await;
 
     let pending_report: Option<FinishedMatchRequest>;
+    let user_ids_to_release_from_active_game_index: Option<Vec<String>>;
 
     let response = {
         let session = require_game_session_mut(&mut guard, &params)?;
@@ -195,6 +244,13 @@ pub async fn play_move(
         })?;
 
         let current_player = current_player_or_finished(&session.game, &params.api_version)?;
+        validate_player_token_for_turn(
+            session,
+            current_player,
+            request.player_token.as_deref(),
+            &params.api_version,
+        )?;
+        record_online_player_presence(session, current_player);
 
         if session.bot_id.is_some() && current_player != PlayerId::new(0) {
             return Err(error_response(
@@ -258,11 +314,24 @@ pub async fn play_move(
         }
 
         pending_report = prepare_stats_report_if_needed(&params.game_id, session);
+        user_ids_to_release_from_active_game_index =
+            build_finished_game_user_id_list(session);
 
-        build_game_state_response(&params.api_version, &params.game_id, session)
+        build_game_state_response(
+            &params.api_version,
+            &params.game_id,
+            session,
+            Some(current_player),
+        )
     };
 
     drop(guard);
+    clear_active_game_registration_if_needed(
+        &state,
+        &params.game_id,
+        user_ids_to_release_from_active_game_index,
+    )
+    .await;
     report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
@@ -280,7 +349,9 @@ pub async fn hint_game(
 
     let games = state.games();
     let guard = games.read().await;
-    let session = require_game_session(&guard, &params)?;
+    let session = guard
+        .get(&params.game_id)
+        .ok_or_else(|| game_not_found_error(&params.api_version, &params.game_id))?;
     ensure_game_not_finished(&session.game, &params.api_version)?;
 
     let current_player = current_player_or_finished(&session.game, &params.api_version)?;
@@ -316,6 +387,7 @@ pub async fn hint_game(
 pub async fn resign_game(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
+    headers: HeaderMap,
 ) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
     check_api_version(&params.api_version)?;
 
@@ -323,16 +395,22 @@ pub async fn resign_game(
     let mut guard = games.write().await;
 
     let pending_report: Option<FinishedMatchRequest>;
+    let user_ids_to_release_from_active_game_index: Option<Vec<String>>;
 
     let response = {
         let session = require_game_session_mut(&mut guard, &params)?;
         ensure_game_not_finished(&session.game, &params.api_version)?;
 
-        let resigning_player = match (&session.bot_id, session.game.next_player()) {
-            (Some(_), _) => PlayerId::new(0),
-            (None, Some(player)) => player,
-            (None, None) => return Err(game_finished_error(&params.api_version)),
+        let resigning_player = match &session.player_tokens {
+            Some(_) => resolve_player_from_header_token(session, &headers, &params.api_version)?,
+            None => match (&session.bot_id, session.game.next_player()) {
+                (Some(_), _) => PlayerId::new(0),
+                (None, Some(player)) => player,
+                (None, None) => return Err(game_finished_error(&params.api_version)),
+            },
         };
+        record_online_player_presence(session, resigning_player);
+        session.completion_reason = Some(GameCompletionReason::Resignation);
 
         session
             .game
@@ -348,11 +426,24 @@ pub async fn resign_game(
             })?;
 
         pending_report = prepare_stats_report_if_needed(&params.game_id, session);
+        user_ids_to_release_from_active_game_index =
+            build_finished_game_user_id_list(session);
 
-        build_game_state_response(&params.api_version, &params.game_id, session)
+        build_game_state_response(
+            &params.api_version,
+            &params.game_id,
+            session,
+            Some(resigning_player),
+        )
     };
 
     drop(guard);
+    clear_active_game_registration_if_needed(
+        &state,
+        &params.game_id,
+        user_ids_to_release_from_active_game_index,
+    )
+    .await;
     report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
@@ -410,6 +501,13 @@ fn prepare_stats_report_if_needed(
         GameStatus::Finished { winner } => winner.id(),
         GameStatus::Ongoing { .. } => return None,
     };
+    if session.completion_reason.is_none() {
+        session.completion_reason = Some(GameCompletionReason::WinCondition);
+    }
+
+    let completion_reason = session
+        .completion_reason
+        .unwrap_or(GameCompletionReason::WinCondition);
 
     let p0 = player0_id(session);
     let p1 = player1_id(session);
@@ -426,7 +524,7 @@ fn prepare_stats_report_if_needed(
         game_id: game_id.to_string(),
         mode: Some(mode_name(session)),
         bot_id: session.bot_id.clone(),
-        reason: None,
+        reason: Some(game_completion_reason_to_stats_reason(completion_reason).to_string()),
         winner_id: Some(winner_user_id),
         final_board: Some(final_board),
         players: vec![
@@ -484,17 +582,240 @@ async fn report_finished_match_if_needed(pending_report: Option<FinishedMatchReq
     }
 }
 
-fn default_board_size() -> u32 {
-    7
+async fn forfeit_inactive_online_games(state: &AppState) -> Result<(), String> {
+    let mut pending_reports = Vec::new();
+    let mut finished_games_to_unregister = Vec::new();
+    let now = Instant::now();
+
+    let games = state.games();
+    let mut games_guard = games.write().await;
+
+    for (game_id, session) in games_guard.iter_mut() {
+        let Some(player_to_forfeit) = find_player_to_forfeit_for_inactivity(
+            session,
+            now,
+            ONLINE_PLAYER_INACTIVITY_TIMEOUT,
+        ) else {
+            continue;
+        };
+
+        session.completion_reason = Some(GameCompletionReason::DisconnectTimeout);
+        session
+            .game
+            .add_move(Movement::Action {
+                player: player_to_forfeit,
+                action: GameAction::Resign,
+            })
+            .map_err(|error| {
+                format!(
+                    "could not forfeit inactive player {} in game {}: {}",
+                    player_to_forfeit.id(),
+                    game_id,
+                    error
+                )
+            })?;
+
+        if let Some(pending_report) = prepare_stats_report_if_needed(game_id, session) {
+            pending_reports.push(pending_report);
+        }
+
+        if let Some(user_ids_to_unregister) = build_finished_game_user_id_list(session) {
+            finished_games_to_unregister.push((game_id.clone(), user_ids_to_unregister));
+        }
+    }
+
+    drop(games_guard);
+
+    for (game_id, user_ids_to_unregister) in finished_games_to_unregister {
+        unregister_active_game_for_user_ids(state, &game_id, &user_ids_to_unregister).await;
+    }
+
+    for pending_report in pending_reports {
+        report_finished_match_if_needed(Some(pending_report)).await;
+    }
+
+    Ok(())
 }
 
-fn require_game_session<'a>(
-    games: &'a HashMap<String, GameSession>,
-    params: &GameParams,
-) -> Result<&'a GameSession, Json<ErrorResponse>> {
-    games
-        .get(&params.game_id)
-        .ok_or_else(|| game_not_found_error(&params.api_version, &params.game_id))
+fn find_player_to_forfeit_for_inactivity(
+    session: &GameSession,
+    now: Instant,
+    inactivity_timeout: Duration,
+) -> Option<PlayerId> {
+    if session.player_tokens.is_none() || session.game.check_game_over() {
+        return None;
+    }
+
+    let last_seen_at_by_player_id = session.last_seen_at_by_player_id.as_ref()?;
+    let player0_last_seen_at = last_seen_at_by_player_id
+        .get(&0)
+        .copied()
+        .unwrap_or(session.created_at);
+    let player1_last_seen_at = last_seen_at_by_player_id
+        .get(&1)
+        .copied()
+        .unwrap_or(session.created_at);
+
+    let player0_is_inactive =
+        now.saturating_duration_since(player0_last_seen_at) > inactivity_timeout;
+    let player1_is_inactive =
+        now.saturating_duration_since(player1_last_seen_at) > inactivity_timeout;
+
+    match (player0_is_inactive, player1_is_inactive) {
+        (true, false) => Some(PlayerId::new(0)),
+        (false, true) => Some(PlayerId::new(1)),
+        _ => None,
+    }
+}
+
+fn record_online_player_presence(session: &mut GameSession, player_id: PlayerId) {
+    let Some(last_seen_at_by_player_id) = &mut session.last_seen_at_by_player_id else {
+        return;
+    };
+
+    last_seen_at_by_player_id.insert(player_id.id(), Instant::now());
+}
+
+fn find_player_id_from_header_token(
+    session: &GameSession,
+    headers: &HeaderMap,
+) -> Option<PlayerId> {
+    let tokens = session.player_tokens.as_ref()?;
+    let provided_token = headers.get("x-player-token")?.to_str().ok()?;
+
+    tokens.iter().find_map(|(player_id, stored_token)| {
+        if stored_token == provided_token {
+            Some(PlayerId::new(*player_id))
+        } else {
+            None
+        }
+    })
+}
+
+pub(super) async fn ensure_user_id_is_available_for_new_game(
+    state: &AppState,
+    user_id: Option<&str>,
+    api_version: &str,
+) -> Result<(), Json<ErrorResponse>> {
+    let Some(normalized_user_id) = normalize_user_id_for_tracking(user_id) else {
+        return Ok(());
+    };
+
+    let active_game_id_by_user_id = state.active_game_id_by_user_id();
+    let active_game_id_by_user_id_guard = active_game_id_by_user_id.read().await;
+
+    if let Some(active_game_id) = active_game_id_by_user_id_guard.get(&normalized_user_id) {
+        return Err(error_response(
+            &format!(
+                "User {} already has an active game: {}",
+                normalized_user_id, active_game_id
+            ),
+            Some(api_version.to_string()),
+        ));
+    }
+
+    Ok(())
+}
+
+pub(super) async fn register_active_game_for_session_users(
+    state: &AppState,
+    game_id: &str,
+    session: &GameSession,
+) {
+    let tracked_user_ids = collect_tracked_user_ids(session);
+    if tracked_user_ids.is_empty() {
+        return;
+    }
+
+    let active_game_id_by_user_id = state.active_game_id_by_user_id();
+    let mut active_game_id_by_user_id_guard = active_game_id_by_user_id.write().await;
+
+    for tracked_user_id in tracked_user_ids {
+        active_game_id_by_user_id_guard.insert(tracked_user_id, game_id.to_string());
+    }
+}
+
+async fn clear_active_game_registration_if_needed(
+    state: &AppState,
+    game_id: &str,
+    user_ids_to_unregister: Option<Vec<String>>,
+) {
+    let Some(user_ids_to_unregister) = user_ids_to_unregister else {
+        return;
+    };
+
+    unregister_active_game_for_user_ids(state, game_id, &user_ids_to_unregister).await;
+}
+
+async fn unregister_active_game_for_user_ids(
+    state: &AppState,
+    game_id: &str,
+    user_ids_to_unregister: &[String],
+) {
+    if user_ids_to_unregister.is_empty() {
+        return;
+    }
+
+    let active_game_id_by_user_id = state.active_game_id_by_user_id();
+    let mut active_game_id_by_user_id_guard = active_game_id_by_user_id.write().await;
+
+    for user_id_to_unregister in user_ids_to_unregister {
+        if active_game_id_by_user_id_guard
+            .get(user_id_to_unregister)
+            .is_some_and(|registered_game_id| registered_game_id == game_id)
+        {
+            active_game_id_by_user_id_guard.remove(user_id_to_unregister);
+        }
+    }
+}
+
+fn build_finished_game_user_id_list(session: &GameSession) -> Option<Vec<String>> {
+    if !session.game.check_game_over() {
+        return None;
+    }
+
+    let tracked_user_ids = collect_tracked_user_ids(session);
+    if tracked_user_ids.is_empty() {
+        return None;
+    }
+
+    Some(tracked_user_ids)
+}
+
+fn collect_tracked_user_ids(session: &GameSession) -> Vec<String> {
+    let mut tracked_user_ids = Vec::new();
+
+    if let Some(player0_user_id) = normalize_user_id_for_tracking(session.player0_user_id.as_deref())
+    {
+        tracked_user_ids.push(player0_user_id);
+    }
+
+    if let Some(player1_user_id) = normalize_user_id_for_tracking(session.player1_user_id.as_deref())
+        && !tracked_user_ids.contains(&player1_user_id)
+    {
+        tracked_user_ids.push(player1_user_id);
+    }
+
+    tracked_user_ids
+}
+
+fn normalize_user_id_for_tracking(user_id: Option<&str>) -> Option<String> {
+    user_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_lowercase())
+}
+
+fn game_completion_reason_to_stats_reason(completion_reason: GameCompletionReason) -> &'static str {
+    match completion_reason {
+        GameCompletionReason::WinCondition => "win_condition",
+        GameCompletionReason::Resignation => "resignation",
+        GameCompletionReason::DisconnectTimeout => "disconnect_timeout",
+    }
+}
+
+fn default_board_size() -> u32 {
+    7
 }
 
 fn require_game_session_mut<'a>(
@@ -531,6 +852,78 @@ fn current_player_or_finished(
 ) -> Result<PlayerId, Json<ErrorResponse>> {
     game.next_player()
         .ok_or_else(|| game_finished_error(api_version))
+}
+
+fn validate_player_token_for_turn(
+    session: &GameSession,
+    current_player: PlayerId,
+    provided_token: Option<&str>,
+    api_version: &str,
+) -> Result<(), Json<ErrorResponse>> {
+    let Some(tokens) = &session.player_tokens else {
+        return Ok(());
+    };
+
+    let expected_token = tokens.get(&current_player.id()).ok_or_else(|| {
+        error_response(
+            "Player token configuration is invalid",
+            Some(api_version.to_string()),
+        )
+    })?;
+    let provided = provided_token.ok_or_else(|| {
+        error_response(
+            "player_token is required for this matchmaking game",
+            Some(api_version.to_string()),
+        )
+    })?;
+
+    if provided != expected_token {
+        return Err(error_response(
+            "Invalid player_token for current turn",
+            Some(api_version.to_string()),
+        ));
+    }
+
+    Ok(())
+}
+
+fn resolve_player_from_header_token(
+    session: &GameSession,
+    headers: &HeaderMap,
+    api_version: &str,
+) -> Result<PlayerId, Json<ErrorResponse>> {
+    let tokens = session.player_tokens.as_ref().ok_or_else(|| {
+        error_response(
+            "This game does not use player tokens",
+            Some(api_version.to_string()),
+        )
+    })?;
+
+    let provided = headers
+        .get("x-player-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| {
+            error_response(
+                "x-player-token header is required for this matchmaking game",
+                Some(api_version.to_string()),
+            )
+        })?;
+
+    tokens
+        .iter()
+        .find_map(|(player_id, token)| {
+            if token == provided {
+                Some(PlayerId::new(*player_id))
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| {
+            error_response(
+                "Invalid x-player-token for this game",
+                Some(api_version.to_string()),
+            )
+        })
 }
 
 fn bot_not_found_error(
@@ -600,6 +993,7 @@ fn build_game_state_response(
     api_version: &str,
     game_id: &str,
     session: &GameSession,
+    requesting_player_id: Option<PlayerId>,
 ) -> GameStateResponse {
     let (game_over, next_player, winner) = match session.game.status() {
         GameStatus::Ongoing { next_player } => (false, Some(next_player.id()), None),
@@ -618,7 +1012,38 @@ fn build_game_state_response(
         game_over,
         next_player,
         winner,
+        completion_reason: session.completion_reason,
+        player0_user_id: session.player0_user_id.clone(),
+        player1_user_id: session.player1_user_id.clone(),
+        opponent_inactivity_timeout_remaining_ms:
+            calculate_opponent_inactivity_timeout_remaining_ms(
+                session,
+                requesting_player_id,
+                Instant::now(),
+            ),
     }
+}
+
+fn calculate_opponent_inactivity_timeout_remaining_ms(
+    session: &GameSession,
+    requesting_player_id: Option<PlayerId>,
+    now: Instant,
+) -> Option<u64> {
+    if session.game.check_game_over() {
+        return None;
+    }
+
+    let requesting_player_id = requesting_player_id?;
+    let last_seen_at_by_player_id = session.last_seen_at_by_player_id.as_ref()?;
+    let opponent_player_id = if requesting_player_id.id() == 0 { 1 } else { 0 };
+    let opponent_last_seen_at = last_seen_at_by_player_id
+        .get(&opponent_player_id)
+        .copied()
+        .unwrap_or(session.created_at);
+    let elapsed = now.saturating_duration_since(opponent_last_seen_at);
+    let remaining = ONLINE_PLAYER_INACTIVITY_TIMEOUT.saturating_sub(elapsed);
+
+    Some(remaining.as_millis().min(u128::from(u64::MAX)) as u64)
 }
 
 fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorResponse> {
@@ -628,6 +1053,10 @@ fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorRespo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bot_server::state::AppState;
+    use crate::YBotRegistry;
+    use std::collections::HashMap;
+    use std::time::Duration;
 
     #[test]
     fn test_validate_coordinates_ok() {
@@ -646,5 +1075,52 @@ mod tests {
         let coords = Coordinates::new(3, 0, 0);
         assert!(validate_coordinates(&coords, 3).is_err());
     }
-}
 
+    #[test]
+    fn test_find_player_to_forfeit_for_inactivity_returns_inactive_player_only_when_opponent_is_recent()
+    {
+        let now = Instant::now();
+        let mut last_seen_at_by_player_id = HashMap::new();
+        last_seen_at_by_player_id.insert(1, now);
+
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: now
+                .checked_sub(Duration::from_secs(61))
+                .expect("instant subtraction should succeed"),
+            player_tokens: Some(HashMap::from([
+                (0, "player-0-token".to_string()),
+                (1, "player-1-token".to_string()),
+            ])),
+            last_seen_at_by_player_id: Some(last_seen_at_by_player_id),
+            player0_user_id: Some("fernando".to_string()),
+            player1_user_id: Some("jose".to_string()),
+            stats_reported: false,
+            completion_reason: None,
+        };
+
+        let forfeiting_player = find_player_to_forfeit_for_inactivity(
+            &session,
+            now,
+            Duration::from_secs(60),
+        );
+
+        assert_eq!(forfeiting_player, Some(PlayerId::new(0)));
+    }
+
+    #[tokio::test]
+    async fn test_ensure_user_id_is_available_for_new_game_rejects_existing_active_game() {
+        let state = AppState::new(YBotRegistry::new());
+        let active_game_id_by_user_id = state.active_game_id_by_user_id();
+        active_game_id_by_user_id
+            .write()
+            .await
+            .insert("fernando".to_string(), "game-7".to_string());
+
+        let result =
+            ensure_user_id_is_available_for_new_game(&state, Some("Fernando"), "v1").await;
+
+        assert!(result.is_err());
+    }
+}

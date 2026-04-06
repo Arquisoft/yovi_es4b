@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
@@ -15,17 +15,29 @@ const { loginSpy, createNewGameSpy, statsState } = vi.hoisted(() => ({
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const [isGuest, setIsGuest] = React.useState(false);
 
     return {
       isAuthenticated,
+      isGuest,
+      hasSession: isAuthenticated || isGuest,
+      displayName: isAuthenticated ? 'adri' : isGuest ? 'Usuario anonimo' : null,
       token: isAuthenticated ? 'fake-token' : null,
       username: isAuthenticated ? 'adri' : null,
       loading: false,
       login: (token: string, username: string) => {
         loginSpy(token, username);
         setIsAuthenticated(true);
+        setIsGuest(false);
       },
       logout: vi.fn(),
+      continueAsGuest: () => {
+        setIsAuthenticated(false);
+        setIsGuest(true);
+      },
+      openLogin: () => {
+        setIsGuest(false);
+      },
       getAuthHeader: () => ({}),
     };
   },
@@ -67,30 +79,51 @@ vi.mock('../useGamey', () => ({
       game,
       error: null,
       loading: false,
+      restoringSession: false,
+      hasActiveGameInProgress: Boolean(game),
+      gameIdPendingAutomaticOpen: null,
       board: [],
       canPlayCell: true,
       statusText: 'Turno',
+      myPlayerId: null,
+      matchmakingTicketId: null,
+      matchmakingStatus: 'idle' as const,
+      matchmakingPosition: null,
       setMode: vi.fn(),
       setBotDifficulty: vi.fn(),
       updateBoardSize: vi.fn(),
       createNewGame,
+      startMatchmaking: vi.fn(),
+      cancelCurrentMatchmaking: vi.fn(),
       refreshCurrentGame: vi.fn(),
       resignCurrentGame: vi.fn(),
       playCell: vi.fn(),
+      acknowledgeAutomaticGameOpen: vi.fn(),
     };
   },
 }));
 
 vi.mock('../views/LoginView', () => ({
-  default: ({ onNext, onAuth }: { onNext: () => void; onAuth: (token: string, username: string) => void }) => (
-    <button
-      onClick={() => {
-        onAuth('token-1', 'adri');
-        onNext();
-      }}
-    >
-      Mock Login View
-    </button>
+  default: ({
+    onNext,
+    onAuth,
+    onContinueAsGuest,
+  }: {
+    onNext: () => void;
+    onAuth: (token: string, username: string) => void;
+    onContinueAsGuest: () => void;
+  }) => (
+    <>
+      <button
+        onClick={() => {
+          onAuth('token-1', 'adri');
+          onNext();
+        }}
+      >
+        Mock Login View
+      </button>
+      <button onClick={onContinueAsGuest}>Mock Continue as Guest</button>
+    </>
   ),
 }));
 
@@ -99,6 +132,11 @@ describe('App additional flows', () => {
     loginSpy.mockReset();
     createNewGameSpy.mockReset();
     statsState.error = null;
+    vi.stubGlobal('confirm', vi.fn(() => true));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   test('logs in from the unauthenticated view and shows the dashboard', async () => {
@@ -137,6 +175,17 @@ describe('App additional flows', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/stats warning/i)).toBeInTheDocument();
+    });
+  });
+
+  test('can continue as guest and open the dashboard without logging in', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /mock continue as guest/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/usuario anonimo/i)).toBeInTheDocument();
+      expect(screen.getByText(/configurar partida/i)).toBeInTheDocument();
     });
   });
 });

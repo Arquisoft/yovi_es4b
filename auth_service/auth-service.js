@@ -36,7 +36,7 @@ function signToken(payload) {
 
 function authMiddleware(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
+  if (!auth?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Missing token' });
   }
   try {
@@ -122,7 +122,7 @@ app.get('/verify', authMiddleware, (req, res) => {
 
 // --- Start ---
 
-if (require.main === module) {
+if (require.main?.filename === __filename) {
   app.listen(port, () => {
     console.log(`Auth Service listening at http://localhost:${port}`);
   });

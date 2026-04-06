@@ -108,8 +108,7 @@ impl YBot for BiasedRandomBot {
         let mut rng = rand::rng();
         let weights: Vec<f64> = weighted_cells.iter().map(|(_, w)| *w).collect();
 
-        let dist = WeightedIndex::new(&weights)
-            .expect("weights should be valid");
+        let dist = WeightedIndex::new(&weights).expect("weights should be valid");
         let selected_idx = rng.sample(dist);
 
         let selected_cell = weighted_cells[selected_idx].0;
@@ -215,7 +214,10 @@ mod tests {
         let edge = Coordinates::new(0, 2, 2);
         let edge_weight = BiasedRandomBot::cell_weight(&edge, board_size);
 
-        assert!(corner_weight > edge_weight, "Corners should be weighted higher than edges");
+        assert!(
+            corner_weight > edge_weight,
+            "Corners should be weighted higher than edges"
+        );
     }
 
     #[test]
@@ -230,7 +232,10 @@ mod tests {
         let edge = Coordinates::new(0, 2, 2);
         let edge_weight = BiasedRandomBot::cell_weight(&edge, board_size);
 
-        assert!(edge_weight >= center_weight, "Edges should not be lower weight than center");
+        assert!(
+            edge_weight >= center_weight,
+            "Edges should not be lower weight than center"
+        );
     }
 
     #[test]
@@ -269,7 +274,10 @@ mod tests {
         // weights for two different cells should not always be equal
         let w1 = BiasedRandomBot::cell_weight(&Coordinates::new(0, 0, 4), board_size);
         let w2 = BiasedRandomBot::cell_weight(&Coordinates::new(1, 1, 3), board_size);
-        assert!( (w1 - w2).abs() > std::f64::EPSILON, "weights should vary between cells");
+        assert!(
+            (w1 - w2).abs() > std::f64::EPSILON,
+            "weights should vary between cells"
+        );
     }
 
     #[test]
