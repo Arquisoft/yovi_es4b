@@ -255,12 +255,24 @@ When('I resign the active match', async function () {
   await page.getByText(/partida finalizada|victoria|derrota/i).waitFor({ timeout: 10000 })
 })
 
-When('I abandon the active match from the sidebar', async function () {
+When('I leave the active match using the sidebar', async function () {
   const page = this.page
   if (!page) throw new Error('Page not initialized')
 
   await page.getByRole('button', { name: /ayuda/i }).click()
   await page.getByText(/reglas basicas/i).waitFor({ timeout: 10000 })
+
+  await page.getByRole('button', { name: /jugar/i }).click()
+  await page.getByRole('button', { name: /volver a la partida/i }).waitFor({ timeout: 10000 })
+})
+
+Then('I should still be able to resume the active match', async function () {
+  const page = this.page
+  if (!page) throw new Error('Page not initialized')
+
+  await page.getByRole('button', { name: /volver a la partida/i }).click()
+  const title = page.getByText(new RegExp(`partida\\s+${this.currentGameId}`, 'i'))
+  await title.waitFor({ timeout: 10000 })
 })
 
 When('I open the stats view', async function () {
