@@ -64,10 +64,7 @@ impl GameY {
 
     /// Returns true if the game has ended (has a winner).
     pub fn check_game_over(&self) -> bool {
-        match self.status {
-            GameStatus::Ongoing { .. } => false,
-            GameStatus::Finished { winner: _ } => true,
-        }
+        matches!(self.status, GameStatus::Finished { .. })
     }
 
     /// Returns the list of available cell indices where pieces can be placed.
@@ -193,28 +190,17 @@ impl GameY {
             tracing::info!("Game was already over. Move ignored for status update.");
         } else if won {
             tracing::debug!("Player {} wins the game!", player);
-            self.status = GameStatus::Finished { winner: player };
+            self.finish_with_winner(player);
         } else {
-            // tracing::debug!("No win yet..."); // Optional debug
-            self.status = GameStatus::Ongoing {
-                next_player: other_player(player),
-            };
+            self.advance_to_other_player(player);
         }
     }
 
     /// Handles non-placement actions (Resign, Swap, etc.)
     fn handle_action(&mut self, player: PlayerId, action: &GameAction) {
         match action {
-            GameAction::Resign => {
-                self.status = GameStatus::Finished {
-                    winner: other_player(player),
-                };
-            }
-            GameAction::Swap | GameAction::PassTurn => {
-                self.status = GameStatus::Ongoing {
-                    next_player: other_player(player),
-                };
-            }
+            GameAction::Resign => self.finish_with_winner(other_player(player)),
+            GameAction::Swap | GameAction::PassTurn => self.advance_to_other_player(player),
         }
     }
 
@@ -250,6 +236,16 @@ impl GameY {
         self.board_map.insert(coords, (set_idx, player));
 
         set_idx
+    }
+
+    fn finish_with_winner(&mut self, winner: PlayerId) {
+        self.status = GameStatus::Finished { winner };
+    }
+
+    fn advance_to_other_player(&mut self, current_player: PlayerId) {
+        self.status = GameStatus::Ongoing {
+            next_player: other_player(current_player),
+        };
     }
 
     /// Returns the size of the board (length of one side of the triangle).
@@ -473,27 +469,14 @@ impl TryFrom<YEN> for GameY {
                 let y = col as u32;
                 let z = game.size() - 1 - x - y;
                 let coords = Coordinates::new(x, y, z);
-                match cell {
-                    'B' => {
-                        ygame.add_move(Movement::Placement {
-                            player: PlayerId::new(0),
-                            coords,
-                        })?;
-                    }
-                    'R' => {
-                        ygame.add_move(Movement::Placement {
-                            player: PlayerId::new(1),
-                            coords,
-                        })?;
-                    }
-                    '.' => {}
-                    _ => {
-                        return Err(GameYError::InvalidCharInLayout {
-                            char: *cell,
-                            row,
-                            col,
-                        });
-                    }
+                if let Some(player) = player_from_layout_cell(*cell) {
+                    ygame.add_move(Movement::Placement { player, coords })?;
+                } else if *cell != '.' {
+                    return Err(GameYError::InvalidCharInLayout {
+                        char: *cell,
+                        row,
+                        col,
+                    });
                 }
             }
         }
@@ -536,6 +519,14 @@ pub fn other_player(player: PlayerId) -> PlayerId {
     }
 }
 
+fn player_from_layout_cell(cell: char) -> Option<PlayerId> {
+    match cell {
+        'B' => Some(PlayerId::new(0)),
+        'R' => Some(PlayerId::new(1)),
+        _ => None,
+    }
+}
+
 fn apply_player_color(symbol: String, player: Option<PlayerId>) -> String {
     match player {
         Some(p) if p.id() == 0 => format!("\x1b[34m{}\x1b[0m", symbol), // Blue
@@ -558,6 +549,35 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
+    fn assert_winner(game: &GameY, expected_winner: PlayerId) {
+        match game.status() {
+            GameStatus::Finished { winner } => {
+                assert_eq!(*winner, expected_winner);
+            }
+            other => panic!("Game should be finished with a winner. Found: {:?}", other),
+        }
+    }
+
+    fn assert_next_player(game: &GameY, expected_next_player: PlayerId) {
+        match game.status() {
+            GameStatus::Ongoing { next_player } => {
+                assert_eq!(*next_player, expected_next_player);
+            }
+            other => panic!("Game should be ongoing. Found: {:?}", other),
+        }
+    }
+
+    fn apply_moves(game: &mut GameY, moves: impl IntoIterator<Item = Movement>) {
+        for movement in moves {
+            game.add_move(movement).unwrap();
+        }
+    }
+
+    fn load_game_from_yen_str(yen_str: &str) -> GameY {
+        let yen: YEN = serde_json::from_str(yen_str).unwrap();
+        GameY::try_from(yen).unwrap()
+    }
+
     #[test]
     fn test_other_player() {
         assert_eq!(other_player(PlayerId::new(0)), PlayerId::new(1));
@@ -569,12 +589,7 @@ mod tests {
         let game = GameY::new(7);
         assert_eq!(game.board_size, 7);
         assert_eq!(game.history.len(), 0);
-        match game.status {
-            GameStatus::Ongoing { next_player } => {
-                assert_eq!(next_player, PlayerId::new(0));
-            }
-            _ => panic!("Game should be ongoing"),
-        }
+        assert_next_player(&game, PlayerId::new(0));
     }
 
     // Helper function to compare neighbor sets
@@ -639,7 +654,7 @@ mod tests {
     fn test_winning_condition() {
         let mut game = GameY::new(3);
 
-        let moves = vec![
+        apply_moves(&mut game, [
             Movement::Placement {
                 player: PlayerId::new(0),
                 coords: Coordinates::new(0, 2, 0),
@@ -660,25 +675,16 @@ mod tests {
                 player: PlayerId::new(0),
                 coords: Coordinates::new(0, 0, 2),
             },
-        ];
+        ]);
 
-        for mv in moves {
-            game.add_move(mv).unwrap();
-        }
-
-        match game.status {
-            GameStatus::Finished { winner } => {
-                assert_eq!(winner, PlayerId::new(0));
-            }
-            _ => panic!("Game should be finished with a winner"),
-        }
+        assert_winner(&game, PlayerId::new(0));
     }
 
     #[test]
     fn test_yen_conversion() {
         let mut game = GameY::new(3);
 
-        let moves = vec![
+        apply_moves(&mut game, [
             Movement::Placement {
                 player: PlayerId::new(0),
                 coords: Coordinates::new(0, 2, 0),
@@ -691,11 +697,7 @@ mod tests {
                 player: PlayerId::new(0),
                 coords: Coordinates::new(0, 1, 1),
             },
-        ];
-
-        for mv in moves {
-            game.add_move(mv).unwrap();
-        }
+        ]);
 
         let yen: YEN = (&game).into();
         let loaded_game = GameY::try_from(yen.clone()).unwrap();
@@ -708,76 +710,48 @@ mod tests {
     // Test loading a YEN representation of a finished game
     #[test]
     fn test_load_yen_end2() {
-        let yen_str = r#"{
+        let game = load_game_from_yen_str(r#"{
             "size": 2,
             "turn": 0,
             "players": ["B","R"],
             "layout": "B/BB"
-        }"#;
-        let yen: YEN = serde_json::from_str(yen_str).unwrap();
-        let game = GameY::try_from(yen).unwrap();
-        match game.status {
-            GameStatus::Finished { winner } => {
-                assert_eq!(winner, PlayerId::new(0));
-            }
-            _ => panic!("Game should be finished with a winner"),
-        }
+        }"#);
+        assert_winner(&game, PlayerId::new(0));
     }
 
     // Test loading a YEN representation of a finished game
     #[test]
     fn test_load_yen_end3() {
-        let yen_str = r#"{
+        let game = load_game_from_yen_str(r#"{
             "size": 3,
             "turn": 0,
             "players": ["B","R"],
             "layout": "B/BB/BBR"
-        }"#;
-        let yen: YEN = serde_json::from_str(yen_str).unwrap();
-        let game = GameY::try_from(yen).unwrap();
-        match game.status {
-            GameStatus::Finished { winner } => {
-                assert_eq!(winner, PlayerId::new(0));
-            }
-            other => panic!("Game should be finished with a winner. Found: {:?}", other),
-        }
+        }"#);
+        assert_winner(&game, PlayerId::new(0));
     }
 
     // Test loading a YEN representation of a finished game
     #[test]
     fn test_load_yen_single_full() {
-        let yen_str = r#"{
+        let game = load_game_from_yen_str(r#"{
             "size": 1,
             "turn": 0,
             "players": ["B","R"],
             "layout": "B"
-        }"#;
-        let yen: YEN = serde_json::from_str(yen_str).unwrap();
-        let game = GameY::try_from(yen).unwrap();
-        match game.status {
-            GameStatus::Finished { winner } => {
-                assert_eq!(winner, PlayerId::new(0));
-            }
-            other => panic!("Game should be finished with a winner. Found {:?}", other),
-        }
+        }"#);
+        assert_winner(&game, PlayerId::new(0));
     }
 
     // Test loading a YEN representation of a finished game
     #[test]
     fn test_load_yen_single_empty() {
-        let yen_str = r#"{
+        let game = load_game_from_yen_str(r#"{
             "size": 1,
             "turn": 0,
             "players": ["B","R"],
             "layout": "."
-        }"#;
-        let yen: YEN = serde_json::from_str(yen_str).unwrap();
-        let game = GameY::try_from(yen).unwrap();
-        match game.status {
-            GameStatus::Ongoing { next_player } => {
-                assert_eq!(next_player, PlayerId::new(0));
-            }
-            _ => panic!("Game should be ongoing"),
-        }
+        }"#);
+        assert_next_player(&game, PlayerId::new(0));
     }
 }
