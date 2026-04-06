@@ -44,8 +44,8 @@ services:
     build:
       context: ./gateway
       dockerfile: Dockerfile
-    ports:
-      - "80:8080"
+    expose:
+      - "8080"
     environment:
       - WEBAPP_SERVICE_URL=http://webapp:80
       - GAMEY_SERVICE_URL=http://gamey:4000
@@ -56,6 +56,26 @@ services:
       - gamey
       - stats
       - auth
+    networks:
+      - monitor-net
+
+  caddy:
+    container_name: caddy
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      - PUBLIC_DOMAIN=${PUBLIC_DOMAIN:-localhost}
+      - ACME_CONTACT=${ACME_CONTACT:-admin@example.com}
+      - ACME_DIRECTORY_URL=${ACME_DIRECTORY_URL:-https://acme-v02.api.letsencrypt.org/directory}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     networks:
       - monitor-net
 
@@ -121,3 +141,5 @@ networks:
 volumes:
   mongo-auth-data:
   mongo-stats-data:
+  caddy-data:
+  caddy-config:
