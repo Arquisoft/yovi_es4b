@@ -1149,6 +1149,13 @@ export const uiSx = {
     gap: 0.7,
     textAlign: 'center',
   }),
+  gameCountdownSlot: {
+    width: '100%',
+    maxWidth: 760,
+    minHeight: { xs: 142, sm: 154 },
+    display: 'flex',
+    alignItems: 'stretch',
+  } satisfies SxProps<Theme>,
   gameCountdownLabel: {
     fontSize: '0.8rem',
     fontWeight: 700,

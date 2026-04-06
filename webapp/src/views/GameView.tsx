@@ -261,6 +261,24 @@ const GameView: React.FC<Props> = ({
     turnCountdownTone = (game.next_player ?? 0) === 0 ? 'self' : 'opponent';
   }
 
+  const activeCountdownCard = shouldShowOpponentInactivityCountdown ? (
+    <CountdownCard
+      tone="disconnect"
+      label="Rival desconectado"
+      remainingMs={displayedOpponentInactivityTimeoutRemainingMs}
+      totalMs={OPPONENT_INACTIVITY_TIMEOUT_TOTAL_MS}
+      hint="Si no vuelve antes de que llegue a cero, ganaras por abandono."
+    />
+  ) : turnCountdownRemainingMs !== null ? (
+    <CountdownCard
+      tone={turnCountdownTone}
+      label={turnCountdownLabel}
+      remainingMs={turnCountdownRemainingMs}
+      totalMs={displayedServerTurnTimeoutRemainingMs !== null ? ONLINE_TURN_TIMEOUT_TOTAL_MS : LOCAL_TURN_TIMEOUT_TOTAL_MS}
+      hint={turnCountdownHint}
+    />
+  ) : null;
+
   React.useEffect(() => {
     if (
       !game ||
@@ -299,24 +317,10 @@ const GameView: React.FC<Props> = ({
         </Box>
       )}
 
-      {shouldShowOpponentInactivityCountdown && (
-        <CountdownCard
-          tone="disconnect"
-          label="Rival desconectado"
-          remainingMs={displayedOpponentInactivityTimeoutRemainingMs}
-          totalMs={OPPONENT_INACTIVITY_TIMEOUT_TOTAL_MS}
-          hint="Si no vuelve antes de que llegue a cero, ganaras por abandono."
-        />
-      )}
-
-      {turnCountdownRemainingMs !== null && (
-        <CountdownCard
-          tone={turnCountdownTone}
-          label={turnCountdownLabel}
-          remainingMs={turnCountdownRemainingMs}
-          totalMs={displayedServerTurnTimeoutRemainingMs !== null ? ONLINE_TURN_TIMEOUT_TOTAL_MS : LOCAL_TURN_TIMEOUT_TOTAL_MS}
-          hint={turnCountdownHint}
-        />
+      {!game.game_over && (
+        <Box sx={uiSx.gameCountdownSlot}>
+          {activeCountdownCard}
+        </Box>
       )}
 
       {shouldShowOpponent && (
