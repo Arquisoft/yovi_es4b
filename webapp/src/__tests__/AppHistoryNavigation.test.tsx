@@ -7,11 +7,16 @@ import App from '../App';
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({
     isAuthenticated: true,
+    isGuest: false,
+    hasSession: true,
+    displayName: 'adri',
     token: 'fake-token',
     username: 'adri',
     loading: false,
     login: vi.fn(),
     logout: vi.fn(),
+    continueAsGuest: vi.fn(),
+    openLogin: vi.fn(),
     getAuthHeader: () => ({}),
   }),
 }));
