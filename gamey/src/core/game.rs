@@ -302,72 +302,6 @@ impl GameY {
         }
         result
     }
-    /*pub fn render(&self, options: &RenderOptions) -> String {
-        let mut result = String::new();
-        let coords_size = self.board_size.to_string().len() as u32;
-
-        let _ = writeln!(result, "--- Game of Y (Size {}) ---", self.board_size);
-
-        for row in 0..self.board_size {
-            let x = self.board_size - 1 - row;
-
-            let indent_multiplier = match (options.show_3d_coords, options.show_idx) {
-                (true, true) => 8,
-                (true, false) => 4,
-                (false, true) => 4,
-                (false, false) => 2,
-            };
-
-            indent(&mut result, x * indent_multiplier);
-
-            for y in 0..=row {
-                let z = row - y;
-
-                let coords = Coordinates::new(x, y, z);
-                let player = self.board_map.get(&coords).map(|(_, p)| *p);
-
-                let mut symbol = match player {
-                    Some(p) => format!("{}", p),
-                    None => ".".to_string(),
-                };
-
-                if options.show_3d_coords {
-                    symbol.push_str(
-                        format!(
-                            "({:0width$},{:0width$},{:0width$})",
-                            x,
-                            y,
-                            z,
-                            width = coords_size as usize
-                        )
-                        .as_str(),
-                    );
-                }
-                if options.show_idx {
-                    let idx = coords.to_index(self.board_size);
-                    symbol.push_str(format!("({}) ", idx).as_str());
-                }
-                if options.show_colors {
-                    match player {
-                        Some(p) if p.id() == 0 => {
-                            symbol = format!("\x1b[34m{}\x1b[0m", symbol); // Blue for player 0
-                        }
-                        Some(p) if p.id() == 1 => {
-                            symbol = format!("\x1b[31m{}\x1b[0m", symbol); // Red for player 1
-                        }
-                        _ => {}
-                    }
-                }
-
-                let _ = write!(result, "{}   ", symbol);
-            }
-            result.push('\n');
-            if options.show_idx || options.show_3d_coords {
-                result.push('\n');
-            }
-        }
-        result
-    }*/
 
     fn get_indent_multiplier(&self, options: &RenderOptions) -> u32 {
         match (options.show_3d_coords, options.show_idx) {
@@ -548,6 +482,14 @@ pub enum GameStatus {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn placement(player: u32, x: u32, y: u32, z: u32) -> Movement {
+        Movement::Placement {
+            player: PlayerId::new(player),
+            coords: Coordinates::new(x, y, z),
+        }
+    }
 
     fn assert_winner(game: &GameY, expected_winner: PlayerId) {
         match game.status() {
@@ -578,6 +520,14 @@ mod tests {
         GameY::try_from(yen).unwrap()
     }
 
+    fn unique_temp_file_path(name: &str) -> std::path::PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("{}_{}_{}.json", name, std::process::id(), timestamp))
+    }
+
     #[test]
     fn test_other_player() {
         assert_eq!(other_player(PlayerId::new(0)), PlayerId::new(1));
@@ -589,7 +539,44 @@ mod tests {
         let game = GameY::new(7);
         assert_eq!(game.board_size, 7);
         assert_eq!(game.history.len(), 0);
+        assert_eq!(game.total_cells(), 28);
+        assert_eq!(game.available_cells().len(), 28);
+        assert_eq!(game.board_size(), 7);
+        assert_eq!(game.next_player(), Some(PlayerId::new(0)));
+        assert!(!game.check_game_over());
         assert_next_player(&game, PlayerId::new(0));
+    }
+
+    #[test]
+    fn test_check_player_turn_accepts_correct_player_for_placement_and_action() {
+        let game = GameY::new(3);
+
+        assert!(game
+            .check_player_turn(&placement(0, 2, 0, 0))
+            .is_ok());
+        assert!(game
+            .check_player_turn(&Movement::Action {
+                player: PlayerId::new(0),
+                action: GameAction::PassTurn,
+            })
+            .is_ok());
+    }
+
+    #[test]
+    fn test_check_player_turn_rejects_wrong_player() {
+        let game = GameY::new(3);
+
+        let error = game
+            .check_player_turn(&placement(1, 2, 0, 0))
+            .unwrap_err();
+
+        match error {
+            GameYError::InvalidPlayerTurn { expected, found } => {
+                assert_eq!(expected, PlayerId::new(0));
+                assert_eq!(found, PlayerId::new(1));
+            }
+            other => panic!("Expected InvalidPlayerTurn, found {:?}", other),
+        }
     }
 
     // Helper function to compare neighbor sets
@@ -655,29 +642,68 @@ mod tests {
         let mut game = GameY::new(3);
 
         apply_moves(&mut game, [
-            Movement::Placement {
-                player: PlayerId::new(0),
-                coords: Coordinates::new(0, 2, 0),
-            },
-            Movement::Placement {
-                player: PlayerId::new(1),
-                coords: Coordinates::new(2, 0, 0),
-            },
-            Movement::Placement {
-                player: PlayerId::new(0),
-                coords: Coordinates::new(0, 1, 1),
-            },
-            Movement::Placement {
-                player: PlayerId::new(1),
-                coords: Coordinates::new(1, 1, 0),
-            },
-            Movement::Placement {
-                player: PlayerId::new(0),
-                coords: Coordinates::new(0, 0, 2),
-            },
+            placement(0, 0, 2, 0),
+            placement(1, 2, 0, 0),
+            placement(0, 0, 1, 1),
+            placement(1, 1, 1, 0),
+            placement(0, 0, 0, 2),
         ]);
 
         assert_winner(&game, PlayerId::new(0));
+        assert!(game.check_game_over());
+        assert_eq!(game.next_player(), None);
+    }
+
+    #[test]
+    fn test_pass_turn_and_swap_advance_to_other_player() {
+        let mut game = GameY::new(3);
+
+        game.add_move(Movement::Action {
+            player: PlayerId::new(0),
+            action: GameAction::PassTurn,
+        })
+        .unwrap();
+        assert_next_player(&game, PlayerId::new(1));
+
+        game.add_move(Movement::Action {
+            player: PlayerId::new(1),
+            action: GameAction::Swap,
+        })
+        .unwrap();
+        assert_next_player(&game, PlayerId::new(0));
+    }
+
+    #[test]
+    fn test_resign_finishes_game_with_other_player_as_winner() {
+        let mut game = GameY::new(3);
+
+        game.add_move(Movement::Action {
+            player: PlayerId::new(0),
+            action: GameAction::Resign,
+        })
+        .unwrap();
+
+        assert_winner(&game, PlayerId::new(1));
+    }
+
+    #[test]
+    fn test_placing_on_occupied_cell_returns_error() {
+        let mut game = GameY::new(3);
+        let coords = Coordinates::new(2, 0, 0);
+
+        game.add_move(placement(0, 2, 0, 0)).unwrap();
+
+        let error = game
+            .add_move(placement(1, 2, 0, 0))
+            .unwrap_err();
+
+        match error {
+            GameYError::Occupied { coordinates, player } => {
+                assert_eq!(coordinates, coords);
+                assert_eq!(player, PlayerId::new(1));
+            }
+            other => panic!("Expected Occupied error, found {:?}", other),
+        }
     }
 
     #[test]
@@ -685,18 +711,9 @@ mod tests {
         let mut game = GameY::new(3);
 
         apply_moves(&mut game, [
-            Movement::Placement {
-                player: PlayerId::new(0),
-                coords: Coordinates::new(0, 2, 0),
-            },
-            Movement::Placement {
-                player: PlayerId::new(1),
-                coords: Coordinates::new(2, 0, 0),
-            },
-            Movement::Placement {
-                player: PlayerId::new(0),
-                coords: Coordinates::new(0, 1, 1),
-            },
+            placement(0, 0, 2, 0),
+            placement(1, 2, 0, 0),
+            placement(0, 0, 1, 1),
         ]);
 
         let yen: YEN = (&game).into();
@@ -707,51 +724,212 @@ mod tests {
         assert_eq!(yen.layout(), yen_loaded.layout());
     }
 
-    // Test loading a YEN representation of a finished game
     #[test]
-    fn test_load_yen_end2() {
-        let game = load_game_from_yen_str(r#"{
-            "size": 2,
-            "turn": 0,
-            "players": ["B","R"],
-            "layout": "B/BB"
-        }"#);
-        assert_winner(&game, PlayerId::new(0));
+    fn test_save_and_load_from_file_roundtrip() {
+        let mut game = GameY::new(3);
+        let file_path = unique_temp_file_path("gamey_roundtrip");
+
+        apply_moves(&mut game, [
+            placement(0, 2, 0, 0),
+            placement(1, 1, 1, 0),
+        ]);
+
+        game.save_to_file(&file_path).unwrap();
+        let loaded_game = GameY::load_from_file(&file_path).unwrap();
+        std::fs::remove_file(&file_path).unwrap();
+
+        let original_yen: YEN = (&game).into();
+        let loaded_yen: YEN = (&loaded_game).into();
+        assert_eq!(original_yen.layout(), loaded_yen.layout());
+        assert_eq!(original_yen.turn(), loaded_yen.turn());
     }
 
-    // Test loading a YEN representation of a finished game
     #[test]
-    fn test_load_yen_end3() {
-        let game = load_game_from_yen_str(r#"{
-            "size": 3,
-            "turn": 0,
-            "players": ["B","R"],
-            "layout": "B/BB/BBR"
-        }"#);
-        assert_winner(&game, PlayerId::new(0));
+    fn test_load_from_file_missing_path_returns_io_error() {
+        let file_path = unique_temp_file_path("gamey_missing");
+        let error = GameY::load_from_file(&file_path).unwrap_err();
+
+        match error {
+            GameYError::IoError { message, .. } => {
+                assert!(message.contains("Failed to read file"));
+            }
+            other => panic!("Expected IoError, found {:?}", other),
+        }
     }
 
-    // Test loading a YEN representation of a finished game
     #[test]
-    fn test_load_yen_single_full() {
-        let game = load_game_from_yen_str(r#"{
-            "size": 1,
-            "turn": 0,
-            "players": ["B","R"],
-            "layout": "B"
-        }"#);
-        assert_winner(&game, PlayerId::new(0));
+    fn test_load_from_file_invalid_json_returns_serde_error() {
+        let file_path = unique_temp_file_path("gamey_bad_json");
+        std::fs::write(&file_path, "{ invalid json").unwrap();
+
+        let error = GameY::load_from_file(&file_path).unwrap_err();
+        std::fs::remove_file(&file_path).unwrap();
+
+        match error {
+            GameYError::SerdeError { .. } => {}
+            other => panic!("Expected SerdeError, found {:?}", other),
+        }
     }
 
-    // Test loading a YEN representation of a finished game
     #[test]
-    fn test_load_yen_single_empty() {
-        let game = load_game_from_yen_str(r#"{
-            "size": 1,
-            "turn": 0,
-            "players": ["B","R"],
-            "layout": "."
-        }"#);
-        assert_next_player(&game, PlayerId::new(0));
+    fn test_render_includes_coordinates_indices_and_colors() {
+        let mut game = GameY::new(2);
+        game.add_move(placement(0, 1, 0, 0)).unwrap();
+
+        let rendered = game.render(&RenderOptions {
+            show_3d_coords: true,
+            show_idx: true,
+            show_colors: true,
+        });
+
+        assert!(rendered.contains("--- Game of Y (Size 2) ---"));
+        assert!(rendered.contains("(1,0,0)"));
+        assert!(rendered.contains("(0) "));
+        assert!(rendered.contains("\x1b[34m"));
+    }
+
+    #[test]
+    fn test_render_without_metadata_keeps_plain_board_symbols() {
+        let game = GameY::new(2);
+        let rendered = game.render(&RenderOptions {
+            show_3d_coords: false,
+            show_idx: false,
+            show_colors: false,
+        });
+
+        assert!(rendered.contains("."));
+        assert!(!rendered.contains("\x1b["));
+    }
+
+    #[test]
+    fn test_load_yen_status_cases() {
+        let cases = [
+            (
+                r#"{
+                    "size": 2,
+                    "turn": 0,
+                    "players": ["B","R"],
+                    "layout": "B/BB"
+                }"#,
+                Some(PlayerId::new(0)),
+                None,
+            ),
+            (
+                r#"{
+                    "size": 3,
+                    "turn": 0,
+                    "players": ["B","R"],
+                    "layout": "B/BB/BBR"
+                }"#,
+                Some(PlayerId::new(0)),
+                None,
+            ),
+            (
+                r#"{
+                    "size": 1,
+                    "turn": 0,
+                    "players": ["B","R"],
+                    "layout": "B"
+                }"#,
+                Some(PlayerId::new(0)),
+                None,
+            ),
+            (
+                r#"{
+                    "size": 1,
+                    "turn": 0,
+                    "players": ["B","R"],
+                    "layout": "."
+                }"#,
+                None,
+                Some(PlayerId::new(0)),
+            ),
+        ];
+
+        for (yen_str, winner, next_player) in cases {
+            let game = load_game_from_yen_str(yen_str);
+            if let Some(expected_winner) = winner {
+                assert_winner(&game, expected_winner);
+            }
+            if let Some(expected_next_player) = next_player {
+                assert_next_player(&game, expected_next_player);
+            }
+        }
+    }
+
+    #[test]
+    fn test_try_from_rejects_invalid_yen_cases() {
+        let cases = [
+            (
+                YEN::new(3, 0, vec!['B', 'R'], "B/BB".to_string()),
+                GameYError::InvalidYENLayout {
+                    expected: 3,
+                    found: 2,
+                },
+            ),
+            (
+                YEN::new(3, 0, vec!['B', 'R'], "B/B/BBB".to_string()),
+                GameYError::InvalidYENLayoutLine {
+                    expected: 2,
+                    found: 1,
+                    line: 1,
+                },
+            ),
+            (
+                YEN::new(2, 0, vec!['B', 'R'], "B/XB".to_string()),
+                GameYError::InvalidCharInLayout {
+                    char: 'X',
+                    row: 1,
+                    col: 0,
+                },
+            ),
+        ];
+
+        for (yen, expected_error) in cases {
+            let error = GameY::try_from(yen).unwrap_err();
+            match (error, expected_error) {
+                (
+                    GameYError::InvalidYENLayout { expected, found },
+                    GameYError::InvalidYENLayout {
+                        expected: expected_rows,
+                        found: found_rows,
+                    },
+                ) => {
+                    assert_eq!(expected, expected_rows);
+                    assert_eq!(found, found_rows);
+                }
+                (
+                    GameYError::InvalidYENLayoutLine {
+                        expected,
+                        found,
+                        line,
+                    },
+                    GameYError::InvalidYENLayoutLine {
+                        expected: expected_cells,
+                        found: found_cells,
+                        line: expected_line,
+                    },
+                ) => {
+                    assert_eq!(expected, expected_cells);
+                    assert_eq!(found, found_cells);
+                    assert_eq!(line, expected_line);
+                }
+                (
+                    GameYError::InvalidCharInLayout { char, row, col },
+                    GameYError::InvalidCharInLayout {
+                        char: expected_char,
+                        row: expected_row,
+                        col: expected_col,
+                    },
+                ) => {
+                    assert_eq!(char, expected_char);
+                    assert_eq!(row, expected_row);
+                    assert_eq!(col, expected_col);
+                }
+                (found, expected) => {
+                    panic!("Expected {:?}, found {:?}", expected, found);
+                }
+            }
+        }
     }
 }
