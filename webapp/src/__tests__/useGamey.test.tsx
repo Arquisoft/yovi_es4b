@@ -9,6 +9,7 @@ import { useGamey } from '../useGamey';
 const createGame = vi.fn();
 const getGame = vi.fn();
 const playMove = vi.fn();
+const passTurnGame = vi.fn();
 const resignGame = vi.fn();
 const enqueueMatchmaking = vi.fn();
 const getMatchmakingTicket = vi.fn();
@@ -18,6 +19,7 @@ vi.mock('../gameyApi', () => ({
   createGame: (...args: unknown[]) => createGame(...args),
   getGame: (...args: unknown[]) => getGame(...args),
   playMove: (...args: unknown[]) => playMove(...args),
+  passTurnGame: (...args: unknown[]) => passTurnGame(...args),
   resignGame: (...args: unknown[]) => resignGame(...args),
   enqueueMatchmaking: (...args: unknown[]) => enqueueMatchmaking(...args),
   getMatchmakingTicket: (...args: unknown[]) => getMatchmakingTicket(...args),
@@ -49,6 +51,7 @@ describe('useGamey', () => {
     createGame.mockReset();
     getGame.mockReset();
     playMove.mockReset();
+    passTurnGame.mockReset();
     resignGame.mockReset();
     enqueueMatchmaking.mockReset();
     getMatchmakingTicket.mockReset();
@@ -209,6 +212,26 @@ describe('useGamey', () => {
       { coords: { x: 1, y: 0, z: -1 } },
       'adri',
     );
+  });
+
+  test('passes the turn only when the human can act and the hook is not loading', async () => {
+    createGame.mockResolvedValue(buildGame());
+    passTurnGame.mockResolvedValue(buildGame({ next_player: 1 }));
+    const { result } = renderHook(() => useGamey('adri'));
+
+    await act(async () => {
+      await result.current.passCurrentTurn();
+    });
+    expect(passTurnGame).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.createNewGame();
+    });
+
+    await act(async () => {
+      await result.current.passCurrentTurn();
+    });
+    expect(passTurnGame).toHaveBeenCalledWith('game-1', 'adri', undefined);
   });
 
   test('exposes loading during an in-flight request', async () => {

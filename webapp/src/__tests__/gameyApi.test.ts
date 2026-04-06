@@ -5,6 +5,7 @@ import {
   enqueueMatchmaking,
   getGame,
   getMatchmakingTicket,
+  passTurnGame,
   playMove,
   resignGame,
 } from '../gameyApi';
@@ -69,7 +70,7 @@ describe('gameyApi', () => {
     });
   });
 
-  test('getGame, playMove and resignGame call the expected endpoints', async () => {
+  test('getGame, playMove, passTurnGame and resignGame call the expected endpoints', async () => {
     const payload = JSON.stringify({
       api_version: '1.0.0',
       game_id: 'game-1',
@@ -98,8 +99,17 @@ describe('gameyApi', () => {
       body: JSON.stringify({ coords: { x: 1, y: 0, z: -1 } }),
     });
 
+    await passTurnGame('game-1', 'adri', 'ptk-1');
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/games/game-1/pass', {
+      method: 'POST',
+      headers: {
+        'x-user-id': 'adri',
+        'x-player-token': 'ptk-1',
+      },
+    });
+
     await resignGame('game-1', 'adri');
-    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/games/game-1/resign', {
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/v1/games/game-1/resign', {
       method: 'POST',
       headers: {
         'x-user-id': 'adri',
