@@ -68,6 +68,8 @@ vi.mock('../useGamey', () => ({
       error: null,
       loading: false,
       restoringSession: false,
+      hasActiveGameInProgress: Boolean(game),
+      gameIdPendingAutomaticOpen: null,
       board: [],
       canPlayCell: true,
       statusText: 'Turno',
@@ -84,6 +86,7 @@ vi.mock('../useGamey', () => ({
       refreshCurrentGame: vi.fn(),
       resignCurrentGame: vi.fn(),
       playCell: vi.fn(),
+      acknowledgeAutomaticGameOpen: vi.fn(),
     };
   },
 }));

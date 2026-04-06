@@ -1,5 +1,6 @@
 use super::{
     error::ErrorResponse,
+    games::{ensure_user_id_is_available_for_new_game, register_active_game_for_session_users},
     state::{
         AppState, GameSession, MatchmakingQueueEntry, MatchmakingState, MatchmakingTicketStatus,
     },
@@ -85,6 +86,9 @@ pub async fn enqueue(
 
     let ticket_id = state.new_ticket_id();
     let user_id = read_header_string(&headers, "x-user-id");
+
+    ensure_user_id_is_available_for_new_game(&state, user_id.as_deref(), &params.api_version)
+        .await?;
 
     let matchmaking = state.matchmaking();
     let mut guard = matchmaking.write().await;
@@ -235,18 +239,23 @@ async fn process_once(state: &AppState) -> Result<(), String> {
 
         let games = state.games();
         let mut games_guard = games.write().await;
+        let session = GameSession {
+            game: GameY::new(a.size),
+            bot_id: None,
+            created_at: Instant::now(),
+            player_tokens: Some(player_tokens),
+            last_seen_at_by_player_id: Some(HashMap::new()),
+            player0_user_id: a.user_id.clone(),
+            player1_user_id: b.user_id.clone(),
+            stats_reported: false,
+            completion_reason: None,
+        };
         games_guard.insert(
             game_id.clone(),
-            GameSession {
-                game: GameY::new(a.size),
-                bot_id: None,
-                player_tokens: Some(player_tokens),
-                player0_user_id: a.user_id.clone(),
-                player1_user_id: b.user_id.clone(),
-                stats_reported: false,
-            },
+            session.clone(),
         );
         drop(games_guard);
+        register_active_game_for_session_users(state, &game_id, &session).await;
 
         let matchmaking = state.matchmaking();
         let mut mm_guard = matchmaking.write().await;

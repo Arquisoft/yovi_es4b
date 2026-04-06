@@ -22,6 +22,8 @@ type GameyMock = {
   error: string | null;
   loading: boolean;
   restoringSession: boolean;
+  hasActiveGameInProgress: boolean;
+  gameIdPendingAutomaticOpen: string | null;
   board: unknown[];
   canPlayCell: boolean;
   statusText: string;
@@ -38,6 +40,7 @@ type GameyMock = {
   refreshCurrentGame: () => void;
   resignCurrentGame: () => void;
   playCell: (coords: unknown) => void;
+  acknowledgeAutomaticGameOpen: () => void;
 };
 
 let authState: AuthMock;
@@ -77,6 +80,8 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
     error: null,
     loading: false,
     restoringSession: false,
+    hasActiveGameInProgress: false,
+    gameIdPendingAutomaticOpen: null,
     board: [],
     canPlayCell: true,
     statusText: 'Turno',
@@ -93,6 +98,7 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
     refreshCurrentGame: vi.fn(),
     resignCurrentGame: vi.fn(),
     playCell: vi.fn(),
+    acknowledgeAutomaticGameOpen: vi.fn(),
     ...overrides,
   };
 }
@@ -143,9 +149,26 @@ describe('App core flows', () => {
   });
 
   test('opens the game view when restoring an online game', async () => {
-    gameyState = buildGamey({ myPlayerId: 1 });
+    gameyState = buildGamey({ gameIdPendingAutomaticOpen: 'app-game' });
 
     render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
+    });
+
+    expect(gameyState.acknowledgeAutomaticGameOpen).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows a resume button in play menu when there is an active game', async () => {
+    gameyState = buildGamey({ hasActiveGameInProgress: true });
+
+    render(<App />);
+    const user = userEvent.setup();
+
+    expect(screen.getByRole('button', { name: /volver a la partida/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /volver a la partida/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();

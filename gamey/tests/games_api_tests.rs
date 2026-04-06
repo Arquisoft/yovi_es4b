@@ -118,6 +118,45 @@ async fn create_game_exposes_player_user_ids_from_headers() {
     assert_eq!(fetched["player1_user_id"], "jose");
 }
 
+#[tokio::test]
+async fn create_game_rejects_second_active_game_for_same_user() {
+    let app = test_app();
+
+    let (first_status, _) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot"
+        })),
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    assert_eq!(first_status, StatusCode::OK);
+
+    let (second_status, second_body) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot"
+        })),
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    assert_eq!(second_status, StatusCode::OK);
+    assert!(
+        second_body["message"]
+            .as_str()
+            .unwrap()
+            .contains("already has an active game")
+    );
+}
+
 // Test: create game rejects size zero.
 #[tokio::test]
 async fn create_game_rejects_size_zero() {

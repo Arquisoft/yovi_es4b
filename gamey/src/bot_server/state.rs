@@ -1,4 +1,5 @@
 use crate::{GameY, YBotRegistry};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, VecDeque},
     sync::{
@@ -9,16 +10,28 @@ use std::{
 };
 use tokio::sync::RwLock;
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum GameCompletionReason {
+    WinCondition,
+    Resignation,
+    DisconnectTimeout,
+}
+
 /// In-memory state for a running game session.
 #[derive(Clone)]
 pub struct GameSession {
     pub game: GameY,
     pub bot_id: Option<String>,
+    pub created_at: Instant,
     /// Token by player id for authenticated multiplayer matchmaking games.
     pub player_tokens: Option<HashMap<u32, String>>,
+    /// Last time each online player contacted the server for this match.
+    pub last_seen_at_by_player_id: Option<HashMap<u32, Instant>>,
     pub player0_user_id: Option<String>,
     pub player1_user_id: Option<String>,
     pub stats_reported: bool,
+    pub completion_reason: Option<GameCompletionReason>,
 }
 
 /// Queue entry for matchmaking.
@@ -63,6 +76,8 @@ pub struct AppState {
     bots: Arc<YBotRegistry>,
     /// In-memory game sessions indexed by game id.
     games: Arc<RwLock<HashMap<String, GameSession>>>,
+    /// Active game id indexed by normalized user id.
+    active_game_id_by_user_id: Arc<RwLock<HashMap<String, String>>>,
     /// In-memory matchmaking queue and ticket statuses.
     matchmaking: Arc<RwLock<MatchmakingState>>,
     /// Counter used to generate unique game identifiers.
@@ -79,6 +94,7 @@ impl AppState {
         Self {
             bots: Arc::new(bots),
             games: Arc::new(RwLock::new(HashMap::new())),
+            active_game_id_by_user_id: Arc::new(RwLock::new(HashMap::new())),
             matchmaking: Arc::new(RwLock::new(MatchmakingState::default())),
             next_game_id: Arc::new(AtomicU64::new(1)),
             next_ticket_id: Arc::new(AtomicU64::new(1)),
@@ -94,6 +110,11 @@ impl AppState {
     /// Returns the in-memory game storage.
     pub fn games(&self) -> Arc<RwLock<HashMap<String, GameSession>>> {
         Arc::clone(&self.games)
+    }
+
+    /// Returns the in-memory active-game ownership index.
+    pub fn active_game_id_by_user_id(&self) -> Arc<RwLock<HashMap<String, String>>> {
+        Arc::clone(&self.active_game_id_by_user_id)
     }
 
     /// Returns the in-memory matchmaking storage.

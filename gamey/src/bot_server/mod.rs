@@ -101,6 +101,7 @@ pub fn create_default_state() -> AppState {
 pub async fn run_bot_server(port: u16) -> Result<(), GameYError> {
     let state = create_default_state();
     matchmaking::start_matchmaking_worker(state.clone());
+    games::start_inactive_online_game_monitor(state.clone());
     let app = create_router(state);
 
     let addr = format!("0.0.0.0:{}", port);

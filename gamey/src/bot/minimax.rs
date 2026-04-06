@@ -49,6 +49,123 @@ impl MinimaxBot {
     }
 
     /// Performs minimax search with alpha-beta pruning.
+    fn current_search_player(
+        maximizing: bool,
+        player: crate::PlayerId,
+        opponent: crate::PlayerId,
+    ) -> crate::PlayerId {
+        if maximizing { player } else { opponent }
+    }
+
+    fn evaluate_child_position(
+        &self,
+        board: &GameY,
+        depth: u32,
+        next_maximizing: bool,
+        player: crate::PlayerId,
+        opponent: crate::PlayerId,
+        alpha: f64,
+        beta: f64,
+        current_player: crate::PlayerId,
+        cell_index: u32,
+    ) -> Option<f64> {
+        let coords = Coordinates::from_index(cell_index, board.board_size());
+        let mut new_board = board.clone();
+
+        new_board
+            .add_move(crate::Movement::Placement {
+                player: current_player,
+                coords,
+            })
+            .ok()?;
+
+        Some(self.minimax(
+            &new_board,
+            depth - 1,
+            next_maximizing,
+            player,
+            opponent,
+            alpha,
+            beta,
+        ))
+    }
+
+    fn maximize_over_moves(
+        &self,
+        board: &GameY,
+        depth: u32,
+        player: crate::PlayerId,
+        opponent: crate::PlayerId,
+        current_player: crate::PlayerId,
+        mut alpha: f64,
+        beta: f64,
+        available_cells: &[u32],
+    ) -> f64 {
+        let mut max_eval = f64::NEG_INFINITY;
+
+        for &cell_index in available_cells {
+            let Some(eval) = self.evaluate_child_position(
+                board,
+                depth,
+                false,
+                player,
+                opponent,
+                alpha,
+                beta,
+                current_player,
+                cell_index,
+            ) else {
+                continue;
+            };
+
+            max_eval = max_eval.max(eval);
+            alpha = alpha.max(eval);
+            if beta <= alpha {
+                break;
+            }
+        }
+
+        max_eval
+    }
+
+    fn minimize_over_moves(
+        &self,
+        board: &GameY,
+        depth: u32,
+        player: crate::PlayerId,
+        opponent: crate::PlayerId,
+        current_player: crate::PlayerId,
+        alpha: f64,
+        mut beta: f64,
+        available_cells: &[u32],
+    ) -> f64 {
+        let mut min_eval = f64::INFINITY;
+
+        for &cell_index in available_cells {
+            let Some(eval) = self.evaluate_child_position(
+                board,
+                depth,
+                true,
+                player,
+                opponent,
+                alpha,
+                beta,
+                current_player,
+                cell_index,
+            ) else {
+                continue;
+            };
+
+            min_eval = min_eval.min(eval);
+            beta = beta.min(eval);
+            if beta <= alpha {
+                break;
+            }
+        }
+
+        min_eval
+    }
+
     fn minimax(
         &self,
         board: &GameY,
@@ -56,61 +173,39 @@ impl MinimaxBot {
         maximizing: bool,
         player: crate::PlayerId,
         opponent: crate::PlayerId,
-        mut alpha: f64,
-        mut beta: f64,
+        alpha: f64,
+        beta: f64,
     ) -> f64 {
         // Base case: max depth reached or game over
         if depth == 0 || matches!(board.status(), crate::GameStatus::Finished { .. }) {
             return Self::evaluate_board(board, player);
         }
 
-        let current_player = if maximizing { player } else { opponent };
+        let current_player = Self::current_search_player(maximizing, player, opponent);
         let available_cells = board.available_cells();
 
         if maximizing {
-            let mut max_eval = f64::NEG_INFINITY;
-            for &cell_index in available_cells {
-                let coords = Coordinates::from_index(cell_index, board.board_size());
-                let mut new_board = board.clone();
-                if new_board
-                    .add_move(crate::Movement::Placement {
-                        player: current_player,
-                        coords,
-                    })
-                    .is_ok()
-                {
-                    let eval =
-                        self.minimax(&new_board, depth - 1, false, player, opponent, alpha, beta);
-                    max_eval = max_eval.max(eval);
-                    alpha = alpha.max(eval);
-                    if beta <= alpha {
-                        break; // Beta cutoff
-                    }
-                }
-            }
-            max_eval
+            self.maximize_over_moves(
+                board,
+                depth,
+                player,
+                opponent,
+                current_player,
+                alpha,
+                beta,
+                available_cells,
+            )
         } else {
-            let mut min_eval = f64::INFINITY;
-            for &cell_index in available_cells {
-                let coords = Coordinates::from_index(cell_index, board.board_size());
-                let mut new_board = board.clone();
-                if new_board
-                    .add_move(crate::Movement::Placement {
-                        player: current_player,
-                        coords,
-                    })
-                    .is_ok()
-                {
-                    let eval =
-                        self.minimax(&new_board, depth - 1, true, player, opponent, alpha, beta);
-                    min_eval = min_eval.min(eval);
-                    beta = beta.min(eval);
-                    if beta <= alpha {
-                        break; // Alpha cutoff
-                    }
-                }
-            }
-            min_eval
+            self.minimize_over_moves(
+                board,
+                depth,
+                player,
+                opponent,
+                current_player,
+                alpha,
+                beta,
+                available_cells,
+            )
         }
     }
 }

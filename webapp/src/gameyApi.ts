@@ -19,6 +19,8 @@ export interface CreateGameRequest {
   bot_id?: string;
 }
 
+export type GameCompletionReason = 'win_condition' | 'resignation' | 'disconnect_timeout';
+
 export interface MoveRequest {
   coords: Coordinates;
   player_token?: string;
@@ -33,8 +35,10 @@ export interface GameStateResponse {
   game_over: boolean;
   next_player: number | null;
   winner: number | null;
+  completion_reason?: GameCompletionReason | null;
   player0_user_id?: string | null;
   player1_user_id?: string | null;
+  opponent_inactivity_timeout_remaining_ms?: number | null;
 }
 
 interface ApiErrorResponse {
@@ -158,9 +162,14 @@ export async function createGame(
   });
 }
 
-export async function getGame(gameId: string): Promise<GameStateResponse> {
+export async function getGame(
+  gameId: string,
+  userId?: string,
+  playerToken?: string,
+): Promise<GameStateResponse> {
   return requestJson<GameStateResponse>(`/v1/games/${gameId}`, {
     method: 'GET',
+    headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
   });
 }
 

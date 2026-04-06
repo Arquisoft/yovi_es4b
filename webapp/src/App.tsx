@@ -26,6 +26,8 @@ function App() {
     error,
     loading,
     restoringSession,
+    hasActiveGameInProgress,
+    gameIdPendingAutomaticOpen,
     board,
     canPlayCell,
     myPlayerId,
@@ -40,28 +42,24 @@ function App() {
     cancelCurrentMatchmaking,
     resignCurrentGame,
     playCell,
+    acknowledgeAutomaticGameOpen,
   } = useGamey(auth.username ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>('dashboard');
-  const [dismissedAutoGameId, setDismissedAutoGameId] = useState<string | null>(null);
-  const autoOpenedGameId =
-    game && (matchmakingStatus === 'matched' || myPlayerId !== null) ? game.game_id : null;
-  const resolvedView =
-    autoOpenedGameId && dismissedAutoGameId !== autoOpenedGameId ? 'game' : view;
 
   async function handleCreateNewGame() {
     const created = await createNewGame();
     if (created) {
-      setDismissedAutoGameId(null);
       setView('game');
     }
   }
 
   function handleOpenPlay() {
-    if (autoOpenedGameId) {
-      setDismissedAutoGameId(autoOpenedGameId);
-    }
     setView('dashboard');
+  }
+
+  function handleResumeActiveGame() {
+    setView('game');
   }
 
   function handleOpenStats() {
@@ -82,6 +80,15 @@ function App() {
     lastSyncedFinishedGameRef.current = finishedGameKey;
     void refreshStats();
   }, [game, refreshStats]);
+
+  useEffect(() => {
+    if (!gameIdPendingAutomaticOpen) {
+      return;
+    }
+
+    setView('game');
+    acknowledgeAutomaticGameOpen();
+  }, [acknowledgeAutomaticGameOpen, gameIdPendingAutomaticOpen]);
 
   // If auth is still verifying the token, show nothing
   if (auth.loading) return null;
@@ -145,18 +152,20 @@ function App() {
             </Alert>
           )}
 
-          {resolvedView === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
+          {view === 'login' && <LoginView onNext={() => setView('dashboard')} onAuth={auth.login} />}
 
-          {resolvedView === 'dashboard' && (
+          {view === 'dashboard' && (
             <DashboardView
               boardSize={boardSize}
               mode={mode}
               botDifficulty={botDifficulty}
               loading={loading}
+              hasActiveGameInProgress={hasActiveGameInProgress}
               setMode={setMode}
               setBotDifficulty={setBotDifficulty}
               updateBoardSize={updateBoardSize}
               createNewGame={handleCreateNewGame}
+              resumeActiveGame={handleResumeActiveGame}
               matchmakingTicketId={matchmakingTicketId}
               matchmakingStatus={matchmakingStatus}
               matchmakingPosition={matchmakingPosition}
@@ -165,16 +174,16 @@ function App() {
             />
           )}
 
-          {resolvedView === 'history' && (
+          {view === 'history' && (
             <HistoryView
               playerStats={stats.playerStats}
               matches={stats.matches}
             />
           )}
 
-          {resolvedView === 'help' && <HelpView />}
+          {view === 'help' && <HelpView />}
 
-          {resolvedView === 'game' && (
+          {view === 'game' && (
             <GameView
               game={game}
               board={board}
@@ -184,7 +193,6 @@ function App() {
               currentUserId={auth.username}
               resignCurrentGame={resignCurrentGame}
               playCell={playCell}
-              onBack={handleOpenPlay}
             />
           )}
         </Box>

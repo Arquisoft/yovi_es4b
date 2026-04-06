@@ -30,41 +30,75 @@ function readUserIdFromHeader(req) {
   return cleanUserId.length > 0 ? cleanUserId : null;
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateRequiredNonEmptyString(value, errorMessage) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return errorMessage;
+  }
+
+  return null;
+}
+
+function validateOptionalObject(value, errorMessage) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return isPlainObject(value) ? null : errorMessage;
+}
+
+function validateOptionalString(value, errorMessage) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return typeof value === 'string' ? null : errorMessage;
+}
+
+function validateFinishedMatchPlayer(player) {
+  if (!isPlainObject(player)) {
+    return 'Each player must be an object';
+  }
+
+  const userIdError = validateRequiredNonEmptyString(
+    player.userId,
+    'Each player.userId is required',
+  );
+  if (userIdError) {
+    return userIdError;
+  }
+
+  if (player.result !== 'win' && player.result !== 'loss') {
+    return "Each player.result must be one of: 'win', 'loss'";
+  }
+
+  return null;
+}
+
 function validateFinishedMatchPayload(payload) {
-  if (!payload || typeof payload !== 'object') {
+  if (!isPlainObject(payload)) {
     return 'Body must be a JSON object';
   }
 
-  if (typeof payload.gameId !== 'string' || payload.gameId.trim().length === 0) {
-    return 'gameId is required';
-  }
+  const gameIdError = validateRequiredNonEmptyString(payload.gameId, 'gameId is required');
+  if (gameIdError) return gameIdError;
 
   if (!Array.isArray(payload.players) || payload.players.length === 0) {
     return 'players must be a non-empty array';
   }
 
-  if (payload.finalBoard !== undefined && payload.finalBoard !== null) {
-    if (typeof payload.finalBoard !== 'object' || Array.isArray(payload.finalBoard)) {
-      return 'finalBoard must be an object';
-    }
-  }
+  const finalBoardError = validateOptionalObject(payload.finalBoard, 'finalBoard must be an object');
+  if (finalBoardError) return finalBoardError;
 
-  if (payload.botId !== undefined && payload.botId !== null && typeof payload.botId !== 'string') {
-    return 'botId must be a string';
-  }
+  const botIdError = validateOptionalString(payload.botId, 'botId must be a string');
+  if (botIdError) return botIdError;
 
   for (const player of payload.players) {
-    if (!player || typeof player !== 'object') {
-      return 'Each player must be an object';
-    }
-
-    if (typeof player.userId !== 'string' || player.userId.trim().length === 0) {
-      return 'Each player.userId is required';
-    }
-
-    if (player.result !== 'win' && player.result !== 'loss') {
-      return "Each player.result must be one of: 'win', 'loss'";
-    }
+    const playerError = validateFinishedMatchPlayer(player);
+    if (playerError) return playerError;
   }
 
   return null;
@@ -352,7 +386,7 @@ async function start({
   return null;
 }
 
-if (require.main === module) {
+if (require.main?.filename === __filename) {
   start();
 }
 

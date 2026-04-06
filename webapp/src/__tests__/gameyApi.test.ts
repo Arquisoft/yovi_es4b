@@ -83,7 +83,10 @@ describe('gameyApi', () => {
     fetchMock.mockResolvedValue(okResponse(payload));
 
     await getGame('game-1');
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/games/game-1', { method: 'GET' });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/games/game-1', {
+      method: 'GET',
+      headers: {},
+    });
 
     await playMove('game-1', { coords: { x: 1, y: 0, z: -1 } }, 'adri');
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/games/game-1/moves', {
