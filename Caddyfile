@@ -1,0 +1,21 @@
+{
+    email {$ACME_CONTACT:admin@example.com}
+    acme_ca {$ACME_DIRECTORY_URL:https://acme-v02.api.letsencrypt.org/directory}
+}
+
+http://{$PUBLIC_DOMAIN:localhost} {
+    redir https://{$PUBLIC_DOMAIN:localhost}{uri} 301
+}
+
+https://{$PUBLIC_DOMAIN:localhost} {
+    encode zstd gzip
+    reverse_proxy gateway:8080
+
+    # Start with a conservative HSTS value and increase it after stable operation.
+    header {
+        Strict-Transport-Security "max-age=86400; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

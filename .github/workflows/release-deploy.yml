@@ -200,12 +200,16 @@ jobs:
           user: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           command: |
-            wget https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/master/docker-compose.yml -O docker-compose.yml
+            set -euo pipefail
+            wget https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ github.event.repository.default_branch }}/docker-compose.yml -O docker-compose.yml
+            wget https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ github.event.repository.default_branch }}/Caddyfile -O Caddyfile
             cat > .env << 'EOF'
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_EXPIRES=${{ secrets.JWT_EXPIRES }}
             MONGO_AUTH_DB=${{ secrets.MONGO_AUTH_DB }}
+            PUBLIC_DOMAIN=${{ secrets.PUBLIC_DOMAIN }}
+            ACME_CONTACT=${{ secrets.ACME_CONTACT }}
             EOF
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose down
-            docker compose up -d --pull always
+            docker compose up -d --pull always --no-build

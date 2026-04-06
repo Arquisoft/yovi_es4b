@@ -112,15 +112,28 @@ The `docker-compose.yml` in this repository is configured to build first-party s
 docker-compose up --build
 ```
 
-This command will build the Docker images and start the full stack behind the gateway.
+This command will build the Docker images and start the full stack behind Caddy (HTTPS edge) and gateway (internal HTTP routing).
 
-2.**Access the application:**
-- Web application: [http://localhost](http://localhost)
-- Auth API (through gateway): [http://localhost/auth/register](http://localhost/auth/register), [http://localhost/auth/login](http://localhost/auth/login), [http://localhost/auth/verify](http://localhost/auth/verify)
-- Gamey API (through gateway): [http://localhost/api/v1/games](http://localhost/api/v1/games)
-- External bot API documentation (through gateway): [http://localhost/external/docs](http://localhost/external/docs)
-- External bot OpenAPI contract (through gateway): [Invoke-RestMethod -Uri "http://localhost/external/v1/bots"
-](http://localhost/external/docs/openapi.json)
+2.**Access the application (HTTPS):**
+- Web application: [https://localhost](https://localhost)
+- Auth API (through gateway): [https://localhost/auth/register](https://localhost/auth/register), [https://localhost/auth/login](https://localhost/auth/login), [https://localhost/auth/verify](https://localhost/auth/verify)
+- Gamey API (through gateway): [https://localhost/api/v1/games](https://localhost/api/v1/games)
+- External bot API documentation (through gateway): [https://localhost/external/docs](https://localhost/external/docs)
+- External bot OpenAPI contract (through gateway): [https://localhost/external/docs/openapi.json](https://localhost/external/docs/openapi.json)
+
+HTTP requests are redirected to HTTPS with status code 301 by Caddy.
+
+### HTTPS configuration
+
+The Docker deployment uses [Caddy](https://caddyserver.com/) as the edge reverse proxy. Configure these variables in `.env`:
+
+- `PUBLIC_DOMAIN`: hostname exposed to clients (default `localhost`).
+- `HTTP_PORT`: host port published for HTTP redirect (default `80`).
+- `HTTPS_PORT`: host port published for HTTPS traffic (default `443`).
+- `ACME_CONTACT`: email for certificate management.
+- `ACME_DIRECTORY_URL`: ACME directory endpoint (Let's Encrypt by default).
+
+For local development with `PUBLIC_DOMAIN=localhost`, Caddy issues a local certificate automatically.
 
 ### Without Docker
 
