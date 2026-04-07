@@ -27,6 +27,8 @@ function App() {
     game,
     error,
     loading,
+    hintCoordinates,
+    hintLoading,
     restoringSession,
     hasActiveGameInProgress,
     gameIdPendingAutomaticOpen,
@@ -45,6 +47,7 @@ function App() {
     resignCurrentGame,
     passCurrentTurn,
     playCell,
+    requestHint,
     acknowledgeAutomaticGameOpen,
   } = useGamey(auth.username ?? undefined);
 
@@ -233,11 +236,14 @@ function App() {
                 board={board}
                 canPlayCell={canPlayCell}
                 loading={loading}
+                hintCoordinates={hintCoordinates}
+                hintLoading={hintLoading}
                 myPlayerId={myPlayerId}
                 currentUserId={auth.username}
                 resignCurrentGame={resignCurrentGame}
                 passCurrentTurn={passCurrentTurn}
                 playCell={playCell}
+                requestHint={requestHint}
               />
             )}
           </Box>

@@ -204,6 +204,25 @@ export async function passTurnGame(
   });
 }
 
+export interface BotMoveResponse {
+  api_version: string;
+  bot_id: string;
+  coords: Coordinates;
+}
+
+export async function getBotHint(
+  yen: YEN,
+  botId = 'minimax_bot',
+): Promise<BotMoveResponse> {
+  return requestJson<BotMoveResponse>(`/v1/ybot/choose/${encodeURIComponent(botId)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(yen),
+  });
+}
+
 export async function enqueueMatchmaking(
   size = 7,
   userId?: string,

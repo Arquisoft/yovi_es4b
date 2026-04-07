@@ -15,6 +15,7 @@ type Props = {
   humanSymbol: string | null;
   size: number;
   winningCellKeys?: Set<string>;
+  hintCellKey?: string | null;
 };
 
 function resolvePieceOwner(
@@ -39,6 +40,7 @@ const CellView: React.FC<{
   clickable?: boolean;
   highlighted?: boolean;
   muted?: boolean;
+  hinted?: boolean;
   owner?: PieceOwner;
   testId?: string;
 }> = ({
@@ -47,13 +49,15 @@ const CellView: React.FC<{
   clickable = false,
   highlighted = false,
   muted = false,
+  hinted = false,
   owner = 'empty',
   testId,
 }) => {
   return (
     <Box
       data-testid={testId}
-      data-winning-cell={highlighted ? 'true' : undefined}
+      data-winning-cell={highlighted && !hinted ? 'true' : undefined}
+      data-hint-cell={hinted ? 'true' : undefined}
       data-muted-cell={muted ? 'true' : undefined}
       data-piece-owner={owner}
       onClick={clickable ? onClick : undefined}
@@ -70,6 +74,7 @@ const TriangularBoard: React.FC<Props> = ({
   humanSymbol,
   size,
   winningCellKeys = new Set<string>(),
+  hintCellKey = null,
 }) => {
   const rows = board;
   const hasWinningHighlight = winningCellKeys.size > 0;
@@ -89,7 +94,9 @@ const TriangularBoard: React.FC<Props> = ({
               const clickable = isBoardCellPlayable(cell.symbol, canPlayCell, loading);
               const cellKey = cell.key ?? `${cell.coords.x}-${cell.coords.y}-${cell.coords.z}`;
               const coordsKey = toCoordsKey(cell.coords);
-              const isHighlighted = winningCellKeys.has(coordsKey);
+              const isWinningHighlighted = winningCellKeys.has(coordsKey);
+              const isHintHighlighted = hintCellKey != null && hintCellKey === coordsKey;
+              const isHighlighted = isWinningHighlighted || isHintHighlighted;
               const isOccupied = cell.symbol !== BOARD_CELL_UI.emptySymbol;
               const owner = resolvePieceOwner(isOccupied, humanSymbol, cell.symbol);
               const isMuted = hasWinningHighlight && isOccupied && !isHighlighted;
@@ -106,6 +113,7 @@ const TriangularBoard: React.FC<Props> = ({
                   color={color}
                   highlighted={isHighlighted}
                   muted={isMuted}
+                  hinted={isHintHighlighted}
                   owner={owner}
                   onClick={handleClick}
                 />
