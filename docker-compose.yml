@@ -23,7 +23,7 @@ services:
 
   stats:
     container_name: stats
-    image: ghcr.io/arquisoft/yovi_es4b-stats:latest
+    image: ghcr.io/arquisoft/yovi_es4b-stats:${IMAGE_TAG:-latest}
     build:
       context: ./stats
       dockerfile: Dockerfile
@@ -40,12 +40,12 @@ services:
 
   gateway:
     container_name: gateway
-    image: ghcr.io/arquisoft/yovi_es4b-gateway:latest
+    image: ghcr.io/arquisoft/yovi_es4b-gateway:${IMAGE_TAG:-latest}
     build:
       context: ./gateway
       dockerfile: Dockerfile
     ports:
-      - "80:8080"
+      - "8001:8080"
     environment:
       - WEBAPP_SERVICE_URL=http://webapp:80
       - GAMEY_SERVICE_URL=http://gamey:4000
@@ -61,7 +61,7 @@ services:
 
   webapp:
     container_name: webapp
-    image: ghcr.io/arquisoft/yovi_es4b-webapp:latest
+    image: ghcr.io/arquisoft/yovi_es4b-webapp:${IMAGE_TAG:-latest}
     build:
       context: ./webapp
       dockerfile: Dockerfile
@@ -70,7 +70,7 @@ services:
 
   gamey:
     container_name: gamey
-    image: ghcr.io/arquisoft/yovi_es4b-gamey:latest
+    image: ghcr.io/arquisoft/yovi_es4b-gamey:${IMAGE_TAG:-latest}
     build:
       context: ./gamey
       dockerfile: Dockerfile
@@ -82,7 +82,7 @@ services:
 
   auth:
     container_name: auth
-    image: ghcr.io/arquisoft/yovi_es4b-auth:latest
+    image: ghcr.io/arquisoft/yovi_es4b-auth:${IMAGE_TAG:-latest}
     build:
       context: ./auth_service
       dockerfile: Dockerfile

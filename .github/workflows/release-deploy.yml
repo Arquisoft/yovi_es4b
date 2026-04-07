@@ -106,6 +106,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
+          tags: latest,${{ env.IMAGE_TAG }}
           workdir: webapp
 
   docker-push-gateway:
@@ -126,6 +127,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
+          tags: latest,${{ env.IMAGE_TAG }}
           workdir: gateway
 
   docker-push-gamey:
@@ -146,6 +148,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
+          tags: latest,${{ env.IMAGE_TAG }}
           workdir: gamey
 
   docker-push-auth:
@@ -166,6 +169,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
+          tags: latest,${{ env.IMAGE_TAG }}
           workdir: auth_service
 
   docker-push-stats:
@@ -186,6 +190,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
+          tags: latest,${{ env.IMAGE_TAG }}
           workdir: stats
 
   deploy:
@@ -200,12 +205,39 @@ jobs:
           user: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           command: |
-            wget https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/master/docker-compose.yml -O docker-compose.yml
+            set -euo pipefail
+            COMPOSE_BIN="docker compose"
+            if ! docker compose version >/dev/null 2>&1; then
+              COMPOSE_BIN="docker-compose"
+            fi
+
+            wget -q https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}/docker-compose.yml -O docker-compose.yml
             cat > .env << 'EOF'
+            IMAGE_TAG=${{ env.IMAGE_TAG }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_EXPIRES=${{ secrets.JWT_EXPIRES }}
             MONGO_AUTH_DB=${{ secrets.MONGO_AUTH_DB }}
             EOF
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose down
-            docker compose up -d --pull always
+
+            for i in 1 2 3; do
+              if $COMPOSE_BIN pull; then
+                break
+              fi
+              if [ "$i" -eq 3 ]; then
+                echo "docker compose pull failed after 3 attempts"
+                $COMPOSE_BIN ps || true
+                $COMPOSE_BIN logs --tail=200 || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            $COMPOSE_BIN down --remove-orphans || true
+            if ! $COMPOSE_BIN up -d --no-build; then
+              $COMPOSE_BIN ps || true
+              $COMPOSE_BIN logs --tail=200 || true
+              exit 1
+            fi
+
+            $COMPOSE_BIN ps
