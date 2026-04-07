@@ -11,6 +11,7 @@ const getGame = vi.fn();
 const playMove = vi.fn();
 const passTurnGame = vi.fn();
 const resignGame = vi.fn();
+const getBotHint = vi.fn();
 const enqueueMatchmaking = vi.fn();
 const getMatchmakingTicket = vi.fn();
 const cancelMatchmakingTicket = vi.fn();
@@ -21,6 +22,7 @@ vi.mock('../gameyApi', () => ({
   playMove: (...args: unknown[]) => playMove(...args),
   passTurnGame: (...args: unknown[]) => passTurnGame(...args),
   resignGame: (...args: unknown[]) => resignGame(...args),
+  getBotHint: (...args: unknown[]) => getBotHint(...args),
   enqueueMatchmaking: (...args: unknown[]) => enqueueMatchmaking(...args),
   getMatchmakingTicket: (...args: unknown[]) => getMatchmakingTicket(...args),
   cancelMatchmakingTicket: (...args: unknown[]) => cancelMatchmakingTicket(...args),
@@ -53,6 +55,7 @@ describe('useGamey', () => {
     playMove.mockReset();
     passTurnGame.mockReset();
     resignGame.mockReset();
+    getBotHint.mockReset();
     enqueueMatchmaking.mockReset();
     getMatchmakingTicket.mockReset();
     cancelMatchmakingTicket.mockReset();
@@ -212,6 +215,30 @@ describe('useGamey', () => {
       { coords: { x: 1, y: 0, z: -1 } },
       'adri',
     );
+  });
+
+  test('requests a minimax hint only when the user can play', async () => {
+    createGame.mockResolvedValue(buildGame());
+    getBotHint.mockResolvedValue({
+      api_version: '1.0.0',
+      bot_id: 'minimax_bot',
+      coords: { x: 1, y: 0, z: -1 },
+    });
+
+    const { result } = renderHook(() => useGamey('adri'));
+
+    await act(async () => {
+      await result.current.createNewGame();
+    });
+
+    await act(async () => {
+      const success = await result.current.requestHint();
+      expect(success).toBe(true);
+    });
+
+    expect(getBotHint).toHaveBeenCalledWith(expect.objectContaining({ layout: 'B/R', size: 7 }), 'minimax_bot');
+    expect(result.current.hintCoordinates).toEqual({ x: 1, y: 0, z: -1 });
+    expect(result.current.hintLoading).toBe(false);
   });
 
   test('passes the turn only when the human can act and the hook is not loading', async () => {
