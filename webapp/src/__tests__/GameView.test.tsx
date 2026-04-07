@@ -12,6 +12,7 @@ vi.mock('../components/board/TriangularBoard', () => ({
     canPlayCell: boolean;
     loading: boolean;
     winningCellKeys?: Set<string>;
+    hintCellKey?: string | null;
   }) => (
     <div data-testid="triangular-board-mock">
       {JSON.stringify({
@@ -20,6 +21,7 @@ vi.mock('../components/board/TriangularBoard', () => ({
         canPlayCell: props.canPlayCell,
         loading: props.loading,
         winningCellKeysSize: props.winningCellKeys?.size ?? 0,
+        hintCellKey: props.hintCellKey ?? null,
       })}
     </div>
   ),
@@ -31,9 +33,12 @@ function buildProps(overrides: Partial<React.ComponentProps<typeof GameView>> = 
     board: [],
     canPlayCell: true,
     loading: false,
+    hintCoordinates: null,
+    hintLoading: false,
     resignCurrentGame: vi.fn(),
     passCurrentTurn: vi.fn(),
     playCell: vi.fn(),
+    requestHint: vi.fn(),
     ...overrides,
   };
 }
@@ -157,6 +162,22 @@ describe('GameView', () => {
     expect(props.passCurrentTurn).toHaveBeenCalledTimes(1);
     expect(props.resignCurrentGame).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: /volver/i })).not.toBeInTheDocument();
+  });
+
+  test('renders the hint button and message when a hint is active', async () => {
+    const requestHint = vi.fn();
+
+    render(<GameView {...buildProps({ requestHint, hintCoordinates: { x: 1, y: 0, z: -1 } })} />);
+
+    expect(screen.getByRole('button', { name: /pista/i })).toBeEnabled();
+    expect(screen.getByText(/movimiento sugerido/i)).toBeInTheDocument();
+    expect(screen.getByTestId('triangular-board-mock')).toHaveTextContent('"hintCellKey":"1-0--1"');
+  });
+
+  test('disables the hint button while the hint is loading', () => {
+    render(<GameView {...buildProps({ hintLoading: true })} />);
+
+    expect(screen.getByRole('button', { name: /pista/i })).toBeDisabled();
   });
 
   test('disables action buttons when loading or game is over', () => {

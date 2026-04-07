@@ -3,6 +3,7 @@ import {
   cancelMatchmakingTicket,
   createGame,
   enqueueMatchmaking,
+  getBotHint,
   getGame,
   getMatchmakingTicket,
   playMove,
@@ -82,6 +83,8 @@ export function useGamey(userId?: string) {
   const [matchmakingPosition, setMatchmakingPosition] = useState<number | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<number | null>(null);
   const [myPlayerToken, setMyPlayerToken] = useState<string | null>(null);
+  const [hintCoordinates, setHintCoordinates] = useState<Coordinates | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
 
   const matchmakingTicketPollTimerIdRef = useRef<number | null>(null);
   const onlineGameSynchronizationTimerIdRef = useRef<number | null>(null);
@@ -601,6 +604,30 @@ export function useGamey(userId?: string) {
     );
   }
 
+  async function requestHint() {
+    if (!game || !canPlayCell || game.game_over || hintLoading) {
+      return false;
+    }
+
+    setError(null);
+    setHintLoading(true);
+
+    try {
+      const botMove = await getBotHint(game.yen, 'minimax_bot');
+      setHintCoordinates(botMove.coords);
+      return true;
+    } catch (requestError: unknown) {
+      setError(toErrorMessage(requestError));
+      return false;
+    } finally {
+      setHintLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    setHintCoordinates(null);
+  }, [game?.yen.layout, game?.next_player, game?.game_over]);
+
   async function pollMatchmakingTicket(ticketId: string) {
     try {
       const ticket = await getMatchmakingTicket(ticketId);
@@ -734,6 +761,8 @@ export function useGamey(userId?: string) {
     game,
     error,
     loading,
+    hintCoordinates,
+    hintLoading,
     restoringSession,
     hasActiveGameInProgress,
     gameIdPendingAutomaticOpen,
@@ -754,6 +783,7 @@ export function useGamey(userId?: string) {
     resignCurrentGame,
     passCurrentTurn,
     playCell,
+    requestHint,
     acknowledgeAutomaticGameOpen,
   };
 }

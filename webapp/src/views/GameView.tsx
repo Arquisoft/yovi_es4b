@@ -136,11 +136,14 @@ type Props = {
   board: BoardCell[][];
   canPlayCell: boolean;
   loading: boolean;
+  hintCoordinates: Coordinates | null;
+  hintLoading: boolean;
   myPlayerId?: number | null;
   currentUserId?: string | null;
   resignCurrentGame: () => void;
   passCurrentTurn: () => void;
   playCell: (coords: Coordinates) => Promise<void> | void;
+  requestHint: () => Promise<boolean> | void;
 };
 
 const GameView: React.FC<Props> = ({
@@ -148,11 +151,14 @@ const GameView: React.FC<Props> = ({
   board,
   canPlayCell,
   loading,
+  hintCoordinates,
+  hintLoading,
   myPlayerId = null,
   currentUserId = null,
   resignCurrentGame,
   passCurrentTurn,
   playCell,
+  requestHint,
 }) => {
   const lastAutoPassTurnKeyRef = React.useRef<string | null>(null);
   const displayedOpponentInactivityTimeoutRemainingMs = useSynchronizedCountdown(
@@ -205,6 +211,8 @@ const GameView: React.FC<Props> = ({
   const opponentLabel = game.mode === 'human_vs_bot'
     ? getBotOpponentLabel(game.bot_id)
     : opponentUserId ?? 'desconocido';
+  const hintCellKey = hintCoordinates ? `${hintCoordinates.x}-${hintCoordinates.y}-${hintCoordinates.z}` : null;
+  const hintText = hintLoading ? 'Cargando pista...' : hintCoordinates ? 'Movimiento sugerido' : null;
   const isWaitingForOnlineOpponentMove =
     !game.game_over &&
     resolvedOnlinePlayerId !== null &&
@@ -338,6 +346,7 @@ const GameView: React.FC<Props> = ({
           playCell={playCell}
           size={game.yen.size}
           winningCellKeys={winningCellKeys}
+          hintCellKey={hintCellKey}
         />
       </Box>
 
@@ -351,10 +360,23 @@ const GameView: React.FC<Props> = ({
           >
             Ceder turno
           </Button>
+          <Button
+            variant="outlined"
+            sx={uiSx.gameHintButton}
+            onClick={() => void requestHint()}
+            disabled={hintLoading || loading || game.game_over || !canPlayCell}
+          >
+            Pista
+          </Button>
           <Button variant="outlined" sx={uiSx.gameResignButton} onClick={resignCurrentGame} disabled={loading || game.game_over}>
             Rendirse
           </Button>
         </Box>
+        {hintText ? (
+          <Typography variant="body2" sx={uiSx.gameHintText}>
+            {hintText}
+          </Typography>
+        ) : null}
       </Box>
     </Box>
   );

@@ -1100,6 +1100,16 @@ export const uiSx = {
       backgroundColor: 'rgba(74, 72, 67, 0.6)',
     },
   } satisfies SxProps<Theme>,
+  gameHintButton: {
+    minWidth: 150,
+    borderColor: 'rgba(143, 140, 208, 0.7)',
+    color: '#eef0ff',
+    backgroundColor: 'rgba(68, 63, 120, 0.42)',
+    '&:hover': {
+      borderColor: 'rgba(176, 171, 232, 0.88)',
+      backgroundColor: 'rgba(87, 81, 143, 0.6)',
+    },
+  } satisfies SxProps<Theme>,
   gamePassTurnButton: {
     minWidth: 150,
     borderColor: 'rgba(131, 158, 141, 0.7)',
@@ -1109,6 +1119,12 @@ export const uiSx = {
       borderColor: 'rgba(157, 188, 167, 0.88)',
       backgroundColor: 'rgba(69, 96, 80, 0.6)',
     },
+  } satisfies SxProps<Theme>,
+  gameHintText: {
+    color: uiColors.text.secondary,
+    fontSize: '0.92rem',
+    mt: 1,
+    textAlign: 'center',
   } satisfies SxProps<Theme>,
   gameOutcomeBanner: (tone: GameOutcomeTone): SxProps<Theme> => {
     const borderColor = getGameOutcomeBorderColor(tone);
