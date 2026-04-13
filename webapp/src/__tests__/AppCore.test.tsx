@@ -9,6 +9,7 @@ type AuthMock = {
   isGuest: boolean;
   hasSession: boolean;
   displayName: string | null;
+  sessionUserId: string | null;
   token: string | null;
   username: string | null;
   loading: boolean;
@@ -66,6 +67,7 @@ function buildAuth(overrides: Partial<AuthMock> = {}): AuthMock {
     isGuest: false,
     hasSession: true,
     displayName: 'adri',
+    sessionUserId: 'adri',
     token: 'fake-token',
     username: 'adri',
     loading: false,
@@ -135,6 +137,7 @@ describe('App core flows', () => {
       isGuest: false,
       hasSession: false,
       displayName: null,
+      sessionUserId: null,
       token: null,
       username: null,
     });
@@ -200,6 +203,7 @@ describe('App core flows', () => {
       isGuest: true,
       hasSession: true,
       displayName: 'Usuario anonimo',
+      sessionUserId: 'guest-same-browser',
       token: null,
       username: null,
     });

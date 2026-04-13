@@ -932,7 +932,7 @@ fn collect_tracked_user_ids(session: &GameSession) -> Vec<String> {
     tracked_user_ids
 }
 
-fn normalize_user_id_for_tracking(user_id: Option<&str>) -> Option<String> {
+pub(super) fn normalize_user_id_for_tracking(user_id: Option<&str>) -> Option<String> {
     user_id
         .map(str::trim)
         .filter(|value| !value.is_empty())

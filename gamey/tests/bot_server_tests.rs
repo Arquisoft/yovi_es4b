@@ -321,3 +321,49 @@ async fn test_get_on_choose_endpoint_returns_method_not_allowed() {
 
     assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
 }
+
+#[tokio::test]
+async fn test_matchmaking_enqueue_rejects_duplicate_waiting_ticket_for_same_identity() {
+    let app = test_app();
+    let enqueue_body = serde_json::json!({ "size": 7 }).to_string();
+
+    let first_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/matchmaking/enqueue")
+                .header("content-type", "application/json")
+                .header("x-user-id", "guest-same-session")
+                .body(Body::from(enqueue_body.clone()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(first_response.status(), StatusCode::OK);
+
+    let second_response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/matchmaking/enqueue")
+                .header("content-type", "application/json")
+                .header("x-user-id", "guest-same-session")
+                .body(Body::from(enqueue_body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(second_response.status(), StatusCode::OK);
+
+    let body = second_response.into_body().collect().await.unwrap().to_bytes();
+    let error_response: ErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    assert!(
+        error_response
+            .message
+            .contains("User already has an active matchmaking ticket")
+    );
+}

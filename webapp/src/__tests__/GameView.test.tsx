@@ -408,4 +408,22 @@ describe('GameView', () => {
 
     expect(screen.getByText(/^rival: jose$/i)).toBeInTheDocument();
   });
+
+  test('shows a readable guest label instead of the raw guest session id', () => {
+    render(
+      <GameView
+        {...buildProps({
+          currentUserId: 'guest-local-session-a',
+          myPlayerId: 0,
+          game: buildGame({
+            mode: 'human_vs_human',
+            player0_user_id: 'guest-local-session-a',
+            player1_user_id: 'guest-local-session-b',
+          }),
+        })}
+      />
+    );
+
+    expect(screen.getByText(/^rival: invitado$/i)).toBeInTheDocument();
+  });
 });

@@ -20,6 +20,7 @@ vi.mock('../hooks/useAuth', () => ({
       isGuest: false,
       hasSession: isAuthenticated,
       displayName: isAuthenticated ? 'adri' : null,
+      sessionUserId: isAuthenticated ? 'adri' : null,
       token: isAuthenticated ? 'fake-token' : null,
       username: isAuthenticated ? 'adri' : null,
       loading: false,
