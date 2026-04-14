@@ -1,6 +1,6 @@
 //! A minimax bot implementation — improved version.
 use crate::{Coordinates, GameY, PlayerId, YBot};
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BinaryHeap, BTreeSet, HashMap, HashSet};
 use std::cmp::Reverse;
 
 pub struct MinimaxBot {
@@ -8,7 +8,7 @@ pub struct MinimaxBot {
 }
 
 impl Default for MinimaxBot {
-    fn default() -> Self { Self { max_depth: 5 } }
+    fn default() -> Self { Self { max_depth: 6 } }
 }
 
 impl MinimaxBot {
@@ -53,9 +53,9 @@ impl MinimaxBot {
     fn min_path_with_cells(
         from_edge: u8,
         to_edge:   u8,
-        my:  &HashSet<u32>,
-        opp: &HashSet<u32>,
-        root_occupied: &HashSet<u32>,
+        my:  &BTreeSet<u32>,
+        opp: &BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> Option<(u32, Vec<u32>)> {
@@ -116,8 +116,8 @@ impl MinimaxBot {
     #[inline]
     fn min_path_cost(
         from_edge: u8, to_edge: u8,
-        my: &HashSet<u32>, opp: &HashSet<u32>,
-        root_occupied: &HashSet<u32>,
+        my: &BTreeSet<u32>, opp: &BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
         n: u32, nbrs: &HashMap<u32, Vec<u32>>,
     ) -> Option<u32> {
         Self::min_path_with_cells(from_edge, to_edge, my, opp, root_occupied, n, nbrs)
@@ -132,10 +132,10 @@ impl MinimaxBot {
 
     fn relevant_moves(
         available: &[u32],
-        my:  &HashSet<u32>,
-        opp: &HashSet<u32>,
-        occupied: &HashSet<u32>,
-        root_occupied: &HashSet<u32>,
+        my:  &BTreeSet<u32>,
+        opp: &BTreeSet<u32>,
+        occupied: &BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> Vec<u32> {
@@ -179,7 +179,7 @@ impl MinimaxBot {
                     Self::min_path_with_cells(fe, te, opp, my, root_occupied, n, nbrs)
                 {
                     // Solo incluir si la amenaza es suficientemente cercana
-                    if cost <= 3 {
+                    if cost <= 4 {
                         for c in path {
                             if avail_set.contains(&c) { relevant.insert(c); }
                         }
@@ -226,9 +226,9 @@ impl MinimaxBot {
     }
 
     fn connectivity(
-        my: &HashSet<u32>,
-        opp: &HashSet<u32>,
-        root_occupied: &HashSet<u32>,
+        my: &BTreeSet<u32>,
+        opp: &BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> f64 {
@@ -249,8 +249,8 @@ impl MinimaxBot {
 
     fn fast_score(
         cell: u32,
-        my:  &HashSet<u32>,
-        opp: &HashSet<u32>,
+        my:  &BTreeSet<u32>,
+        opp: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> i32 {
@@ -279,9 +279,9 @@ impl MinimaxBot {
     fn evaluate(
         board: &GameY,
         player: PlayerId,
-        pc: &HashSet<u32>,
-        oc: &HashSet<u32>,
-        root_occupied: &HashSet<u32>,
+        pc: &BTreeSet<u32>,
+        oc: &BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> f64 {
@@ -305,23 +305,34 @@ impl MinimaxBot {
         opponent: PlayerId,
         mut alpha: f64,
         mut beta: f64,
-        pc: &mut HashSet<u32>,
-        oc: &mut HashSet<u32>,
-        occupied: &mut HashSet<u32>,
-        root_occupied: &HashSet<u32>,
+        pc: &mut BTreeSet<u32>,
+        oc: &mut BTreeSet<u32>,
+        occupied: &mut BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
+        transposition_table: &mut HashMap<(BTreeSet<u32>, BTreeSet<u32>), (u32, f64)>,
     ) -> f64 {
+        // Check transposition table
+        let key = (pc.clone(), oc.clone());
+        if let Some(&(stored_depth, stored_value)) = transposition_table.get(&key) {
+            if stored_depth >= depth {
+                return stored_value;
+            }
+        }
+
         if depth == 0 || matches!(board.status(), crate::GameStatus::Finished { .. }) {
-            return Self::evaluate(board, player, pc, oc, root_occupied, n, nbrs);
+            let eval = Self::evaluate(board, player, pc, oc, root_occupied, n, nbrs);
+            transposition_table.insert(key, (depth, eval));
+            return eval;
         }
 
         let current = if maximizing { player } else { opponent };
 
         // Candidatos con amenazas del rival incluidas
         let (my_in_filter, opp_in_filter) =
-            if maximizing { (pc as &HashSet<u32>, oc as &HashSet<u32>) }
-            else          { (oc as &HashSet<u32>, pc as &HashSet<u32>) };
+            if maximizing { (pc as &BTreeSet<u32>, oc as &BTreeSet<u32>) }
+            else          { (oc as &BTreeSet<u32>, pc as &BTreeSet<u32>) };
 
         let mut moves = Self::relevant_moves(
             board.available_cells(),
@@ -335,43 +346,32 @@ impl MinimaxBot {
             if maximizing { -s } else { s }
         });
 
-        if maximizing {
-            let mut max_eval = f64::NEG_INFINITY;
-            for cell in moves {
-                let coords = Coordinates::from_index(cell, n);
-                let mut nb = board.clone();
-                if nb.add_move(crate::Movement::Placement { player: current, coords }).is_ok() {
-                    pc.insert(cell); occupied.insert(cell);
-                    let eval = self.minimax(
-                        &nb, depth-1, false, player, opponent,
-                        alpha, beta, pc, oc, occupied, root_occupied, n, nbrs,
-                    );
-                    pc.remove(&cell); occupied.remove(&cell);
-                    if eval > max_eval { max_eval = eval; }
+        let mut value = if maximizing { f64::NEG_INFINITY } else { f64::INFINITY };
+        for cell in moves {
+            let coords = Coordinates::from_index(cell, n);
+            let mut nb = board.clone();
+            if nb.add_move(crate::Movement::Placement { player: current, coords }).is_ok() {
+                pc.insert(cell); occupied.insert(cell);
+                let eval = self.minimax(
+                    &nb, depth-1, !maximizing, player, opponent,
+                    alpha, beta, pc, oc, occupied, root_occupied, n, nbrs,
+                    transposition_table,
+                );
+                pc.remove(&cell); occupied.remove(&cell);
+                if maximizing {
+                    if eval > value { value = eval; }
                     alpha = alpha.max(eval);
                     if beta <= alpha { break; }
-                }
-            }
-            max_eval
-        } else {
-            let mut min_eval = f64::INFINITY;
-            for cell in moves {
-                let coords = Coordinates::from_index(cell, n);
-                let mut nb = board.clone();
-                if nb.add_move(crate::Movement::Placement { player: current, coords }).is_ok() {
-                    oc.insert(cell); occupied.insert(cell);
-                    let eval = self.minimax(
-                        &nb, depth-1, true, player, opponent,
-                        alpha, beta, pc, oc, occupied, root_occupied, n, nbrs,
-                    );
-                    oc.remove(&cell); occupied.remove(&cell);
-                    if eval < min_eval { min_eval = eval; }
+                } else {
+                    if eval < value { value = eval; }
                     beta = beta.min(eval);
                     if beta <= alpha { break; }
                 }
             }
-            min_eval
         }
+        // Store in transposition table
+        transposition_table.insert(key, (depth, value));
+        value
     }
 }
 
@@ -389,6 +389,7 @@ impl YBot for MinimaxBot {
         let opponent = crate::other_player(current_player);
         let n = board.board_size();
         let nbrs = Self::build_neighbor_map(n);
+        let mut transposition_table: HashMap<(BTreeSet<u32>, BTreeSet<u32>), (u32, f64)> = HashMap::new();
 
         // ── 1. Ganar inmediatamente ──────────────────────────────────────────
         for &cell in available {
@@ -419,13 +420,13 @@ impl YBot for MinimaxBot {
         // ── 3. Alpha-beta ────────────────────────────────────────────────────
         let total = n * (n + 1) / 2;
         let avail_set: HashSet<u32> = available.iter().copied().collect();
-        let root_occupied: HashSet<u32> = (0..total)
+        let root_occupied: BTreeSet<u32> = (0..total)
             .filter(|i| !avail_set.contains(i))
             .collect();
 
         let mut occupied = root_occupied.clone();
-        let mut pc: HashSet<u32> = HashSet::new();
-        let mut oc: HashSet<u32> = HashSet::new();
+        let mut pc: BTreeSet<u32> = BTreeSet::new();
+        let mut oc: BTreeSet<u32> = BTreeSet::new();
 
         // Candidatos con filtro de amenazas desde el nivel raíz
         let mut moves = Self::relevant_moves(
@@ -453,6 +454,7 @@ impl YBot for MinimaxBot {
                     f64::NEG_INFINITY, f64::INFINITY,
                     &mut pc, &mut oc, &mut occupied,
                     &root_occupied, n, &nbrs,
+                    &mut transposition_table,
                 );
                 pc.remove(&cell); occupied.remove(&cell);
 
