@@ -73,6 +73,18 @@ function getBotOpponentLabel(botId: string | null): string {
   return `Bot ${label}`.trim();
 }
 
+function isGuestSessionIdentity(userId: string | null): boolean {
+  return Boolean(userId && /^guest-[a-z0-9-]+$/i.test(userId));
+}
+
+function formatHumanOpponentLabel(userId: string | null): string {
+  if (!userId) {
+    return 'desconocido';
+  }
+
+  return isGuestSessionIdentity(userId) ? 'Invitado' : userId;
+}
+
 function useSynchronizedCountdown(syncKey: string | undefined, remainingMs: number | null): number | null {
   const [displayedRemainingMs, setDisplayedRemainingMs] = React.useState<number | null>(remainingMs);
 
@@ -179,6 +191,33 @@ const GameView: React.FC<Props> = ({
       : null,
   );
 
+  React.useEffect(() => {
+    if (
+      !game ||
+      game.game_over ||
+      typeof displayedFallbackTurnTimeoutRemainingMs !== 'number' ||
+      displayedFallbackTurnTimeoutRemainingMs > 0 ||
+      loading ||
+      !canPlayCell
+    ) {
+      return;
+    }
+
+    const currentTurnKey = `${game.game_id}:${game.yen.turn}:${game.next_player ?? 'none'}`;
+    if (lastAutoPassTurnKeyRef.current === currentTurnKey) {
+      return;
+    }
+
+    lastAutoPassTurnKeyRef.current = currentTurnKey;
+    void passCurrentTurn();
+  }, [
+    canPlayCell,
+    displayedFallbackTurnTimeoutRemainingMs,
+    game,
+    loading,
+    passCurrentTurn,
+  ]);
+
   if (!game) return <div>No hay partida activa.</div>;
 
   const resolvedHumanPlayerId = myPlayerId ?? 0;
@@ -210,7 +249,7 @@ const GameView: React.FC<Props> = ({
     ?? (currentIsPlayer0 ? player1UserId : currentIsPlayer1 ? player0UserId : null);
   const opponentLabel = game.mode === 'human_vs_bot'
     ? getBotOpponentLabel(game.bot_id)
-    : opponentUserId ?? 'desconocido';
+    : formatHumanOpponentLabel(opponentUserId);
   const hintCellKey = hintCoordinates ? `${hintCoordinates.x}-${hintCoordinates.y}-${hintCoordinates.z}` : null;
   const hintText = hintLoading ? 'Cargando pista...' : hintCoordinates ? 'Movimiento sugerido' : null;
   const isWaitingForOnlineOpponentMove =
@@ -286,33 +325,6 @@ const GameView: React.FC<Props> = ({
       hint={turnCountdownHint}
     />
   ) : null;
-
-  React.useEffect(() => {
-    if (
-      !game ||
-      game.game_over ||
-      typeof displayedFallbackTurnTimeoutRemainingMs !== 'number' ||
-      displayedFallbackTurnTimeoutRemainingMs > 0 ||
-      loading ||
-      !canPlayCell
-    ) {
-      return;
-    }
-
-    const currentTurnKey = `${game.game_id}:${game.yen.turn}:${game.next_player ?? 'none'}`;
-    if (lastAutoPassTurnKeyRef.current === currentTurnKey) {
-      return;
-    }
-
-    lastAutoPassTurnKeyRef.current = currentTurnKey;
-    void passCurrentTurn();
-  }, [
-    canPlayCell,
-    displayedFallbackTurnTimeoutRemainingMs,
-    game,
-    loading,
-    passCurrentTurn,
-  ]);
 
   return (
     <Box sx={uiSx.centeredColumn}>

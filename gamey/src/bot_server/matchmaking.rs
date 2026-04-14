@@ -1,6 +1,9 @@
 use super::{
     error::ErrorResponse,
-    games::{ensure_user_id_is_available_for_new_game, register_active_game_for_session_users},
+    games::{
+        ensure_user_id_is_available_for_new_game, normalize_user_id_for_tracking,
+        register_active_game_for_session_users,
+    },
     state::{
         AppState, GameSession, MatchmakingQueueEntry, MatchmakingState, MatchmakingTicketStatus,
     },
@@ -86,12 +89,27 @@ pub async fn enqueue(
 
     let ticket_id = state.new_ticket_id();
     let user_id = read_header_string(&headers, "x-user-id");
+    let normalized_user_id = normalize_user_id_for_tracking(user_id.as_deref());
 
     ensure_user_id_is_available_for_new_game(&state, user_id.as_deref(), &params.api_version)
         .await?;
 
     let matchmaking = state.matchmaking();
     let mut guard = matchmaking.write().await;
+
+    if let Some(normalized_user_id) = normalized_user_id.as_deref()
+        && let Some(existing_ticket_id) =
+            find_waiting_ticket_id_for_user_id(&guard, normalized_user_id)
+    {
+        return Err(error_response(
+            &format!(
+                "User already has an active matchmaking ticket: {}",
+                existing_ticket_id
+            ),
+            Some(params.api_version),
+        ));
+    }
+
     guard.queue.push_back(MatchmakingQueueEntry {
         ticket_id: ticket_id.clone(),
         size: request.size,
@@ -290,7 +308,9 @@ fn take_next_pair(
         }
 
         let second_idx = state.queue.iter().position(|candidate| {
-            candidate.size == first.size && is_waiting_ticket(&state.tickets, &candidate.ticket_id)
+            candidate.size == first.size
+                && is_waiting_ticket(&state.tickets, &candidate.ticket_id)
+                && !share_matchmaking_identity(&first, candidate)
         });
 
         if let Some(idx) = second_idx
@@ -309,6 +329,33 @@ fn is_waiting_ticket(tickets: &HashMap<String, MatchmakingTicketStatus>, ticket_
     matches!(
         tickets.get(ticket_id),
         Some(MatchmakingTicketStatus::Waiting { .. })
+    )
+}
+
+fn find_waiting_ticket_id_for_user_id<'a>(
+    state: &'a MatchmakingState,
+    normalized_user_id: &str,
+) -> Option<&'a str> {
+    state.tickets.iter().find_map(|(ticket_id, status)| {
+        let MatchmakingTicketStatus::Waiting { user_id, .. } = status else {
+            return None;
+        };
+
+        (normalize_user_id_for_tracking(user_id.as_deref()).as_deref() == Some(normalized_user_id))
+            .then_some(ticket_id.as_str())
+    })
+}
+
+fn share_matchmaking_identity(
+    first: &MatchmakingQueueEntry,
+    second: &MatchmakingQueueEntry,
+) -> bool {
+    let first_user_id = normalize_user_id_for_tracking(first.user_id.as_deref());
+    let second_user_id = normalize_user_id_for_tracking(second.user_id.as_deref());
+
+    matches!(
+        (first_user_id.as_deref(), second_user_id.as_deref()),
+        (Some(first_user_id), Some(second_user_id)) if first_user_id == second_user_id
     )
 }
 
@@ -374,5 +421,69 @@ mod tests {
         let pair = take_next_pair(&mut state).unwrap();
         assert_eq!(pair.0.ticket_id, "ticket-1");
         assert_eq!(pair.1.ticket_id, "ticket-2");
+    }
+
+    #[test]
+    fn test_take_next_pair_skips_same_identity_and_uses_next_distinct_ticket() {
+        let mut state = MatchmakingState::default();
+        state.queue.push_back(MatchmakingQueueEntry {
+            ticket_id: "ticket-1".to_string(),
+            size: 7,
+            user_id: Some("guest-a".to_string()),
+        });
+        state.queue.push_back(MatchmakingQueueEntry {
+            ticket_id: "ticket-2".to_string(),
+            size: 7,
+            user_id: Some("guest-a".to_string()),
+        });
+        state.queue.push_back(MatchmakingQueueEntry {
+            ticket_id: "ticket-3".to_string(),
+            size: 7,
+            user_id: Some("guest-b".to_string()),
+        });
+        state.tickets.insert(
+            "ticket-1".to_string(),
+            MatchmakingTicketStatus::Waiting {
+                size: 7,
+                user_id: Some("guest-a".to_string()),
+                enqueued_at: Instant::now(),
+            },
+        );
+        state.tickets.insert(
+            "ticket-2".to_string(),
+            MatchmakingTicketStatus::Waiting {
+                size: 7,
+                user_id: Some("guest-a".to_string()),
+                enqueued_at: Instant::now(),
+            },
+        );
+        state.tickets.insert(
+            "ticket-3".to_string(),
+            MatchmakingTicketStatus::Waiting {
+                size: 7,
+                user_id: Some("guest-b".to_string()),
+                enqueued_at: Instant::now(),
+            },
+        );
+
+        let pair = take_next_pair(&mut state).unwrap();
+        assert_eq!(pair.0.ticket_id, "ticket-1");
+        assert_eq!(pair.1.ticket_id, "ticket-3");
+    }
+
+    #[test]
+    fn test_find_waiting_ticket_id_for_user_id_returns_existing_ticket() {
+        let mut state = MatchmakingState::default();
+        state.tickets.insert(
+            "ticket-2".to_string(),
+            MatchmakingTicketStatus::Waiting {
+                size: 7,
+                user_id: Some("Guest-A".to_string()),
+                enqueued_at: Instant::now(),
+            },
+        );
+
+        let existing_ticket_id = find_waiting_ticket_id_for_user_id(&state, "guest-a");
+        assert_eq!(existing_ticket_id, Some("ticket-2"));
     }
 }

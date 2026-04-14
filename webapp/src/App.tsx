@@ -37,7 +37,6 @@ function App() {
     myPlayerId,
     matchmakingTicketId,
     matchmakingStatus,
-    matchmakingPosition,
     setMode,
     setBotDifficulty,
     updateBoardSize,
@@ -49,7 +48,7 @@ function App() {
     playCell,
     requestHint,
     acknowledgeAutomaticGameOpen,
-  } = useGamey(auth.username ?? undefined);
+  } = useGamey(auth.sessionUserId ?? undefined);
 
   const [view, setView] = useState<'login' | 'dashboard' | 'history' | 'game' | 'help'>(
     auth.hasSession ? 'dashboard' : 'login',
@@ -116,7 +115,9 @@ function App() {
 
   useEffect(() => {
     if (!auth.hasSession && view !== 'login') {
-      setView('login');
+      queueMicrotask(() => {
+        setView('login');
+      });
     }
   }, [auth.hasSession, view]);
 
@@ -139,8 +140,10 @@ function App() {
       return;
     }
 
-    setView('game');
-    acknowledgeAutomaticGameOpen();
+    queueMicrotask(() => {
+      setView('game');
+      acknowledgeAutomaticGameOpen();
+    });
   }, [acknowledgeAutomaticGameOpen, gameIdPendingAutomaticOpen]);
 
   if (auth.loading) {
@@ -218,7 +221,6 @@ function App() {
                 resumeActiveGame={handleResumeActiveGame}
                 matchmakingTicketId={matchmakingTicketId}
                 matchmakingStatus={matchmakingStatus}
-                matchmakingPosition={matchmakingPosition}
                 startMatchmaking={startMatchmaking}
                 cancelCurrentMatchmaking={cancelCurrentMatchmaking}
               />
@@ -239,7 +241,7 @@ function App() {
                 hintCoordinates={hintCoordinates}
                 hintLoading={hintLoading}
                 myPlayerId={myPlayerId}
-                currentUserId={auth.username}
+                currentUserId={auth.sessionUserId}
                 resignCurrentGame={resignCurrentGame}
                 passCurrentTurn={passCurrentTurn}
                 playCell={playCell}

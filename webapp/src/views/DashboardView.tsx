@@ -18,7 +18,6 @@ type Props = {
   resumeActiveGame: () => void;
   matchmakingTicketId: string | null;
   matchmakingStatus: 'idle' | 'waiting' | 'matched' | 'cancelled';
-  matchmakingPosition: number | null;
   startMatchmaking: () => void;
   cancelCurrentMatchmaking: () => void;
 };
@@ -40,20 +39,37 @@ function getGameConfigurationLockMessage(
 
 function getMatchmakingStatusText(
   matchmakingStatus: Props['matchmakingStatus'],
-  matchmakingTicketId: string | null,
-  matchmakingPosition: number | null,
-): string {
-  if (matchmakingStatus === 'waiting') {
-    const ticketText = matchmakingTicketId ? `Ticket ${matchmakingTicketId}` : '';
-    const positionText = matchmakingPosition ? ` - Posicion ${matchmakingPosition}` : '';
-    return `Buscando rival... ${ticketText}${positionText}`;
-  }
-
+): string | null {
   if (matchmakingStatus === 'matched') {
     return 'Rival encontrado. Cargando partida...';
   }
 
-  return 'Busqueda cancelada.';
+  if (matchmakingStatus === 'cancelled') {
+    return 'Busqueda cancelada.';
+  }
+
+  return null;
+}
+
+function AnimatedWaitingText({ label }: { label: string }) {
+  const [dotCount, setDotCount] = React.useState(3);
+
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setDotCount((current) => (current + 1) % 4);
+    }, 350);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  return (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'baseline' }}>
+      <Box component="span">{label}</Box>
+      <Box component="span" sx={{ display: 'inline-block', minWidth: '3ch', textAlign: 'left' }}>
+        {'.'.repeat(dotCount)}
+      </Box>
+    </Box>
+  );
 }
 
 const DashboardView: React.FC<Props> = ({
@@ -69,7 +85,6 @@ const DashboardView: React.FC<Props> = ({
   resumeActiveGame,
   matchmakingTicketId,
   matchmakingStatus,
-  matchmakingPosition,
   startMatchmaking,
   cancelCurrentMatchmaking,
 }) => {
@@ -83,8 +98,6 @@ const DashboardView: React.FC<Props> = ({
   );
   const statusText = getMatchmakingStatusText(
     matchmakingStatus,
-    matchmakingTicketId,
-    matchmakingPosition,
   );
 
   return (
@@ -123,22 +136,15 @@ const DashboardView: React.FC<Props> = ({
         createNewGame={createNewGame}
       />
 
-      <Paper sx={uiSx.dashboardCard}>
-        <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
-          Jugar online
-        </Typography>
-        <Box sx={uiSx.dashboardCardHint}>
-          Emparejamiento automatico para partidas humano vs humano.
-        </Box>
-
-        <Box sx={uiSx.onlineActionsRow}>
+      <Paper sx={[uiSx.dashboardCard, { minHeight: 0, height: 'auto', gap: 1 }]}>
+        <Box sx={{ ...uiSx.onlineActionsRow, mt: 0 }}>
           <Button
             variant="outlined"
             sx={uiSx.onlinePrimaryButton}
             onClick={startMatchmaking}
             disabled={loading || waiting || hasActiveGameInProgress}
           >
-            {waiting ? 'Buscando...' : 'Buscar rival'}
+            Buscar rival
           </Button>
           <Button
             variant="outlined"
@@ -152,7 +158,7 @@ const DashboardView: React.FC<Props> = ({
 
         {hasStatus && (
           <Box sx={uiSx.onlineStatusBadge(waiting)}>
-            {statusText}
+            {waiting ? <AnimatedWaitingText label="Buscando" /> : statusText}
           </Box>
         )}
       </Paper>
