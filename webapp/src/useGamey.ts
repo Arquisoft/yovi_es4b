@@ -25,6 +25,8 @@ import { mapDifficultyToBotId, type BotDifficulty } from './stats/types';
 
 const DEFAULT_MATCHMAKING_POLL_DELAY_MS = 1_000;
 const ONLINE_GAME_SYNC_DELAY_MS = 1_200;
+type TimeoutHandle = ReturnType<typeof globalThis.setTimeout>;
+type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
 
 type PersistedActiveGameDescriptor =
   | { kind: 'local' }
@@ -102,8 +104,8 @@ export function useGamey(userId?: string) {
   const [hintCoordinates, setHintCoordinates] = useState<Coordinates | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
 
-  const matchmakingTicketPollTimerIdRef = useRef<number | null>(null);
-  const onlineGameSynchronizationTimerIdRef = useRef<number | null>(null);
+  const matchmakingTicketPollTimerIdRef = useRef<TimeoutHandle | null>(null);
+  const onlineGameSynchronizationTimerIdRef = useRef<IntervalHandle | null>(null);
   const pollMatchmakingTicketRef = useRef<((ticketId: string) => Promise<void>) | null>(null);
 
   const board = useMemo(() => (game ? toBoardCells(game) : []), [game]);
@@ -136,14 +138,14 @@ export function useGamey(userId?: string) {
 
   const clearMatchmakingTicketPollTimer = useCallback(() => {
     if (matchmakingTicketPollTimerIdRef.current !== null) {
-      window.clearTimeout(matchmakingTicketPollTimerIdRef.current);
+      globalThis.clearTimeout(matchmakingTicketPollTimerIdRef.current);
       matchmakingTicketPollTimerIdRef.current = null;
     }
   }, []);
 
   const clearOnlineGameSynchronizationTimer = useCallback(() => {
     if (onlineGameSynchronizationTimerIdRef.current !== null) {
-      window.clearInterval(onlineGameSynchronizationTimerIdRef.current);
+      globalThis.clearInterval(onlineGameSynchronizationTimerIdRef.current);
       onlineGameSynchronizationTimerIdRef.current = null;
     }
   }, []);
@@ -361,7 +363,7 @@ export function useGamey(userId?: string) {
 
   const scheduleMatchmakingTicketPoll = useCallback((ticketId: string, delayMs: number) => {
     clearMatchmakingTicketPollTimer();
-    matchmakingTicketPollTimerIdRef.current = window.setTimeout(() => {
+    matchmakingTicketPollTimerIdRef.current = globalThis.setTimeout(() => {
       void pollMatchmakingTicketRef.current?.(ticketId);
     }, delayMs);
   }, [clearMatchmakingTicketPollTimer]);
@@ -517,7 +519,7 @@ export function useGamey(userId?: string) {
       return;
     }
 
-    onlineGameSynchronizationTimerIdRef.current = window.setInterval(() => {
+    onlineGameSynchronizationTimerIdRef.current = globalThis.setInterval(() => {
       void getGame(game.game_id, normalizedCurrentUserId, myPlayerToken)
         .then((nextGame) => {
           setGame(nextGame);

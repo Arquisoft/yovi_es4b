@@ -48,6 +48,7 @@ export const uiColors = {
 type HistoryStatTone = 'neutral' | 'win' | 'loss' | 'info';
 type GameCountdownTone = 'self' | 'opponent' | 'disconnect';
 type BoardOwner = 'human' | 'opponent' | 'empty';
+type BoardHexDecorativeStyle = Record<string, string | number>;
 
 function getHistoryStatBorderColor(tone: HistoryStatTone): string {
   switch (tone) {
@@ -195,6 +196,81 @@ function getBoardHexHoverFilter(highlighted: boolean, muted: boolean, mutedFilte
   }
 
   return 'brightness(0.92)';
+}
+
+function getBoardHexBoxShadow(highlighted: boolean, isHint: boolean): string {
+  if (!highlighted) {
+    return 'none';
+  }
+
+  if (isHint) {
+    return '0 0 0 2px rgba(0, 0, 255, 0.88)';
+  }
+
+  return '0 0 0 2px rgba(255, 255, 255, 0.88)';
+}
+
+function shouldDecorateBoardHex(highlighted: boolean, muted: boolean, owner: BoardOwner): boolean {
+  return highlighted || (muted && owner !== 'empty');
+}
+
+function getBoardHexOverlayBackgroundImage(
+  highlighted: boolean,
+  isHint: boolean,
+  mutedPattern: string,
+): string {
+  if (highlighted && isHint) {
+    return 'repeating-linear-gradient(135deg, rgba(0,0,255,0.34) 0 3px, rgba(0,0,255,0) 3px 8px)';
+  }
+
+  if (highlighted) {
+    return 'repeating-linear-gradient(135deg, rgba(255,255,255,0.34) 0 3px, rgba(255,255,255,0) 3px 8px)';
+  }
+
+  return mutedPattern;
+}
+
+function getBoardHexBeforeStyle(
+  highlighted: boolean,
+  isHint: boolean,
+  mutedPattern: string,
+): BoardHexDecorativeStyle {
+  const backgroundImage = getBoardHexOverlayBackgroundImage(highlighted, isHint, mutedPattern);
+
+  return {
+    content: '""',
+    position: 'absolute',
+    inset: 2,
+    clipPath: 'inherit',
+    backgroundImage,
+    opacity: highlighted ? 0.52 : 0.66,
+    pointerEvents: 'none',
+  };
+}
+
+function getBoardHexAfterStyle(
+  highlighted: boolean,
+  borderStyle: string,
+): BoardHexDecorativeStyle {
+  return {
+    content: '""',
+    position: 'absolute',
+    inset: highlighted ? 1 : 2,
+    clipPath: 'inherit',
+    border: borderStyle,
+    pointerEvents: 'none',
+  };
+}
+
+function getBoardHexHoverStyle(clickable: boolean, hoverFilter: string): BoardHexDecorativeStyle {
+  if (!clickable) {
+    return {};
+  }
+
+  return {
+    filter: hoverFilter,
+    cursor: 'pointer',
+  };
 }
 
 const theme = createTheme({
@@ -1251,6 +1327,10 @@ export const uiSx = {
     const filter = getBoardHexFilter(highlighted, muted, mutedFilter);
     const hoverFilter = getBoardHexHoverFilter(highlighted, muted, mutedFilter);
     const borderStyle = getBoardHexBorderStyle(highlighted, owner, ownerBorderColor, isHint);
+    const showDecoration = shouldDecorateBoardHex(highlighted, muted, owner);
+    const beforeStyle = showDecoration ? getBoardHexBeforeStyle(highlighted, isHint, mutedPattern) : {};
+    const afterStyle = showDecoration ? getBoardHexAfterStyle(highlighted, borderStyle) : {};
+    const hoverStyle = getBoardHexHoverStyle(clickable, hoverFilter);
 
     return {
       width: 48,
@@ -1270,47 +1350,13 @@ export const uiSx = {
       display: 'inline-block',
       zIndex: highlighted ? 2 : 1,
       opacity: muted ? 0.78 : 1,
-      boxShadow: highlighted && isHint
-        ? '0 0 0 2px rgba(0, 0, 255, 0.88)'
-        : highlighted
-        ? '0 0 0 2px rgba(255, 255, 255, 0.88)'
-        : 'none',
+      boxShadow: getBoardHexBoxShadow(highlighted, isHint),
       filter,
       transform: 'none',
       animation: 'none',
-      '&::before':
-        highlighted || (muted && owner !== 'empty')
-          ? {
-              content: '""',
-              position: 'absolute',
-              inset: 2,
-              clipPath: 'inherit',
-              backgroundImage: highlighted && isHint
-                ? 'repeating-linear-gradient(135deg, rgba(0,0,255,0.34) 0 3px, rgba(0,0,255,0) 3px 8px)'
-                : highlighted
-                ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.34) 0 3px, rgba(255,255,255,0) 3px 8px)'
-                : mutedPattern,
-              opacity: highlighted ? 0.52 : 0.66,
-              pointerEvents: 'none',
-            }
-          : {},
-      '&::after':
-        highlighted || (muted && owner !== 'empty')
-          ? {
-              content: '""',
-              position: 'absolute',
-              inset: highlighted ? 1 : 2,
-              clipPath: 'inherit',
-              border: borderStyle,
-              pointerEvents: 'none',
-            }
-          : {},
-      '&:hover': clickable
-        ? {
-            filter: hoverFilter,
-            cursor: 'pointer',
-          }
-        : {},
+      '&::before': beforeStyle,
+      '&::after': afterStyle,
+      '&:hover': hoverStyle,
     };
   },
 };
