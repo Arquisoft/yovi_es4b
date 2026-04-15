@@ -1,5 +1,15 @@
 import { createTheme } from '@mui/material/styles';
 import type { SxProps, Theme } from '@mui/material/styles';
+import {
+  getButtonInsetShadow,
+  getConfigTogglePalette,
+  getGameOutcomePalette,
+  getHistoryModeBadgePalette,
+  getHistoryResultBadgePalette,
+  getOnlinePrimaryButtonPalette,
+  getOnlineSecondaryButtonPalette,
+  type GameOutcomeTone,
+} from './themeVisuals';
 
 export const uiColors = {
   bg: {
@@ -36,7 +46,6 @@ export const uiColors = {
 } as const;
 
 type HistoryStatTone = 'neutral' | 'win' | 'loss' | 'info';
-type GameOutcomeTone = 'success' | 'danger' | 'accent';
 type GameCountdownTone = 'self' | 'opponent' | 'disconnect';
 type BoardOwner = 'human' | 'opponent' | 'empty';
 
@@ -63,39 +72,6 @@ function getHistoryStatAccentColor(tone: HistoryStatTone): string {
       return 'rgba(172, 170, 162, 0.85)';
     default:
       return 'rgba(172, 170, 162, 0.7)';
-  }
-}
-
-function getGameOutcomeBorderColor(tone: GameOutcomeTone): string {
-  switch (tone) {
-    case 'success':
-      return '#97cb64';
-    case 'accent':
-      return '#a8d27a';
-    default:
-      return '#d98982';
-  }
-}
-
-function getGameOutcomeBackgroundColor(tone: GameOutcomeTone): string {
-  switch (tone) {
-    case 'success':
-      return '#4f6f30';
-    case 'accent':
-      return '#586d36';
-    default:
-      return '#75423e';
-  }
-}
-
-function getGameOutcomeShadowColor(tone: GameOutcomeTone): string {
-  switch (tone) {
-    case 'success':
-      return '0 10px 22px rgba(34, 46, 21, 0.24)';
-    case 'accent':
-      return '0 10px 22px rgba(41, 49, 25, 0.24)';
-    default:
-      return '0 10px 22px rgba(74, 35, 35, 0.24)';
   }
 }
 
@@ -618,28 +594,32 @@ export const uiSx = {
     color: 'text.muted',
     fontWeight: 700,
   } satisfies SxProps<Theme>,
-  configToggleButton: (active: boolean): SxProps<Theme> => ({
-    minWidth: { xs: '100%', sm: 108 },
-    height: 34,
-    px: 1.4,
-    borderRadius: 1.4,
-    fontSize: '0.88rem',
-    fontWeight: 700,
-    color: active ? '#fbf7ef' : 'text.secondary',
-    backgroundColor: active ? '#556f34' : '#47433f',
-    borderColor: active ? '#9dce67' : 'rgba(133, 128, 120, 0.6)',
-    boxShadow: active ? 'inset 0 1px 0 rgba(255, 255, 255, 0.08)' : 'none',
-    '&:hover': {
-      backgroundColor: active ? '#5f7f38' : '#504b46',
-      borderColor: active ? '#b3df7d' : '#9dce67',
-    },
-    '&.Mui-disabled': {
-      color: '#8e887f',
-      backgroundColor: active ? '#4a6030' : '#3c3935',
-      borderColor: active ? 'rgba(141, 183, 92, 0.45)' : 'rgba(123, 118, 109, 0.32)',
-      opacity: 1,
-    },
-  }),
+  configToggleButton: (active: boolean): SxProps<Theme> => {
+    const palette = getConfigTogglePalette(active);
+
+    return {
+      minWidth: { xs: '100%', sm: 108 },
+      height: 34,
+      px: 1.4,
+      borderRadius: 1.4,
+      fontSize: '0.88rem',
+      fontWeight: 700,
+      color: palette.color,
+      backgroundColor: palette.backgroundColor,
+      borderColor: palette.borderColor,
+      boxShadow: active ? getButtonInsetShadow() : 'none',
+      '&:hover': {
+        backgroundColor: palette.hoverBackgroundColor,
+        borderColor: palette.hoverBorderColor,
+      },
+      '&.Mui-disabled': {
+        color: palette.disabledColor,
+        backgroundColor: palette.disabledBackgroundColor,
+        borderColor: palette.disabledBorderColor,
+        opacity: 1,
+      },
+    };
+  },
   configGrid: {
     mt: 0.9,
     display: 'grid',
@@ -710,42 +690,50 @@ export const uiSx = {
     gap: 1,
     alignItems: 'center',
   } satisfies SxProps<Theme>,
-  onlinePrimaryButton: {
-    minWidth: 160,
-    height: 38,
-    borderColor: '#9dce67',
-    color: '#fbf7ef',
-    backgroundColor: '#516c31',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-    '&:hover': {
-      borderColor: '#b3df7d',
-      backgroundColor: '#5d7d38',
-    },
-    '&.Mui-disabled': {
-      borderColor: 'rgba(141, 183, 92, 0.38)',
-      color: '#aba59b',
-      backgroundColor: '#42403b',
-      opacity: 1,
-    },
-  } satisfies SxProps<Theme>,
-  onlineSecondaryButton: {
-    minWidth: 160,
-    height: 38,
-    borderColor: 'rgba(133, 128, 120, 0.6)',
-    color: uiColors.text.secondary,
-    backgroundColor: '#46423e',
-    '&:hover': {
-      borderColor: 'rgba(196, 196, 188, 0.72)',
-      backgroundColor: '#514b46',
-      color: uiColors.text.primary,
-    },
-    '&.Mui-disabled': {
-      borderColor: 'rgba(115, 111, 104, 0.34)',
-      backgroundColor: '#3d3a36',
-      color: '#8e887f',
-      opacity: 1,
-    },
-  } satisfies SxProps<Theme>,
+  onlinePrimaryButton: (() => {
+    const palette = getOnlinePrimaryButtonPalette();
+
+    return {
+      minWidth: 160,
+      height: 38,
+      borderColor: palette.borderColor,
+      color: palette.color,
+      backgroundColor: palette.backgroundColor,
+      boxShadow: getButtonInsetShadow(),
+      '&:hover': {
+        borderColor: palette.hoverBorderColor,
+        backgroundColor: palette.hoverBackgroundColor,
+      },
+      '&.Mui-disabled': {
+        borderColor: palette.disabledBorderColor,
+        color: palette.disabledColor,
+        backgroundColor: palette.disabledBackgroundColor,
+        opacity: 1,
+      },
+    } satisfies SxProps<Theme>;
+  })(),
+  onlineSecondaryButton: (() => {
+    const palette = getOnlineSecondaryButtonPalette();
+
+    return {
+      minWidth: 160,
+      height: 38,
+      borderColor: palette.borderColor,
+      color: palette.color,
+      backgroundColor: palette.backgroundColor,
+      '&:hover': {
+        borderColor: palette.hoverBorderColor,
+        backgroundColor: palette.hoverBackgroundColor,
+        color: uiColors.text.primary,
+      },
+      '&.Mui-disabled': {
+        borderColor: palette.disabledBorderColor,
+        backgroundColor: palette.disabledBackgroundColor,
+        color: palette.disabledColor,
+        opacity: 1,
+      },
+    } satisfies SxProps<Theme>;
+  })(),
   onlineStatusBadge: (waiting: boolean): SxProps<Theme> => ({
     mt: 1.2,
     px: 1.2,
@@ -928,43 +916,43 @@ export const uiSx = {
         }
       : {},
   }),
-  historyResultBadge: (won: boolean): SxProps<Theme> => ({
-    display: 'inline-flex',
-    alignItems: 'center',
-    px: 1.1,
-    py: 0.26,
-    borderRadius: 999,
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    letterSpacing: 0.14,
-    border: `1px solid ${
-      won
-        ? '#97cb64'
-        : '#e28d87'
-    }`,
-    color: '#fbf7ef',
-    backgroundColor: won ? '#4f7131' : '#7d4640',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-  }),
-  historyModeBadge: (isBot: boolean): SxProps<Theme> => ({
-    display: 'inline-flex',
-    alignItems: 'center',
-    px: 1,
-    py: 0.22,
-    borderRadius: 999,
-    fontSize: '0.76rem',
-    fontWeight: 700,
-    border: `1px solid ${
-      isBot
-        ? '#97cb64'
-        : 'rgba(170, 164, 154, 0.56)'
-    }`,
-    color: '#fbf7ef',
-    backgroundColor: isBot ? '#4f7131' : '#5a544d',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-    minWidth: 68,
-    justifyContent: 'center',
-  }),
+  historyResultBadge: (won: boolean): SxProps<Theme> => {
+    const palette = getHistoryResultBadgePalette(won);
+
+    return {
+      display: 'inline-flex',
+      alignItems: 'center',
+      px: 1.1,
+      py: 0.26,
+      borderRadius: 999,
+      fontSize: '0.78rem',
+      fontWeight: 700,
+      letterSpacing: 0.14,
+      color: palette.color,
+      backgroundColor: palette.backgroundColor,
+      boxShadow: palette.boxShadow,
+      border: `1px solid ${palette.borderColor}`,
+    };
+  },
+  historyModeBadge: (isBot: boolean): SxProps<Theme> => {
+    const palette = getHistoryModeBadgePalette(isBot);
+
+    return {
+      display: 'inline-flex',
+      alignItems: 'center',
+      px: 1,
+      py: 0.22,
+      borderRadius: 999,
+      fontSize: '0.76rem',
+      fontWeight: 700,
+      color: palette.color,
+      backgroundColor: palette.backgroundColor,
+      boxShadow: palette.boxShadow,
+      border: `1px solid ${palette.borderColor}`,
+      minWidth: 68,
+      justifyContent: 'center',
+    };
+  },
   historyMutedTextCell: {
     color: 'text.secondary',
     opacity: 0.9,
@@ -1157,9 +1145,7 @@ export const uiSx = {
     textAlign: 'center',
   } satisfies SxProps<Theme>,
   gameOutcomeBanner: (tone: GameOutcomeTone): SxProps<Theme> => {
-    const borderColor = getGameOutcomeBorderColor(tone);
-    const backgroundColor = getGameOutcomeBackgroundColor(tone);
-    const boxShadow = getGameOutcomeShadowColor(tone);
+    const { borderColor, backgroundColor, boxShadow } = getGameOutcomePalette(tone);
 
     return {
       width: '100%',

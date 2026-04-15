@@ -182,6 +182,6 @@ export function createGameSessionStore(
 }
 
 const browserLocalStorage =
-  typeof window === 'undefined' ? undefined : window.localStorage;
+  typeof globalThis.window === 'undefined' ? undefined : globalThis.window.localStorage;
 
 export const gameSessionStore = createGameSessionStore(browserLocalStorage);

@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:theme-coverage": "node -e \"const fs=require('fs'); fs.rmSync('./.node-coverage-build',{recursive:true,force:true}); fs.mkdirSync('./.node-coverage-build',{recursive:true});\" && tsc src/themeVisuals.ts --rootDir src --outDir ./.node-coverage-build --module ES2022 --moduleResolution Node --target ES2022 --skipLibCheck --esModuleInterop && node --test --experimental-test-isolation=none --experimental-test-coverage --test-coverage-include=./.node-coverage-build/themeVisuals.js --test-coverage-lines=90 --test-coverage-functions=90 --test-coverage-branches=90 node-tests/themeVisuals.coverage.test.cjs",
     "test:watch": "vitest --watch",
     "test:e2e:run": "cucumber-js --import test/e2e/support/setup.mjs --import test/e2e/steps/**/*.mjs test/e2e/features --format progress",
     "test:e2e": "start-server-and-test start:all http://localhost:5173 test:e2e:run",

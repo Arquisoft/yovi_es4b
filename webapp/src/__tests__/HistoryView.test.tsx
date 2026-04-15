@@ -176,6 +176,69 @@ describe('HistoryView', () => {
     expect(screen.getByText('match-human-win')).toBeInTheDocument();
   });
 
+  test('supports dynamic bot and winner filters, including matches without bot or winner', () => {
+    const matches = [
+      buildMatch({
+        gameId: 'match-no-bot-no-winner',
+        mode: 'human_vs_human',
+        botId: null,
+        winnerId: null,
+      }),
+      buildMatch({
+        gameId: 'match-greedy-adri',
+        botId: 'greedy_bot',
+        winnerId: 'adri',
+      }),
+      buildMatch({
+        gameId: 'match-random-rival',
+        botId: 'random_bot',
+        winnerId: 'rival',
+      }),
+    ];
+
+    render(<HistoryView playerStats={PLAYER_STATS} matches={matches} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /bot\. filtro actual/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^sin bot$/i }));
+
+    expect(screen.getByText(/mostrando 1 de 3 partidas/i)).toBeInTheDocument();
+    expect(screen.getByText('match-no-bot-no-winner')).toBeInTheDocument();
+    expect(screen.queryByText('match-greedy-adri')).not.toBeInTheDocument();
+    expect(screen.queryByText('match-random-rival')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /ganador\. filtro actual/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^sin ganador$/i }));
+
+    expect(screen.getByText('match-no-bot-no-winner')).toBeInTheDocument();
+    expect(screen.queryByText('match-greedy-adri')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /limpiar filtros/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /bot\. filtro actual/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^intermedio$/i }));
+
+    expect(screen.getByText(/mostrando 1 de 3 partidas/i)).toBeInTheDocument();
+    expect(screen.getByText('match-greedy-adri')).toBeInTheDocument();
+    expect(screen.queryByText('match-no-bot-no-winner')).not.toBeInTheDocument();
+    expect(screen.queryByText('match-random-rival')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /ganador\. filtro actual/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^adri$/i }));
+
+    expect(screen.getByText('match-greedy-adri')).toBeInTheDocument();
+    expect(screen.queryByText('match-random-rival')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /limpiar filtros/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /bot\. filtro actual/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^con bot$/i }));
+
+    expect(screen.getByText(/mostrando 2 de 3 partidas/i)).toBeInTheDocument();
+    expect(screen.getByText('match-greedy-adri')).toBeInTheDocument();
+    expect(screen.getByText('match-random-rival')).toBeInTheDocument();
+    expect(screen.queryByText('match-no-bot-no-winner')).not.toBeInTheDocument();
+  });
+
   test('returns to first page when match history updates', () => {
     const manyMatches = Array.from({ length: 11 }, (_, index) =>
       buildMatch({

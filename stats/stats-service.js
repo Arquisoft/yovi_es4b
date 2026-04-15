@@ -151,6 +151,17 @@ function toOptionalObject(value) {
   return value;
 }
 
+function requireUserIdHeader(req, res, next) {
+  const userId = readUserIdFromHeader(req);
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Missing x-user-id header' });
+  }
+
+  req.userId = userId;
+  next();
+}
+
 // --- Conexion a Mongo e indices ---
 
 async function connectToMongo({
@@ -193,17 +204,6 @@ function createApp({ internalToken = INTERNAL_TOKEN, playerStatsCollection, play
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    next();
-  }
-
-  function requireUserIdHeader(req, res, next) {
-    const userId = readUserIdFromHeader(req);
-
-    if (!userId) {
-      return res.status(401).json({ message: 'Missing x-user-id header' });
-    }
-
-    req.userId = userId;
     next();
   }
 
@@ -300,7 +300,7 @@ function createApp({ internalToken = INTERNAL_TOKEN, playerStatsCollection, play
 
           isDuplicate = dbResult.upsertedCount === 0;
         } catch (error) {
-          if (error && error.code === 11000) {
+          if (error?.code === 11000) {
             isDuplicate = true;
           } else {
             throw error;

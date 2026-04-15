@@ -35,6 +35,7 @@ const PUBLIC_BOT_CATALOG = [
     description: 'Looks ahead to choose stronger competitive moves.',
   },
 ];
+const VALID_YEN_CELLS = new Set(['.', 'B', 'R']);
 
 class HttpResponseError extends Error {
   constructor(status, payload, fallbackMessage) {
@@ -272,6 +273,42 @@ function pickPlayBotId(body) {
   return STRATEGY_TO_BOT_ID[strategy.toLowerCase()] ?? strategy;
 }
 
+function validateYenPlayers(players) {
+  if (!Array.isArray(players) || players?.length !== 2 || players?.[0] !== 'B' || players?.[1] !== 'R') {
+    throw new Error("position.players must be exactly ['B', 'R']");
+  }
+
+  return players;
+}
+
+function findUnsupportedYenCell(row) {
+  return [...row].find((cell) => !VALID_YEN_CELLS.has(cell)) ?? null;
+}
+
+function validateYenLayout(layout, size) {
+  if (typeof layout !== 'string' || layout.trim().length === 0) {
+    throw new Error('position.layout must be a non-empty string');
+  }
+
+  const rows = layout.split('/');
+  if (rows.length !== size) {
+    throw new Error(`position.layout must contain ${size} rows`);
+  }
+
+  rows.forEach((row, rowIndex) => {
+    if (row.length !== rowIndex + 1) {
+      throw new Error(`position.layout row ${rowIndex} must contain ${rowIndex + 1} cells`);
+    }
+
+    const unsupportedCell = findUnsupportedYenCell(row);
+    if (unsupportedCell) {
+      throw new Error(`position.layout contains unsupported cell '${unsupportedCell}'`);
+    }
+  });
+
+  return rows;
+}
+
 function validateYenPosition(position) {
   if (!isObject(position)) {
     throw new Error('position must be a JSON object in YEN format');
@@ -287,32 +324,8 @@ function validateYenPosition(position) {
     throw new Error('position.turn must be 0 or 1');
   }
 
-  const players = Array.isArray(position.players) ? position.players : null;
-  if (!players || players.length !== 2 || players[0] !== 'B' || players[1] !== 'R') {
-    throw new Error("position.players must be exactly ['B', 'R']");
-  }
-
-  if (typeof position.layout !== 'string' || position.layout.trim().length === 0) {
-    throw new Error('position.layout must be a non-empty string');
-  }
-
-  const rows = position.layout.split('/');
-  if (rows.length !== size) {
-    throw new Error(`position.layout must contain ${size} rows`);
-  }
-
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
-    const row = rows[rowIndex];
-    if (row.length !== rowIndex + 1) {
-      throw new Error(`position.layout row ${rowIndex} must contain ${rowIndex + 1} cells`);
-    }
-
-    for (const cell of row) {
-      if (cell !== '.' && cell !== 'B' && cell !== 'R') {
-        throw new Error(`position.layout contains unsupported cell '${cell}'`);
-      }
-    }
-  }
+  const players = validateYenPlayers(position.players);
+  const rows = validateYenLayout(position.layout, size);
 
   return {
     size,
@@ -734,7 +747,11 @@ function start({ port = DEFAULT_PORT, env = process.env } = {}) {
   });
 }
 
-if (require.main === module) {
+function isDirectExecution() {
+  return require.main?.filename === __filename;
+}
+
+if (isDirectExecution()) {
   start();
 }
 
@@ -750,6 +767,7 @@ module.exports = {
   createApp,
   createExternalApiRouter,
   getProxyRoutes,
+  isDirectExecution,
   pickPlayBotId,
   start,
 };

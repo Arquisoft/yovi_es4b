@@ -126,7 +126,7 @@ function App() {
   }, [auth.hasSession, view]);
 
   useEffect(() => {
-    if (!auth.isAuthenticated || !game || !game.game_over) {
+    if (!auth.isAuthenticated || !game?.game_over) {
       return;
     }
 
