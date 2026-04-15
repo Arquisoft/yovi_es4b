@@ -61,7 +61,7 @@ const CellView: React.FC<{
       data-muted-cell={muted ? 'true' : undefined}
       data-piece-owner={owner}
       onClick={clickable ? onClick : undefined}
-      sx={uiSx.boardHex(color, clickable, highlighted, muted, owner)}
+      sx={uiSx.boardHex(color, clickable, highlighted, muted, owner, hinted)}
     />
   );
 };

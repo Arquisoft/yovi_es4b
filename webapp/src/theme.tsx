@@ -69,30 +69,33 @@ function getHistoryStatAccentColor(tone: HistoryStatTone): string {
 function getGameOutcomeBorderColor(tone: GameOutcomeTone): string {
   switch (tone) {
     case 'success':
+      return '#97cb64';
     case 'accent':
-      return 'rgba(146, 195, 92, 0.66)';
+      return '#a8d27a';
     default:
-      return 'rgba(212, 104, 104, 0.62)';
+      return '#d98982';
   }
 }
 
 function getGameOutcomeBackgroundColor(tone: GameOutcomeTone): string {
   switch (tone) {
     case 'success':
+      return '#4f6f30';
     case 'accent':
-      return 'rgba(129, 182, 76, 0.12)';
+      return '#586d36';
     default:
-      return 'rgba(189, 84, 84, 0.12)';
+      return '#75423e';
   }
 }
 
 function getGameOutcomeShadowColor(tone: GameOutcomeTone): string {
   switch (tone) {
     case 'success':
+      return '0 10px 22px rgba(34, 46, 21, 0.24)';
     case 'accent':
-      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+      return '0 10px 22px rgba(41, 49, 25, 0.24)';
     default:
-      return '0 8px 16px rgba(78, 34, 34, 0.12)';
+      return '0 10px 22px rgba(74, 35, 35, 0.24)';
   }
 }
 
@@ -189,7 +192,12 @@ function getBoardHexBorderStyle(
   highlighted: boolean,
   owner: BoardOwner,
   ownerBorderColor: string,
+  isHint: boolean = false,
 ): string {
+  if (highlighted && isHint) {
+    return '2px solid rgba(0,0,255,0.98)';
+  }
+
   if (highlighted) {
     return '2px solid rgba(255,255,255,0.98)';
   }
@@ -1162,10 +1170,20 @@ export const uiSx = {
       border: `1px solid ${borderColor}`,
       backgroundColor,
       boxShadow,
+      color: '#fbf7ef',
+      position: 'relative',
+      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
       gap: 0.45,
       textAlign: 'center',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 42%)',
+        pointerEvents: 'none',
+      },
     };
   },
   gameOutcomeTitle: {
@@ -1239,13 +1257,14 @@ export const uiSx = {
     highlighted = false,
     muted = false,
     owner: 'human' | 'opponent' | 'empty' = 'empty',
+    isHint = false,
   ): SxProps<Theme> => {
     const mutedFilter = getBoardOwnerMutedFilter(owner);
     const ownerBorderColor = getBoardOwnerBorderColor(owner);
     const mutedPattern = getBoardOwnerMutedPattern(owner);
     const filter = getBoardHexFilter(highlighted, muted, mutedFilter);
     const hoverFilter = getBoardHexHoverFilter(highlighted, muted, mutedFilter);
-    const borderStyle = getBoardHexBorderStyle(highlighted, owner, ownerBorderColor);
+    const borderStyle = getBoardHexBorderStyle(highlighted, owner, ownerBorderColor, isHint);
 
     return {
       width: 48,
@@ -1265,7 +1284,9 @@ export const uiSx = {
       display: 'inline-block',
       zIndex: highlighted ? 2 : 1,
       opacity: muted ? 0.78 : 1,
-      boxShadow: highlighted
+      boxShadow: highlighted && isHint
+        ? '0 0 0 2px rgba(0, 0, 255, 0.88)'
+        : highlighted
         ? '0 0 0 2px rgba(255, 255, 255, 0.88)'
         : 'none',
       filter,
@@ -1278,7 +1299,9 @@ export const uiSx = {
               position: 'absolute',
               inset: 2,
               clipPath: 'inherit',
-              backgroundImage: highlighted
+              backgroundImage: highlighted && isHint
+                ? 'repeating-linear-gradient(135deg, rgba(0,0,255,0.34) 0 3px, rgba(0,0,255,0) 3px 8px)'
+                : highlighted
                 ? 'repeating-linear-gradient(135deg, rgba(255,255,255,0.34) 0 3px, rgba(255,255,255,0) 3px 8px)'
                 : mutedPattern,
               opacity: highlighted ? 0.52 : 0.66,
