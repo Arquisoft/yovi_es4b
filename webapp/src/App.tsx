@@ -41,6 +41,7 @@ function App() {
     setBotDifficulty,
     updateBoardSize,
     createNewGame,
+    resumeActiveGame,
     startMatchmaking,
     cancelCurrentMatchmaking,
     resignCurrentGame,
@@ -71,8 +72,11 @@ function App() {
     setView('dashboard');
   }
 
-  function handleResumeActiveGame() {
-    setView('game');
+  async function handleResumeActiveGame() {
+    const resumed = await resumeActiveGame();
+    if (resumed) {
+      setView('game');
+    }
   }
 
   function handleOpenStats() {

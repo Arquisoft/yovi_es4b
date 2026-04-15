@@ -358,7 +358,12 @@ async fn test_matchmaking_enqueue_rejects_duplicate_waiting_ticket_for_same_iden
 
     assert_eq!(second_response.status(), StatusCode::OK);
 
-    let body = second_response.into_body().collect().await.unwrap().to_bytes();
+    let body = second_response
+        .into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
     let error_response: ErrorResponse = serde_json::from_slice(&body).unwrap();
 
     assert!(

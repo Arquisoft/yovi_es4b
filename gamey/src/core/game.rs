@@ -525,7 +525,12 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        std::env::temp_dir().join(format!("{}_{}_{}.json", name, std::process::id(), timestamp))
+        std::env::temp_dir().join(format!(
+            "{}_{}_{}.json",
+            name,
+            std::process::id(),
+            timestamp
+        ))
     }
 
     #[test]
@@ -551,24 +556,21 @@ mod tests {
     fn test_check_player_turn_accepts_correct_player_for_placement_and_action() {
         let game = GameY::new(3);
 
-        assert!(game
-            .check_player_turn(&placement(0, 2, 0, 0))
-            .is_ok());
-        assert!(game
-            .check_player_turn(&Movement::Action {
+        assert!(game.check_player_turn(&placement(0, 2, 0, 0)).is_ok());
+        assert!(
+            game.check_player_turn(&Movement::Action {
                 player: PlayerId::new(0),
                 action: GameAction::PassTurn,
             })
-            .is_ok());
+            .is_ok()
+        );
     }
 
     #[test]
     fn test_check_player_turn_rejects_wrong_player() {
         let game = GameY::new(3);
 
-        let error = game
-            .check_player_turn(&placement(1, 2, 0, 0))
-            .unwrap_err();
+        let error = game.check_player_turn(&placement(1, 2, 0, 0)).unwrap_err();
 
         match error {
             GameYError::InvalidPlayerTurn { expected, found } => {
@@ -641,13 +643,16 @@ mod tests {
     fn test_winning_condition() {
         let mut game = GameY::new(3);
 
-        apply_moves(&mut game, [
-            placement(0, 0, 2, 0),
-            placement(1, 2, 0, 0),
-            placement(0, 0, 1, 1),
-            placement(1, 1, 1, 0),
-            placement(0, 0, 0, 2),
-        ]);
+        apply_moves(
+            &mut game,
+            [
+                placement(0, 0, 2, 0),
+                placement(1, 2, 0, 0),
+                placement(0, 0, 1, 1),
+                placement(1, 1, 1, 0),
+                placement(0, 0, 0, 2),
+            ],
+        );
 
         assert_winner(&game, PlayerId::new(0));
         assert!(game.check_game_over());
@@ -693,12 +698,13 @@ mod tests {
 
         game.add_move(placement(0, 2, 0, 0)).unwrap();
 
-        let error = game
-            .add_move(placement(1, 2, 0, 0))
-            .unwrap_err();
+        let error = game.add_move(placement(1, 2, 0, 0)).unwrap_err();
 
         match error {
-            GameYError::Occupied { coordinates, player } => {
+            GameYError::Occupied {
+                coordinates,
+                player,
+            } => {
                 assert_eq!(coordinates, coords);
                 assert_eq!(player, PlayerId::new(1));
             }
@@ -710,11 +716,14 @@ mod tests {
     fn test_yen_conversion() {
         let mut game = GameY::new(3);
 
-        apply_moves(&mut game, [
-            placement(0, 0, 2, 0),
-            placement(1, 2, 0, 0),
-            placement(0, 0, 1, 1),
-        ]);
+        apply_moves(
+            &mut game,
+            [
+                placement(0, 0, 2, 0),
+                placement(1, 2, 0, 0),
+                placement(0, 0, 1, 1),
+            ],
+        );
 
         let yen: YEN = (&game).into();
         let loaded_game = GameY::try_from(yen.clone()).unwrap();
@@ -729,10 +738,7 @@ mod tests {
         let mut game = GameY::new(3);
         let file_path = unique_temp_file_path("gamey_roundtrip");
 
-        apply_moves(&mut game, [
-            placement(0, 2, 0, 0),
-            placement(1, 1, 1, 0),
-        ]);
+        apply_moves(&mut game, [placement(0, 2, 0, 0), placement(1, 1, 1, 0)]);
 
         game.save_to_file(&file_path).unwrap();
         let loaded_game = GameY::load_from_file(&file_path).unwrap();

@@ -1,18 +1,22 @@
 //! A minimax bot implementation — improved version.
 use crate::{Coordinates, GameY, PlayerId, YBot};
-use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 pub struct MinimaxBot {
     max_depth: u32,
 }
 
 impl Default for MinimaxBot {
-    fn default() -> Self { Self { max_depth: 5 } }
+    fn default() -> Self {
+        Self { max_depth: 5 }
+    }
 }
 
 impl MinimaxBot {
-    pub fn new(max_depth: u32) -> Self { Self { max_depth } }
+    pub fn new(max_depth: u32) -> Self {
+        Self { max_depth }
+    }
 
     // ── Geometry ──────────────────────────────────────────────────────────────
 
@@ -28,21 +32,33 @@ impl MinimaxBot {
     }
 
     fn build_neighbor_map(n: u32) -> HashMap<u32, Vec<u32>> {
-        const D: [(i32, i32, i32); 6] =
-            [(1,-1,0),(-1,1,0),(1,0,-1),(-1,0,1),(0,1,-1),(0,-1,1)];
+        const D: [(i32, i32, i32); 6] = [
+            (1, -1, 0),
+            (-1, 1, 0),
+            (1, 0, -1),
+            (-1, 0, 1),
+            (0, 1, -1),
+            (0, -1, 1),
+        ];
         let total = n * (n + 1) / 2;
-        let c2i: HashMap<(u32,u32,u32), u32> =
-            (0..total).map(|i| (Self::xyz(i, n), i)).collect();
-        (0..total).map(|idx| {
-            let (x, y, z) = Self::xyz(idx, n);
-            let nbs = D.iter().filter_map(|&(dx,dy,dz)| {
-                let (nx,ny,nz) = (x as i32+dx, y as i32+dy, z as i32+dz);
-                if nx >= 0 && ny >= 0 && nz >= 0 {
-                    c2i.get(&(nx as u32, ny as u32, nz as u32)).copied()
-                } else { None }
-            }).collect();
-            (idx, nbs)
-        }).collect()
+        let c2i: HashMap<(u32, u32, u32), u32> = (0..total).map(|i| (Self::xyz(i, n), i)).collect();
+        (0..total)
+            .map(|idx| {
+                let (x, y, z) = Self::xyz(idx, n);
+                let nbs = D
+                    .iter()
+                    .filter_map(|&(dx, dy, dz)| {
+                        let (nx, ny, nz) = (x as i32 + dx, y as i32 + dy, z as i32 + dz);
+                        if nx >= 0 && ny >= 0 && nz >= 0 {
+                            c2i.get(&(nx as u32, ny as u32, nz as u32)).copied()
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                (idx, nbs)
+            })
+            .collect()
     }
 
     // ── Dijkstra — devuelve (distancia, conjunto de celdas en el camino óptimo)
@@ -52,16 +68,16 @@ impl MinimaxBot {
 
     fn min_path_with_cells(
         from_edge: u8,
-        to_edge:   u8,
-        my:  &HashSet<u32>,
+        to_edge: u8,
+        my: &HashSet<u32>,
         opp: &HashSet<u32>,
         root_occupied: &HashSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> Option<(u32, Vec<u32>)> {
         let total = n * (n + 1) / 2;
-        let mut dist   = vec![u32::MAX; total as usize];
-        let mut prev   = vec![u32::MAX; total as usize];
+        let mut dist = vec![u32::MAX; total as usize];
+        let mut prev = vec![u32::MAX; total as usize];
         let mut heap: BinaryHeap<Reverse<(u32, u32)>> = BinaryHeap::new();
 
         let is_wall = |i: u32| -> bool {
@@ -70,9 +86,13 @@ impl MinimaxBot {
 
         // Fuentes: todas las celdas libres en from_edge
         for i in 0..total {
-            if is_wall(i) { continue; }
+            if is_wall(i) {
+                continue;
+            }
             let (x, y, z) = Self::xyz(i, n);
-            if Self::edge_mask(x, y, z) & from_edge == 0 { continue; }
+            if Self::edge_mask(x, y, z) & from_edge == 0 {
+                continue;
+            }
             let cost = if my.contains(&i) { 0 } else { 1 };
             if cost < dist[i as usize] {
                 dist[i as usize] = cost;
@@ -82,7 +102,9 @@ impl MinimaxBot {
 
         let mut goal = None;
         'outer: while let Some(Reverse((d, idx))) = heap.pop() {
-            if dist[idx as usize] < d { continue; }
+            if dist[idx as usize] < d {
+                continue;
+            }
             let (x, y, z) = Self::xyz(idx, n);
             if Self::edge_mask(x, y, z) & to_edge != 0 {
                 goal = Some((d, idx));
@@ -90,7 +112,9 @@ impl MinimaxBot {
             }
             if let Some(nbs) = nbrs.get(&idx) {
                 for &nb in nbs {
-                    if is_wall(nb) { continue; }
+                    if is_wall(nb) {
+                        continue;
+                    }
                     let step = if my.contains(&nb) { 0 } else { 1 };
                     let nd = d + step;
                     if nd < dist[nb as usize] {
@@ -107,7 +131,9 @@ impl MinimaxBot {
         let mut path = Vec::new();
         let mut cur = end;
         while cur != u32::MAX {
-            if !my.contains(&cur) { path.push(cur); }
+            if !my.contains(&cur) {
+                path.push(cur);
+            }
             cur = prev[cur as usize];
         }
         Some((cost, path))
@@ -115,10 +141,13 @@ impl MinimaxBot {
 
     #[inline]
     fn min_path_cost(
-        from_edge: u8, to_edge: u8,
-        my: &HashSet<u32>, opp: &HashSet<u32>,
+        from_edge: u8,
+        to_edge: u8,
+        my: &HashSet<u32>,
+        opp: &HashSet<u32>,
         root_occupied: &HashSet<u32>,
-        n: u32, nbrs: &HashMap<u32, Vec<u32>>,
+        n: u32,
+        nbrs: &HashMap<u32, Vec<u32>>,
     ) -> Option<u32> {
         Self::min_path_with_cells(from_edge, to_edge, my, opp, root_occupied, n, nbrs)
             .map(|(c, _)| c)
@@ -132,7 +161,7 @@ impl MinimaxBot {
 
     fn relevant_moves(
         available: &[u32],
-        my:  &HashSet<u32>,
+        my: &HashSet<u32>,
         opp: &HashSet<u32>,
         occupied: &HashSet<u32>,
         root_occupied: &HashSet<u32>,
@@ -163,7 +192,9 @@ impl MinimaxBot {
                         relevant.insert(nb);
                         if let Some(nbs2) = nbrs.get(&nb) {
                             for &nb2 in nbs2 {
-                                if avail_set.contains(&nb2) { relevant.insert(nb2); }
+                                if avail_set.contains(&nb2) {
+                                    relevant.insert(nb2);
+                                }
                             }
                         }
                     }
@@ -181,7 +212,9 @@ impl MinimaxBot {
                     // Solo incluir si la amenaza es suficientemente cercana
                     if cost <= 3 {
                         for c in path {
-                            if avail_set.contains(&c) { relevant.insert(c); }
+                            if avail_set.contains(&c) {
+                                relevant.insert(c);
+                            }
                         }
                     }
                 }
@@ -249,7 +282,7 @@ impl MinimaxBot {
 
     fn fast_score(
         cell: u32,
-        my:  &HashSet<u32>,
+        my: &HashSet<u32>,
         opp: &HashSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
@@ -257,10 +290,13 @@ impl MinimaxBot {
         let (x, y, z) = Self::xyz(cell, n);
         let edge_count = Self::edge_mask(x, y, z).count_ones() as i32;
         let centrality = x.min(y).min(z) as i32;
-        let (my_nb, opp_nb) = nbrs.get(&cell)
-            .map(|nbs| nbs.iter().fold((0i32, 0i32), |(m, o), &nb| {
-                (m + my.contains(&nb) as i32, o + opp.contains(&nb) as i32)
-            }))
+        let (my_nb, opp_nb) = nbrs
+            .get(&cell)
+            .map(|nbs| {
+                nbs.iter().fold((0i32, 0i32), |(m, o), &nb| {
+                    (m + my.contains(&nb) as i32, o + opp.contains(&nb) as i32)
+                })
+            })
             .unwrap_or((0, 0));
         // Conectar nuestras piezas es prioritario; bloquear al rival también
         my_nb * 4 + opp_nb * 3 + edge_count * 2 + centrality
@@ -270,8 +306,13 @@ impl MinimaxBot {
 
     fn evaluate_board(board: &GameY, player: PlayerId) -> f64 {
         match board.status() {
-            crate::GameStatus::Finished { winner } =>
-                if *winner == player { 10000.0 } else { -10000.0 },
+            crate::GameStatus::Finished { winner } => {
+                if *winner == player {
+                    10000.0
+                } else {
+                    -10000.0
+                }
+            }
             crate::GameStatus::Ongoing { .. } => 0.0,
         }
     }
@@ -287,9 +328,10 @@ impl MinimaxBot {
     ) -> f64 {
         match board.status() {
             crate::GameStatus::Finished { .. } => Self::evaluate_board(board, player),
-            crate::GameStatus::Ongoing { .. } =>
+            crate::GameStatus::Ongoing { .. } => {
                 Self::connectivity(pc, oc, root_occupied, n, nbrs)
-                    - Self::connectivity(oc, pc, root_occupied, n, nbrs),
+                    - Self::connectivity(oc, pc, root_occupied, n, nbrs)
+            }
         }
     }
 
@@ -319,14 +361,20 @@ impl MinimaxBot {
         let current = if maximizing { player } else { opponent };
 
         // Candidatos con amenazas del rival incluidas
-        let (my_in_filter, opp_in_filter) =
-            if maximizing { (pc as &HashSet<u32>, oc as &HashSet<u32>) }
-            else          { (oc as &HashSet<u32>, pc as &HashSet<u32>) };
+        let (my_in_filter, opp_in_filter) = if maximizing {
+            (pc as &HashSet<u32>, oc as &HashSet<u32>)
+        } else {
+            (oc as &HashSet<u32>, pc as &HashSet<u32>)
+        };
 
         let mut moves = Self::relevant_moves(
             board.available_cells(),
-            my_in_filter, opp_in_filter,
-            occupied, root_occupied, n, nbrs,
+            my_in_filter,
+            opp_in_filter,
+            occupied,
+            root_occupied,
+            n,
+            nbrs,
         );
 
         // Ordenar candidatos con heurística rápida (mejora podas)
@@ -340,16 +388,39 @@ impl MinimaxBot {
             for cell in moves {
                 let coords = Coordinates::from_index(cell, n);
                 let mut nb = board.clone();
-                if nb.add_move(crate::Movement::Placement { player: current, coords }).is_ok() {
-                    pc.insert(cell); occupied.insert(cell);
+                if nb
+                    .add_move(crate::Movement::Placement {
+                        player: current,
+                        coords,
+                    })
+                    .is_ok()
+                {
+                    pc.insert(cell);
+                    occupied.insert(cell);
                     let eval = self.minimax(
-                        &nb, depth-1, false, player, opponent,
-                        alpha, beta, pc, oc, occupied, root_occupied, n, nbrs,
+                        &nb,
+                        depth - 1,
+                        false,
+                        player,
+                        opponent,
+                        alpha,
+                        beta,
+                        pc,
+                        oc,
+                        occupied,
+                        root_occupied,
+                        n,
+                        nbrs,
                     );
-                    pc.remove(&cell); occupied.remove(&cell);
-                    if eval > max_eval { max_eval = eval; }
+                    pc.remove(&cell);
+                    occupied.remove(&cell);
+                    if eval > max_eval {
+                        max_eval = eval;
+                    }
                     alpha = alpha.max(eval);
-                    if beta <= alpha { break; }
+                    if beta <= alpha {
+                        break;
+                    }
                 }
             }
             max_eval
@@ -358,16 +429,39 @@ impl MinimaxBot {
             for cell in moves {
                 let coords = Coordinates::from_index(cell, n);
                 let mut nb = board.clone();
-                if nb.add_move(crate::Movement::Placement { player: current, coords }).is_ok() {
-                    oc.insert(cell); occupied.insert(cell);
+                if nb
+                    .add_move(crate::Movement::Placement {
+                        player: current,
+                        coords,
+                    })
+                    .is_ok()
+                {
+                    oc.insert(cell);
+                    occupied.insert(cell);
                     let eval = self.minimax(
-                        &nb, depth-1, true, player, opponent,
-                        alpha, beta, pc, oc, occupied, root_occupied, n, nbrs,
+                        &nb,
+                        depth - 1,
+                        true,
+                        player,
+                        opponent,
+                        alpha,
+                        beta,
+                        pc,
+                        oc,
+                        occupied,
+                        root_occupied,
+                        n,
+                        nbrs,
                     );
-                    oc.remove(&cell); occupied.remove(&cell);
-                    if eval < min_eval { min_eval = eval; }
+                    oc.remove(&cell);
+                    occupied.remove(&cell);
+                    if eval < min_eval {
+                        min_eval = eval;
+                    }
                     beta = beta.min(eval);
-                    if beta <= alpha { break; }
+                    if beta <= alpha {
+                        break;
+                    }
                 }
             }
             min_eval
@@ -376,11 +470,15 @@ impl MinimaxBot {
 }
 
 impl YBot for MinimaxBot {
-    fn name(&self) -> &str { "minimax_bot" }
+    fn name(&self) -> &str {
+        "minimax_bot"
+    }
 
     fn choose_move(&self, board: &GameY) -> Option<Coordinates> {
         let available = board.available_cells();
-        if available.is_empty() { return None; }
+        if available.is_empty() {
+            return None;
+        }
 
         let current_player = match board.status() {
             crate::GameStatus::Ongoing { next_player } => *next_player,
@@ -394,9 +492,13 @@ impl YBot for MinimaxBot {
         for &cell in available {
             let coords = Coordinates::from_index(cell, n);
             let mut test = board.clone();
-            if test.add_move(crate::Movement::Placement {
-                player: current_player, coords,
-            }).is_ok() && matches!(test.status(),
+            if test
+                .add_move(crate::Movement::Placement {
+                    player: current_player,
+                    coords,
+                })
+                .is_ok()
+                && matches!(test.status(),
                 crate::GameStatus::Finished { winner } if *winner == current_player)
             {
                 return Some(coords);
@@ -407,9 +509,13 @@ impl YBot for MinimaxBot {
         for &cell in available {
             let coords = Coordinates::from_index(cell, n);
             let mut test = board.clone();
-            if test.add_move(crate::Movement::Placement {
-                player: opponent, coords,
-            }).is_ok() && matches!(test.status(),
+            if test
+                .add_move(crate::Movement::Placement {
+                    player: opponent,
+                    coords,
+                })
+                .is_ok()
+                && matches!(test.status(),
                 crate::GameStatus::Finished { winner } if *winner == opponent)
             {
                 return Some(coords);
@@ -419,42 +525,51 @@ impl YBot for MinimaxBot {
         // ── 3. Alpha-beta ────────────────────────────────────────────────────
         let total = n * (n + 1) / 2;
         let avail_set: HashSet<u32> = available.iter().copied().collect();
-        let root_occupied: HashSet<u32> = (0..total)
-            .filter(|i| !avail_set.contains(i))
-            .collect();
+        let root_occupied: HashSet<u32> = (0..total).filter(|i| !avail_set.contains(i)).collect();
 
         let mut occupied = root_occupied.clone();
         let mut pc: HashSet<u32> = HashSet::new();
         let mut oc: HashSet<u32> = HashSet::new();
 
         // Candidatos con filtro de amenazas desde el nivel raíz
-        let mut moves = Self::relevant_moves(
-            available, &pc, &oc, &occupied, &root_occupied, n, &nbrs,
-        );
+        let mut moves =
+            Self::relevant_moves(available, &pc, &oc, &occupied, &root_occupied, n, &nbrs);
 
         // Ordenar por heurística rápida en el nivel raíz
-        moves.sort_by_key(|&cell| {
-            Reverse(Self::fast_score(cell, &pc, &oc, n, &nbrs))
-        });
+        moves.sort_by_key(|&cell| Reverse(Self::fast_score(cell, &pc, &oc, n, &nbrs)));
 
-        let mut best_move  = None;
+        let mut best_move = None;
         let mut best_value = f64::NEG_INFINITY;
 
         for cell in moves {
             let coords = Coordinates::from_index(cell, n);
             let mut new_board = board.clone();
-            if new_board.add_move(crate::Movement::Placement {
-                player: current_player, coords,
-            }).is_ok() {
-                pc.insert(cell); occupied.insert(cell);
+            if new_board
+                .add_move(crate::Movement::Placement {
+                    player: current_player,
+                    coords,
+                })
+                .is_ok()
+            {
+                pc.insert(cell);
+                occupied.insert(cell);
                 let value = self.minimax(
-                    &new_board, self.max_depth - 1, false,
-                    current_player, opponent,
-                    f64::NEG_INFINITY, f64::INFINITY,
-                    &mut pc, &mut oc, &mut occupied,
-                    &root_occupied, n, &nbrs,
+                    &new_board,
+                    self.max_depth - 1,
+                    false,
+                    current_player,
+                    opponent,
+                    f64::NEG_INFINITY,
+                    f64::INFINITY,
+                    &mut pc,
+                    &mut oc,
+                    &mut occupied,
+                    &root_occupied,
+                    n,
+                    &nbrs,
                 );
-                pc.remove(&cell); occupied.remove(&cell);
+                pc.remove(&cell);
+                occupied.remove(&cell);
 
                 if value > best_value {
                     best_value = value;
@@ -488,13 +603,30 @@ mod tests {
     fn test_minimax_bot_evaluate_win_and_loss() {
         let mut game = GameY::new(3);
         let moves = vec![
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 2) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(2, 0, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 1, 1) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(1, 1, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 2, 0) },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 0, 2),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(2, 0, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 1, 1),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(1, 1, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 2, 0),
+            },
         ];
-        for mv in moves { game.add_move(mv).unwrap(); }
+        for mv in moves {
+            game.add_move(mv).unwrap();
+        }
         assert!(matches!(game.status(),
             crate::GameStatus::Finished { winner } if *winner == crate::PlayerId::new(0)));
 
@@ -507,10 +639,21 @@ mod tests {
         let bot = MinimaxBot::default();
         let mut game = GameY::new(2);
         for mv in [
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(1, 0, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(0, 1, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 1) },
-        ] { game.add_move(mv).unwrap(); }
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(1, 0, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(0, 1, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 0, 1),
+            },
+        ] {
+            game.add_move(mv).unwrap();
+        }
         assert!(game.available_cells().is_empty());
         assert!(bot.choose_move(&game).is_none());
     }
@@ -520,11 +663,25 @@ mod tests {
         let bot = MinimaxBot::default();
         let mut game = GameY::new(3);
         for mv in [
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 0, 2) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(2, 0, 0) },
-            crate::Movement::Placement { player: crate::PlayerId::new(0), coords: Coordinates::new(0, 1, 1) },
-            crate::Movement::Placement { player: crate::PlayerId::new(1), coords: Coordinates::new(1, 1, 0) },
-        ] { game.add_move(mv).unwrap(); }
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 0, 2),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(2, 0, 0),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(0),
+                coords: Coordinates::new(0, 1, 1),
+            },
+            crate::Movement::Placement {
+                player: crate::PlayerId::new(1),
+                coords: Coordinates::new(1, 1, 0),
+            },
+        ] {
+            game.add_move(mv).unwrap();
+        }
         assert_eq!(bot.choose_move(&game).unwrap(), Coordinates::new(0, 2, 0));
     }
 }

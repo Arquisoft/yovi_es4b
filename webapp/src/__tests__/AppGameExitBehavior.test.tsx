@@ -87,6 +87,7 @@ vi.mock('../useGamey', () => ({
     setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
     createNewGame: vi.fn().mockResolvedValue(true),
+    resumeActiveGame: vi.fn().mockResolvedValue(true),
     startMatchmaking: vi.fn(),
     cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),

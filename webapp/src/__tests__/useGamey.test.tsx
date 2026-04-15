@@ -473,4 +473,41 @@ describe('useGamey', () => {
     expect(result.current.gameIdPendingAutomaticOpen).toBe('local-restore');
     expect(result.current.hasActiveGameInProgress).toBe(true);
   });
+
+  test('keeps local resume available when restoring fails and lets the user retry it', async () => {
+    gameSessionStore.save({
+      version: GAME_SESSION_STORE_VERSION,
+      kind: 'local_active',
+      userId: 'adri',
+      gameId: 'local-restore',
+    });
+    getGame
+      .mockRejectedValueOnce(new Error('Network failed'))
+      .mockResolvedValueOnce(
+        buildGame({
+          game_id: 'local-restore',
+          mode: 'human_vs_bot',
+        }),
+      );
+
+    const { result } = renderHook(() => useGamey('adri'));
+
+    await waitFor(() => {
+      expect(result.current.restoringSession).toBe(false);
+    });
+
+    expect(result.current.game).toBeNull();
+    expect(result.current.error).toBe('Network failed');
+    expect(result.current.hasActiveGameInProgress).toBe(true);
+
+    let resumed = false;
+    await act(async () => {
+      resumed = await result.current.resumeActiveGame();
+    });
+
+    expect(resumed).toBe(true);
+    expect(getGame).toHaveBeenNthCalledWith(2, 'local-restore', 'adri');
+    expect(result.current.game?.game_id).toBe('local-restore');
+    expect(result.current.error).toBeNull();
+  });
 });

@@ -41,6 +41,7 @@ type GameyMock = {
   setBotDifficulty: (difficulty: 'very_easy' | 'easy' | 'medium' | 'hard') => void;
   updateBoardSize: (size: number) => void;
   createNewGame: (next?: { mode?: 'human_vs_bot' | 'human_vs_human'; botId?: string }) => Promise<boolean>;
+  resumeActiveGame: () => Promise<boolean>;
   startMatchmaking: () => void;
   cancelCurrentMatchmaking: () => void;
   refreshCurrentGame: () => void;
@@ -106,6 +107,7 @@ function buildGamey(overrides: Partial<GameyMock> = {}): GameyMock {
     setBotDifficulty: vi.fn(),
     updateBoardSize: vi.fn(),
     createNewGame: vi.fn().mockResolvedValue(true),
+    resumeActiveGame: vi.fn().mockResolvedValue(true),
     startMatchmaking: vi.fn(),
     cancelCurrentMatchmaking: vi.fn(),
     refreshCurrentGame: vi.fn(),
@@ -183,7 +185,8 @@ describe('App core flows', () => {
   });
 
   test('shows a resume button in play menu when there is an active game', async () => {
-    gameyState = buildGamey({ hasActiveGameInProgress: true });
+    const resumeActiveGame = vi.fn().mockResolvedValue(true);
+    gameyState = buildGamey({ hasActiveGameInProgress: true, resumeActiveGame });
 
     render(<App />);
     const user = userEvent.setup();
@@ -193,6 +196,7 @@ describe('App core flows', () => {
     await user.click(screen.getByRole('button', { name: /volver a la partida/i }));
 
     await waitFor(() => {
+      expect(resumeActiveGame).toHaveBeenCalledTimes(1);
       expect(screen.getByText(/partida app-game/i)).toBeInTheDocument();
     });
   });
