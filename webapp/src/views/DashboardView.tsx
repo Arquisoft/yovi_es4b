@@ -14,12 +14,12 @@ type Props = {
   setMode: (mode: GameMode) => void;
   setBotDifficulty: (difficulty: BotDifficulty) => void;
   updateBoardSize: (size: number) => void;
-  createNewGame: () => void;
-  resumeActiveGame: () => void;
+  createNewGame: () => void | Promise<void>;
+  resumeActiveGame: () => void | Promise<void>;
   matchmakingTicketId: string | null;
   matchmakingStatus: 'idle' | 'waiting' | 'matched' | 'cancelled';
-  startMatchmaking: () => void;
-  cancelCurrentMatchmaking: () => void;
+  startMatchmaking: () => void | Promise<void>;
+  cancelCurrentMatchmaking: () => void | Promise<void>;
 };
 
 function getGameConfigurationLockMessage(
@@ -137,7 +137,10 @@ const DashboardView: React.FC<Props> = ({
       />
 
       <Paper sx={[uiSx.dashboardCard, { minHeight: 0, height: 'auto', gap: 1 }]}>
-        <Box sx={{ ...uiSx.onlineActionsRow, mt: 0 }}>
+        <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
+          Partida online
+        </Typography>
+        <Box sx={{ ...uiSx.onlineActionsRow, mt: 1 }}>
           <Button
             variant="outlined"
             sx={uiSx.onlinePrimaryButton}

@@ -330,3 +330,50 @@ async fn pass_turn_updates_turn_in_human_vs_human_game() {
     assert_eq!(passed["game_over"], false);
     assert_eq!(passed["next_player"], 1);
 }
+
+#[tokio::test]
+async fn pass_turn_clears_finished_local_bot_game_from_active_game_index() {
+    let app = test_app();
+
+    let (_, created) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 1,
+            "mode": "human_vs_bot"
+        })),
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    let game_id = created["game_id"].as_str().unwrap();
+
+    let (pass_status, passed) = request_json_with_headers(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/pass"),
+        None,
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    assert_eq!(pass_status, StatusCode::OK);
+    assert_eq!(passed["game_over"], true);
+
+    let (create_status, next_game) = request_json_with_headers(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot"
+        })),
+        &[("x-user-id", "fernando")],
+    )
+    .await;
+
+    assert_eq!(create_status, StatusCode::OK);
+    assert!(next_game.get("message").is_none());
+    assert_eq!(next_game["game_over"], false);
+}

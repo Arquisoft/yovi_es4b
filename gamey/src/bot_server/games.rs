@@ -152,10 +152,18 @@ pub async fn create_game(
     let player0_user_id = read_header_string(&headers, "x-user-id");
     let player1_user_id = read_header_string(&headers, "x-opponent-user-id");
 
-    ensure_user_id_is_available_for_new_game(&state, player0_user_id.as_deref(), &params.api_version)
-        .await?;
-    ensure_user_id_is_available_for_new_game(&state, player1_user_id.as_deref(), &params.api_version)
-        .await?;
+    ensure_user_id_is_available_for_new_game(
+        &state,
+        player0_user_id.as_deref(),
+        &params.api_version,
+    )
+    .await?;
+    ensure_user_id_is_available_for_new_game(
+        &state,
+        player1_user_id.as_deref(),
+        &params.api_version,
+    )
+    .await?;
 
     let session = GameSession {
         game: GameY::new(request.size),
@@ -310,8 +318,7 @@ pub async fn play_move(
         reset_turn_timer(session);
 
         pending_report = prepare_stats_report_if_needed(&params.game_id, session);
-        user_ids_to_release_from_active_game_index =
-            build_finished_game_user_id_list(session);
+        user_ids_to_release_from_active_game_index = build_finished_game_user_id_list(session);
 
         build_game_state_response(
             &params.api_version,
@@ -384,8 +391,7 @@ pub async fn resign_game(
         reset_turn_timer(session);
 
         pending_report = prepare_stats_report_if_needed(&params.game_id, session);
-        user_ids_to_release_from_active_game_index =
-            build_finished_game_user_id_list(session);
+        user_ids_to_release_from_active_game_index = build_finished_game_user_id_list(session);
 
         build_game_state_response(
             &params.api_version,
@@ -424,6 +430,9 @@ pub async fn pass_turn(
     let bots = state.bots();
     let games = state.games();
     let mut guard = games.write().await;
+
+    let pending_report: Option<FinishedMatchRequest>;
+    let user_ids_to_release_from_active_game_index: Option<Vec<String>>;
 
     let response = {
         let session = require_game_session_mut(&mut guard, &params)?;
@@ -512,6 +521,9 @@ pub async fn pass_turn(
 
         reset_turn_timer(session);
 
+        pending_report = prepare_stats_report_if_needed(&params.game_id, session);
+        user_ids_to_release_from_active_game_index = build_finished_game_user_id_list(session);
+
         build_game_state_response(
             &params.api_version,
             &params.game_id,
@@ -519,6 +531,15 @@ pub async fn pass_turn(
             Some(passing_player),
         )
     };
+
+    drop(guard);
+    clear_active_game_registration_if_needed(
+        &state,
+        &params.game_id,
+        user_ids_to_release_from_active_game_index,
+    )
+    .await;
+    report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
 }
@@ -665,11 +686,9 @@ async fn process_online_game_timeouts(state: &AppState) -> Result<(), String> {
     let mut games_guard = games.write().await;
 
     for (game_id, session) in games_guard.iter_mut() {
-        let Some(player_to_forfeit) = find_player_to_forfeit_for_inactivity(
-            session,
-            now,
-            ONLINE_PLAYER_INACTIVITY_TIMEOUT,
-        ) else {
+        let Some(player_to_forfeit) =
+            find_player_to_forfeit_for_inactivity(session, now, ONLINE_PLAYER_INACTIVITY_TIMEOUT)
+        else {
             continue;
         };
 
@@ -918,12 +937,14 @@ fn build_finished_game_user_id_list(session: &GameSession) -> Option<Vec<String>
 fn collect_tracked_user_ids(session: &GameSession) -> Vec<String> {
     let mut tracked_user_ids = Vec::new();
 
-    if let Some(player0_user_id) = normalize_user_id_for_tracking(session.player0_user_id.as_deref())
+    if let Some(player0_user_id) =
+        normalize_user_id_for_tracking(session.player0_user_id.as_deref())
     {
         tracked_user_ids.push(player0_user_id);
     }
 
-    if let Some(player1_user_id) = normalize_user_id_for_tracking(session.player1_user_id.as_deref())
+    if let Some(player1_user_id) =
+        normalize_user_id_for_tracking(session.player1_user_id.as_deref())
         && !tracked_user_ids.contains(&player1_user_id)
     {
         tracked_user_ids.push(player1_user_id);
@@ -1199,8 +1220,8 @@ fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorRespo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bot_server::state::AppState;
     use crate::YBotRegistry;
+    use crate::bot_server::state::AppState;
     use std::collections::HashMap;
     use std::time::Duration;
 
@@ -1224,7 +1245,7 @@ mod tests {
 
     #[test]
     fn test_find_player_to_forfeit_for_inactivity_returns_inactive_player_only_when_opponent_is_recent()
-    {
+     {
         let now = Instant::now();
         let mut last_seen_at_by_player_id = HashMap::new();
         last_seen_at_by_player_id.insert(1, now);
@@ -1247,11 +1268,8 @@ mod tests {
             completion_reason: None,
         };
 
-        let forfeiting_player = find_player_to_forfeit_for_inactivity(
-            &session,
-            now,
-            Duration::from_secs(60),
-        );
+        let forfeiting_player =
+            find_player_to_forfeit_for_inactivity(&session, now, Duration::from_secs(60));
 
         assert_eq!(forfeiting_player, Some(PlayerId::new(0)));
     }
@@ -1293,8 +1311,7 @@ mod tests {
             .await
             .insert("fernando".to_string(), "game-7".to_string());
 
-        let result =
-            ensure_user_id_is_available_for_new_game(&state, Some("Fernando"), "v1").await;
+        let result = ensure_user_id_is_available_for_new_game(&state, Some("Fernando"), "v1").await;
 
         assert!(result.is_err());
     }

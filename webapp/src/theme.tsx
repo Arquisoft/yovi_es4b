@@ -69,30 +69,33 @@ function getHistoryStatAccentColor(tone: HistoryStatTone): string {
 function getGameOutcomeBorderColor(tone: GameOutcomeTone): string {
   switch (tone) {
     case 'success':
+      return '#97cb64';
     case 'accent':
-      return 'rgba(146, 195, 92, 0.66)';
+      return '#a8d27a';
     default:
-      return 'rgba(212, 104, 104, 0.62)';
+      return '#d98982';
   }
 }
 
 function getGameOutcomeBackgroundColor(tone: GameOutcomeTone): string {
   switch (tone) {
     case 'success':
+      return '#4f6f30';
     case 'accent':
-      return 'rgba(129, 182, 76, 0.12)';
+      return '#586d36';
     default:
-      return 'rgba(189, 84, 84, 0.12)';
+      return '#75423e';
   }
 }
 
 function getGameOutcomeShadowColor(tone: GameOutcomeTone): string {
   switch (tone) {
     case 'success':
+      return '0 10px 22px rgba(34, 46, 21, 0.24)';
     case 'accent':
-      return '0 8px 16px rgba(47, 64, 31, 0.12)';
+      return '0 10px 22px rgba(41, 49, 25, 0.24)';
     default:
-      return '0 8px 16px rgba(78, 34, 34, 0.12)';
+      return '0 10px 22px rgba(74, 35, 35, 0.24)';
   }
 }
 
@@ -622,12 +625,19 @@ export const uiSx = {
     borderRadius: 1.4,
     fontSize: '0.88rem',
     fontWeight: 700,
-    color: active ? 'text.primary' : 'text.secondary',
-    backgroundColor: active ? 'rgba(129, 182, 76, 0.18)' : 'rgba(255, 255, 255, 0.04)',
-    borderColor: active ? 'primary.light' : 'divider',
+    color: active ? '#fbf7ef' : 'text.secondary',
+    backgroundColor: active ? '#556f34' : '#47433f',
+    borderColor: active ? '#9dce67' : 'rgba(133, 128, 120, 0.6)',
+    boxShadow: active ? 'inset 0 1px 0 rgba(255, 255, 255, 0.08)' : 'none',
     '&:hover': {
-      backgroundColor: active ? 'rgba(129, 182, 76, 0.24)' : 'rgba(255, 255, 255, 0.08)',
-      borderColor: active ? 'primary.light' : 'primary.main',
+      backgroundColor: active ? '#5f7f38' : '#504b46',
+      borderColor: active ? '#b3df7d' : '#9dce67',
+    },
+    '&.Mui-disabled': {
+      color: '#8e887f',
+      backgroundColor: active ? '#4a6030' : '#3c3935',
+      borderColor: active ? 'rgba(141, 183, 92, 0.45)' : 'rgba(123, 118, 109, 0.32)',
+      opacity: 1,
     },
   }),
   configGrid: {
@@ -703,24 +713,37 @@ export const uiSx = {
   onlinePrimaryButton: {
     minWidth: 160,
     height: 38,
-    borderColor: 'rgba(146, 195, 92, 0.66)',
-    color: uiColors.text.primary,
-    backgroundColor: 'rgba(129, 182, 76, 0.14)',
+    borderColor: '#9dce67',
+    color: '#fbf7ef',
+    backgroundColor: '#516c31',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08)',
     '&:hover': {
-      borderColor: uiColors.accent.light,
-      backgroundColor: 'rgba(129, 182, 76, 0.22)',
+      borderColor: '#b3df7d',
+      backgroundColor: '#5d7d38',
+    },
+    '&.Mui-disabled': {
+      borderColor: 'rgba(141, 183, 92, 0.38)',
+      color: '#aba59b',
+      backgroundColor: '#42403b',
+      opacity: 1,
     },
   } satisfies SxProps<Theme>,
   onlineSecondaryButton: {
     minWidth: 160,
     height: 38,
-    borderColor: 'rgba(164, 164, 158, 0.45)',
+    borderColor: 'rgba(133, 128, 120, 0.6)',
     color: uiColors.text.secondary,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#46423e',
     '&:hover': {
       borderColor: 'rgba(196, 196, 188, 0.72)',
-      backgroundColor: 'rgba(255, 255, 255, 0.07)',
+      backgroundColor: '#514b46',
       color: uiColors.text.primary,
+    },
+    '&.Mui-disabled': {
+      borderColor: 'rgba(115, 111, 104, 0.34)',
+      backgroundColor: '#3d3a36',
+      color: '#8e887f',
+      opacity: 1,
     },
   } satisfies SxProps<Theme>,
   onlineStatusBadge: (waiting: boolean): SxProps<Theme> => ({
@@ -916,11 +939,12 @@ export const uiSx = {
     letterSpacing: 0.14,
     border: `1px solid ${
       won
-        ? 'rgba(115, 229, 154, 0.6)'
-        : 'rgba(255, 134, 134, 0.66)'
+        ? '#97cb64'
+        : '#e28d87'
     }`,
-    color: won ? '#c8ffd8' : '#ffd2d2',
-    backgroundColor: won ? 'rgba(73, 174, 114, 0.16)' : 'rgba(189, 84, 84, 0.16)',
+    color: '#fbf7ef',
+    backgroundColor: won ? '#4f7131' : '#7d4640',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
   }),
   historyModeBadge: (isBot: boolean): SxProps<Theme> => ({
     display: 'inline-flex',
@@ -932,11 +956,12 @@ export const uiSx = {
     fontWeight: 700,
     border: `1px solid ${
       isBot
-        ? 'rgba(129, 182, 76, 0.62)'
-        : 'rgba(164, 164, 158, 0.52)'
+        ? '#97cb64'
+        : 'rgba(170, 164, 154, 0.56)'
     }`,
-    color: isBot ? '#d8efbe' : '#d8d5cc',
-    backgroundColor: isBot ? 'rgba(129, 182, 76, 0.14)' : 'rgba(140, 137, 128, 0.14)',
+    color: '#fbf7ef',
+    backgroundColor: isBot ? '#4f7131' : '#5a544d',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
     minWidth: 68,
     justifyContent: 'center',
   }),
@@ -1145,10 +1170,20 @@ export const uiSx = {
       border: `1px solid ${borderColor}`,
       backgroundColor,
       boxShadow,
+      color: '#fbf7ef',
+      position: 'relative',
+      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
       gap: 0.45,
       textAlign: 'center',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 42%)',
+        pointerEvents: 'none',
+      },
     };
   },
   gameOutcomeTitle: {

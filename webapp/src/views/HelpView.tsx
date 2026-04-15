@@ -58,6 +58,8 @@ const helpSections: HelpSection[] = [
     body: [
       'Puedes entrar como invitado para probar el juego sin registrarte.',
       'Si quieres conservar historial, victorias, derrotas y ver tus estadisticas, necesitas iniciar sesion con una cuenta registrada.',
+      'Dentro del historial, puedes pulsar las cabeceras de Resultado, Modo, Bot, Ganador y Fecha para filtrar u ordenar las partidas.',
+      'Los filtros se pueden combinar entre si, asi que puedes quedarte, por ejemplo, solo con victorias contra bot o reordenar por las mas antiguas.',
     ],
   },
   {

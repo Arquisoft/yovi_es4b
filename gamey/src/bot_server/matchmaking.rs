@@ -269,10 +269,7 @@ async fn process_once(state: &AppState) -> Result<(), String> {
             stats_reported: false,
             completion_reason: None,
         };
-        games_guard.insert(
-            game_id.clone(),
-            session.clone(),
-        );
+        games_guard.insert(game_id.clone(), session.clone());
         drop(games_guard);
         register_active_game_for_session_users(state, &game_id, &session).await;
 

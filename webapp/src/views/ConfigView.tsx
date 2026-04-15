@@ -48,7 +48,7 @@ const ConfigView: React.FC<Props> = ({
   return (
     <Paper sx={uiSx.dashboardCard}>
       <Typography variant="h6" sx={uiSx.dashboardCardTitle}>
-        Configurar partida
+        Configurar partida local
       </Typography>
       <Box sx={uiSx.dashboardCardHint}>Elige parametros y crea una nueva partida.</Box>
 

@@ -110,6 +110,72 @@ describe('HistoryView', () => {
     expect(screen.queryByText('Tablero final - match-1')).not.toBeInTheDocument();
   });
 
+  test('combines result, mode and date filters and allows clearing them', () => {
+    const matches = [
+      buildMatch({
+        gameId: 'match-new-bot-win',
+        result: 'win',
+        mode: 'human_vs_bot',
+        botId: 'greedy_bot',
+        winnerId: 'adri',
+        endedAt: '2026-03-05T10:00:00.000Z',
+      }),
+      buildMatch({
+        gameId: 'match-old-bot-win',
+        result: 'win',
+        mode: 'human_vs_bot',
+        botId: 'random_bot',
+        winnerId: 'adri',
+        endedAt: '2026-01-02T10:00:00.000Z',
+      }),
+      buildMatch({
+        gameId: 'match-bot-loss',
+        result: 'loss',
+        mode: 'human_vs_bot',
+        botId: 'greedy_bot',
+        winnerId: 'rival',
+        endedAt: '2026-02-04T10:00:00.000Z',
+      }),
+      buildMatch({
+        gameId: 'match-human-win',
+        result: 'win',
+        mode: 'human_vs_human',
+        botId: null,
+        winnerId: 'adri',
+        endedAt: '2026-01-01T09:00:00.000Z',
+      }),
+    ];
+
+    render(<HistoryView playerStats={PLAYER_STATS} matches={matches} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /resultado/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /solo victorias/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /modo/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /solo bot/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /fecha/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /mas antiguas primero/i }));
+
+    expect(screen.getByText(/mostrando 2 de 4 partidas/i)).toBeInTheDocument();
+    expect(screen.queryByText('match-bot-loss')).not.toBeInTheDocument();
+    expect(screen.queryByText('match-human-win')).not.toBeInTheDocument();
+
+    const filteredRows = screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => within(row).queryByText(/^match-/)?.textContent)
+      .filter((value): value is string => Boolean(value));
+
+    expect(filteredRows).toEqual(['match-old-bot-win', 'match-new-bot-win']);
+
+    fireEvent.click(screen.getByRole('button', { name: /limpiar filtros/i }));
+
+    expect(screen.getByText(/mostrando 4 de 4 partidas/i)).toBeInTheDocument();
+    expect(screen.getByText('match-bot-loss')).toBeInTheDocument();
+    expect(screen.getByText('match-human-win')).toBeInTheDocument();
+  });
+
   test('returns to first page when match history updates', () => {
     const manyMatches = Array.from({ length: 11 }, (_, index) =>
       buildMatch({

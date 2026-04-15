@@ -65,6 +65,15 @@ function isMissingPersistedGameSessionError(message: string): boolean {
   return message.startsWith('Ticket not found:') || message.startsWith('Game not found:');
 }
 
+function isPersistedActiveGameSession(
+  persistedGameSession: PersistedGameSession | null,
+): persistedGameSession is Extract<PersistedGameSession, { kind: 'local_active' | 'online_active' }> {
+  return (
+    persistedGameSession?.kind === 'local_active' ||
+    persistedGameSession?.kind === 'online_active'
+  );
+}
+
 export function useGamey(userId?: string) {
   const normalizedCurrentUserId = userId?.trim() || undefined;
 
@@ -76,6 +85,13 @@ export function useGamey(userId?: string) {
   const [loading, setLoading] = useState(false);
   const [restoringSession, setRestoringSession] = useState(() => {
     return Boolean(normalizedCurrentUserId && gameSessionStore.load(normalizedCurrentUserId));
+  });
+  const [hasPersistedResumableGameSession, setHasPersistedResumableGameSession] = useState(() => {
+    if (!normalizedCurrentUserId) {
+      return false;
+    }
+
+    return isPersistedActiveGameSession(gameSessionStore.load(normalizedCurrentUserId));
   });
   const [gameIdPendingAutomaticOpen, setGameIdPendingAutomaticOpen] = useState<string | null>(null);
   const [matchmakingTicketId, setMatchmakingTicketId] = useState<string | null>(null);
@@ -110,7 +126,9 @@ export function useGamey(userId?: string) {
     const text = gameStatusText(game);
     return myPlayerId === null ? text : `${text} | Tu jugador: ${myPlayerId}`;
   }, [game, myPlayerId]);
-  const hasActiveGameInProgress = Boolean(game && !game.game_over);
+  const hasActiveGameInProgress = Boolean(
+    (game && !game.game_over) || hasPersistedResumableGameSession,
+  );
 
   const acknowledgeAutomaticGameOpen = useCallback(() => {
     setGameIdPendingAutomaticOpen(null);
@@ -146,6 +164,7 @@ export function useGamey(userId?: string) {
       ticketId,
       boardSize: size,
     });
+    setHasPersistedResumableGameSession(false);
   }, [normalizedCurrentUserId]);
 
   const persistActiveOnlineGameSession = useCallback((
@@ -166,6 +185,7 @@ export function useGamey(userId?: string) {
       myPlayerId: activePlayerId,
       playerToken: activePlayerToken,
     });
+    setHasPersistedResumableGameSession(true);
   }, [normalizedCurrentUserId]);
 
   const persistActiveLocalGameSession = useCallback((
@@ -182,6 +202,7 @@ export function useGamey(userId?: string) {
       userId: targetUserId,
       gameId,
     });
+    setHasPersistedResumableGameSession(true);
   }, [normalizedCurrentUserId]);
 
   const clearPersistedGameSession = useCallback((targetUserId = normalizedCurrentUserId) => {
@@ -190,6 +211,15 @@ export function useGamey(userId?: string) {
     }
 
     gameSessionStore.clear(targetUserId);
+    setHasPersistedResumableGameSession(false);
+  }, [normalizedCurrentUserId]);
+
+  const loadPersistedGameSession = useCallback((targetUserId = normalizedCurrentUserId) => {
+    if (!targetUserId) {
+      return null;
+    }
+
+    return gameSessionStore.load(targetUserId);
   }, [normalizedCurrentUserId]);
 
   const synchronizePersistedSessionWithCurrentGame = useCallback((
@@ -437,7 +467,8 @@ export function useGamey(userId?: string) {
       return;
     }
 
-    const persistedGameSession = gameSessionStore.load(normalizedCurrentUserId);
+    const persistedGameSession = loadPersistedGameSession(normalizedCurrentUserId);
+    setHasPersistedResumableGameSession(isPersistedActiveGameSession(persistedGameSession));
     if (!persistedGameSession) {
       setRestoringSession(false);
       return;
@@ -473,6 +504,7 @@ export function useGamey(userId?: string) {
     };
   }, [
     clearPersistedGameSession,
+    loadPersistedGameSession,
     normalizedCurrentUserId,
     resetRuntimeState,
     restorePersistedGameSession,
@@ -675,6 +707,51 @@ export function useGamey(userId?: string) {
 
   pollMatchmakingTicketRef.current = pollMatchmakingTicket;
 
+  async function resumeActiveGame() {
+    if (game && !game.game_over) {
+      setError(null);
+      return true;
+    }
+
+    const persistedGameSession = loadPersistedGameSession();
+    if (!persistedGameSession || !isPersistedActiveGameSession(persistedGameSession)) {
+      setError('No hay ninguna partida activa para retomar.');
+      setHasPersistedResumableGameSession(false);
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const resumedGame = persistedGameSession.kind === 'online_active'
+        ? await loadOnlineGameFromServer(
+          persistedGameSession.gameId,
+          persistedGameSession.myPlayerId,
+          persistedGameSession.playerToken,
+        )
+        : await loadLocalGameFromServer(persistedGameSession.gameId);
+
+      if (resumedGame.game_over) {
+        setError('La partida ya habia terminado.');
+        return false;
+      }
+
+      return true;
+    } catch (resumeError: unknown) {
+      const message = toErrorMessage(resumeError);
+      setError(message);
+
+      if (isMissingPersistedGameSessionError(message)) {
+        clearPersistedGameSession();
+      }
+
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function startMatchmaking() {
     if (loading || matchmakingStatus === 'waiting') {
       return;
@@ -777,6 +854,7 @@ export function useGamey(userId?: string) {
     setBotDifficulty,
     updateBoardSize,
     createNewGame,
+    resumeActiveGame,
     startMatchmaking,
     cancelCurrentMatchmaking,
     refreshCurrentGame,
