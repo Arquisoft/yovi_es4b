@@ -183,19 +183,32 @@ function loadTlsOptions(env = process.env) {
   };
 }
 
-function buildHttpsOrigin(hostHeader, httpsPort) {
-  const fallbackHost = 'localhost';
-  const rawHost = normalizeOptionalString(hostHeader) ?? fallbackHost;
-  const hostname = rawHost.replace(/:\d+$/, '');
-  const portSuffix = httpsPort === 443 ? '' : `:${httpsPort}`;
-  return `https://${hostname}${portSuffix}`;
+function getRedirectHostname(env = process.env) {
+  return normalizeOptionalString(env.GATEWAY_PUBLIC_HOSTNAME) ?? 'localhost';
 }
 
-function createRedirectApp({ httpsPort = 443 } = {}) {
+function buildHttpsOrigin(hostname, httpsPort) {
+  const normalizedHostname = normalizeOptionalString(hostname) ?? 'localhost';
+  const portSuffix = httpsPort === 443 ? '' : `:${httpsPort}`;
+  return `https://${normalizedHostname}${portSuffix}`;
+}
+
+function normalizeRedirectPath(originalUrl = '/') {
+  if (typeof originalUrl !== 'string' || originalUrl.trim().length === 0) {
+    return '/';
+  }
+
+  const parsedUrl = new URL(originalUrl, 'http://localhost');
+  const normalizedPath = parsedUrl.pathname.startsWith('/') ? parsedUrl.pathname : '/';
+  return `${normalizedPath}${parsedUrl.search}`;
+}
+
+function createRedirectApp({ httpsPort = 443, redirectHostname = 'localhost' } = {}) {
   const app = express();
+  const redirectOrigin = buildHttpsOrigin(redirectHostname, httpsPort);
 
   app.use((req, res) => {
-    const destination = `${buildHttpsOrigin(req.headers.host, httpsPort)}${req.originalUrl}`;
+    const destination = `${redirectOrigin}${normalizeRedirectPath(req.originalUrl)}`;
     res.redirect(308, destination);
   });
 
@@ -843,7 +856,10 @@ function start({ port = DEFAULT_PORT, env = process.env } = {}) {
 
   let httpServer = null;
   if (parseBoolean(env.HTTP_REDIRECT_ENABLED)) {
-    const redirectApp = createRedirectApp({ httpsPort });
+    const redirectApp = createRedirectApp({
+      httpsPort,
+      redirectHostname: getRedirectHostname(env),
+    });
     httpServer = http.createServer(redirectApp);
     httpServer.listen(port, () => {
       console.log(`Gateway redirecting http://localhost:${port} -> https://localhost:${httpsPort}`);
@@ -877,10 +893,12 @@ module.exports = {
   createApp,
   createRedirectApp,
   createExternalApiRouter,
+  getRedirectHostname,
   getProxyRoutes,
   getTlsConfig,
   isDirectExecution,
   loadTlsOptions,
+  normalizeRedirectPath,
   pickPlayBotId,
   parseBoolean,
   start,

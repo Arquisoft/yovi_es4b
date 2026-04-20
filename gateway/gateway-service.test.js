@@ -9,7 +9,9 @@ const {
   buildHttpsOrigin,
   createApp,
   createRedirectApp,
+  getRedirectHostname,
   getTlsConfig,
+  normalizeRedirectPath,
   parseBoolean,
 } = require('./gateway-service');
 
@@ -173,22 +175,40 @@ test('parseBoolean understands common truthy and falsy values', () => {
 
 // HTTP redirects preserve path and query string while targeting HTTPS.
 test('createRedirectApp redirects requests to the configured HTTPS port', async () => {
-  const redirectApp = createRedirectApp({ httpsPort: 8443 });
+  const redirectApp = createRedirectApp({
+    httpsPort: 8443,
+    redirectHostname: 'gateway.example.com',
+  });
 
   await withServer(redirectApp, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/auth/login?next=dashboard`, {
       redirect: 'manual',
+      headers: {
+        Host: 'malicious.example.net',
+      },
     });
 
     assert.equal(response.status, 308);
-    assert.equal(response.headers.get('location'), 'https://127.0.0.1:8443/auth/login?next=dashboard');
+    assert.equal(response.headers.get('location'), 'https://gateway.example.com:8443/auth/login?next=dashboard');
   });
+});
+
+// Redirect hostnames come from trusted server configuration only.
+test('getRedirectHostname falls back to localhost when unset', () => {
+  assert.equal(getRedirectHostname({}), 'localhost');
+  assert.equal(getRedirectHostname({ GATEWAY_PUBLIC_HOSTNAME: 'gateway.example.com' }), 'gateway.example.com');
+});
+
+// Redirect paths are normalized as relative paths before building Location headers.
+test('normalizeRedirectPath preserves path and query string', () => {
+  assert.equal(normalizeRedirectPath('/auth/login?next=dashboard'), '/auth/login?next=dashboard');
+  assert.equal(normalizeRedirectPath(''), '/');
 });
 
 // Standard HTTPS omits the port suffix in redirect targets.
 test('buildHttpsOrigin omits port 443 and preserves other ports', () => {
-  assert.equal(buildHttpsOrigin('example.com:80', 443), 'https://example.com');
-  assert.equal(buildHttpsOrigin('example.com:8080', 8443), 'https://example.com:8443');
+  assert.equal(buildHttpsOrigin('example.com', 443), 'https://example.com');
+  assert.equal(buildHttpsOrigin('example.com', 8443), 'https://example.com:8443');
 });
 
 // The external OpenAPI document is served by the gateway.
