@@ -462,13 +462,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#section-solution-strategy">4. Solution Strategy</a>
 <ul class="sectlevel2">
-<li><a href="#_4_1_technology_decisions">4.1. 4.1 Technology Decisions</a></li>
-<li><a href="#_4_2_top_level_decomposition_decision">4.2. 4.2 Top-Level Decomposition Decision</a></li>
-<li><a href="#_4_3_decisions_to_achieve_quality_goals">4.3. 4.3 Decisions to Achieve Quality Goals</a></li>
-<li><a href="#_4_4_organizational_decisions">4.4. 4.4 Organizational Decisions</a></li>
+<li><a href="#_technology_decisions">4.1. Technology Decisions</a></li>
+<li><a href="#_decomposition_strategy">4.2. Decomposition Strategy</a></li>
+<li><a href="#_quality_goals_and_solution_approaches">4.3. Quality Goals and Solution Approaches</a></li>
+<li><a href="#_organizational_decisions">4.4. Organizational Decisions</a></li>
 </ul>
 </li>
-<li><a href="#section-building-block-view">5. 5. Building Block View</a>
+<li><a href="#section-building-block-view">5. Building Block View</a>
 <ul class="sectlevel2">
 <li><a href="#_whitebox_overall_system">5.1. Whitebox Overall System</a></li>
 <li><a href="#_level_2">5.2. Level 2</a></li>
@@ -478,10 +478,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#section-runtime-view">6. Runtime View</a>
 <ul class="sectlevel2">
 <li><a href="#_scenario_selection">6.1. Scenario Selection</a></li>
-<li><a href="#_runtime_scenario_1_login_and_session_validation">6.2. Runtime Scenario 1: Login and Session Validation</a></li>
-<li><a href="#_runtime_scenario_2_create_game">6.3. Runtime Scenario 2: Create Game</a></li>
-<li><a href="#_runtime_scenario_3_play_move_and_report_match_result">6.4. Runtime Scenario 3: Play Move and Report Match Result</a></li>
-<li><a href="#_runtime_scenario_4_upstream_failure_through_gateway">6.5. Runtime Scenario 4: Upstream Failure Through Gateway</a></li>
+<li><a href="#_login_and_session_recovery">6.2. Login and Session Recovery</a></li>
+<li><a href="#_create_a_new_game">6.3. Create a New Game</a></li>
+<li><a href="#_matchmaking_and_online_turn_supervision">6.4. Matchmaking and Online Turn Supervision</a></li>
+<li><a href="#_finish_a_match_and_update_statistics">6.5. Finish a Match and Update Statistics</a></li>
+<li><a href="#_gateway_upstream_failure">6.6. Gateway Upstream Failure</a></li>
 </ul>
 </li>
 <li><a href="#section-deployment-view">7. Deployment View</a>
@@ -990,7 +991,7 @@ and deployment requirements.
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="./images/business-context-diagram.png" alt="business context diagram" width="730" height="674">
+<img src="./images/business-context-diagram.png" alt="business context diagram" width="894" height="719">
 </div>
 </div>
 <div class="sect2">
@@ -1001,13 +1002,16 @@ and deployment requirements.
 <p><strong>Player</strong>: The end-user who interacts with the system through a web browser to play games and view statistics.</p>
 </li>
 <li>
-<p><strong>Bot</strong>: An automated agent that can interact with the game engine to play games and view user stats.</p>
+<p><strong>Bot</strong>: An automated agent that interacts directly with Gamey for gameplay and with Stats for user statistics queries.</p>
 </li>
 <li>
 <p><strong>WebApp</strong>: The front-end application built with React and Vite, serving the user interface and handling user interactions.</p>
 </li>
 <li>
 <p><strong>AuthService</strong>: Dedicated authentication microservice (Node.js + Express) that handles registration, login, stores password hashes in MongoDB and emits/verifies JWTs.</p>
+</li>
+<li>
+<p><strong>StatsService</strong>: Service responsible for player statistics and match history read/query operations.</p>
 </li>
 <li>
 <p><strong>Gamey</strong>: The game engine and bot service implemented in Rust, responsible for game logic and interactions with bots.</p>
@@ -1044,7 +1048,7 @@ and deployment requirements.
 <h3 id="_technical_context">3.2. Technical Context</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="1290" height="825">
+<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="1707" height="726">
 </div>
 </div>
 <div class="sect3">
@@ -1087,8 +1091,8 @@ together with a mapping table showing the relationships between channels and inp
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">External Bot</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Game actions, statistics queries, automated gameplay</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS JSON (Gamey API)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game actions and statistics queries (separate calls)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS JSON (Gamey API and Stats API)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Reverse Proxy (nginx)</p></td>
@@ -1097,7 +1101,7 @@ together with a mapping table showing the relationships between channels and inp
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">WebApp (React + Vite + TypeScript)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">User interactions, REST API calls to Auth and Gamey</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User interactions, REST API calls to Auth, Gamey, and Stats</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST)</p></td>
 </tr>
 <tr>
@@ -1107,12 +1111,17 @@ together with a mapping table showing the relationships between channels and inp
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Gamey (Rust Engine + Bot Service)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Game logic, bot API, metrics endpoint</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST) / TCP (database driver)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game logic, bot API, and match result reporting to Stats</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">StatsService (Node.js + Express)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User stats/history queries and persistence of finished match outcomes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (REST) for <code>/v1/me</code>, <code>/v1/me/history</code>, <code>/internal/v1/matches/finished</code> / TCP (MongoDB driver)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Databases (Mongo)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">One database for storage of users and other for game statistics</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One database for auth identities and another for game statistics/history</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">TCP (MongoDB wire protocol)</p></td>
 </tr>
 <tr>
@@ -1177,202 +1186,118 @@ Refer to details in the following sections.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This section summarizes the fundamental architecture decisions and explains how they support the most important quality goals.</p>
+<p>This section summarizes the main solution approaches that shape the architecture of Yovi. It focuses on the decisions that most clearly explain why the system is structured as it is.</p>
 </div>
 <div class="sect2">
-<h3 id="_4_1_technology_decisions">4.1. 4.1 Technology Decisions</h3>
+<h3 id="_technology_decisions">4.1. Technology Decisions</h3>
 <div class="ulist">
 <ul>
 <li>
-<p><code>Frontend</code>: React + TypeScript + Vite (+ MUI).</p>
-<div class="paragraph">
-<p>Reason: productive SPA development, typed UI code, and fast local feedback loops.</p>
-</div>
+<p><code>Web frontend</code>: React, TypeScript, Vite and MUI are used to build a browser-based SPA with fast interaction and typed UI code.</p>
 </li>
 <li>
-<p><code>Edge/API Entry Point</code>: <code>gateway</code> built with Node.js + Express + <code>http-proxy-middleware</code>.</p>
-<div class="paragraph">
-<p>Reason: central route mapping and a single external entry point for browser clients.</p>
-</div>
+<p><code>Gateway</code>: Node.js and Express provide a lightweight public entry point for routing and error normalization.</p>
 </li>
 <li>
-<p><code>Authentication Service</code>: <code>auth_service</code> with Node.js + Express + Mongoose + JWT + bcrypt.</p>
-<div class="paragraph">
-<p>Reason: dedicated identity boundary, password hashing, and stateless token-based sessions.</p>
-</div>
+<p><code>Authentication and statistics</code>: Node.js services with MongoDB persistence keep account management and historical data in independent boundaries.</p>
 </li>
 <li>
-<p><code>Game Engine Service</code>: <code>gamey</code> with Rust + Axum.</p>
-<div class="paragraph">
-<p>Reason: game rules and bot logic are isolated in a specialized service with strong correctness guarantees.</p>
-</div>
+<p><code>Gameplay core</code>: Rust and Axum are used in <code>gamey</code> to isolate game rules, bots, matchmaking and online turn supervision.</p>
 </li>
 <li>
-<p><code>Stats Service</code>: <code>stats</code> with Node.js + Express + MongoDB driver.</p>
-<div class="paragraph">
-<p>Reason: dedicated storage and query API for player statistics and match history.</p>
-</div>
-</li>
-<li>
-<p><code>Data Storage</code>: MongoDB with separated instances (<code>mongo-auth</code>, <code>mongo-stats</code>).</p>
-<div class="paragraph">
-<p>Reason: separation of concerns, independent lifecycle, and persistent volumes.</p>
-</div>
-</li>
-<li>
-<p><code>Observability</code>: Prometheus + Grafana (+ service metrics middleware in Node services).</p>
-<div class="paragraph">
-<p>Reason: baseline monitoring for operational visibility.</p>
-</div>
-</li>
-<li>
-<p><code>Packaging and Runtime</code>: Docker + Docker Compose.</p>
-<div class="paragraph">
-<p>Reason: reproducible multi-service environments and deterministic local integration.</p>
-</div>
+<p><code>Deployment and operation</code>: Docker Compose is the default integration environment, with Prometheus and Grafana available for monitoring.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_4_2_top_level_decomposition_decision">4.2. 4.2 Top-Level Decomposition Decision</h3>
-<div class="paragraph">
-<p>The system follows a microservice decomposition with a gateway at the edge and domain-specific backend services.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p><code>Webapp</code></p>
-<div class="paragraph">
-<p>Responsibility: user interface, authentication/session UX, game interaction.</p>
-</div>
-</li>
-<li>
-<p><code>Gateway</code></p>
-<div class="paragraph">
-<p>Responsibility: path-based request routing to internal services and normalized upstream error handling.</p>
-</div>
-</li>
-<li>
-<p><code>Auth Service</code></p>
-<div class="paragraph">
-<p>Responsibility: register/login/verify workflows and JWT issuance/validation.</p>
-</div>
-</li>
-<li>
-<p><code>Gamey Service</code></p>
-<div class="paragraph">
-<p>Responsibility: game state lifecycle, move validation, and bot decisions.</p>
-</div>
-</li>
-<li>
-<p><code>Stats Service</code></p>
-<div class="paragraph">
-<p>Responsibility: match result persistence and player stats/history queries.</p>
-</div>
-</li>
-<li>
-<p><code>Data Stores (MongoDB)</code></p>
-<div class="paragraph">
-<p>Responsibility: persistent storage for auth identities and game statistics.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="sect3">
-<h4 id="_communication_between_subsystems">4.2.1. Communication Between Subsystems</h4>
-<div class="paragraph">
-<p>External communication is <code>Browser &#8594; Gateway &#8594; Internal Service</code>:</p>
-</div>
+<h3 id="_decomposition_strategy">4.2. Decomposition Strategy</h3>
 <div class="ulist">
 <ul>
 <li>
-<p><code>/</code> &#8594; <code>webapp</code></p>
+<p>The system exposes a single public entry point through the <code>gateway</code>.</p>
 </li>
 <li>
-<p><code>/auth/*</code> &#8594; <code>auth_service</code></p>
+<p>Responsibilities are separated into focused services: <code>webapp</code>, <code>auth_service</code>, <code>gamey</code> and <code>stats</code>.</p>
 </li>
 <li>
-<p><code>/api/*</code> &#8594; <code>gamey</code></p>
+<p>Live game state and matchmaking remain in memory inside <code>gamey</code>, which keeps the gameplay path short.</p>
 </li>
 <li>
-<p><code>/stats/*</code> &#8594; <code>stats</code></p>
+<p>Persistent business data is split across <code>mongo-auth</code> and <code>mongo-stats</code>.</p>
+</li>
+<li>
+<p>Inter-service communication is mainly synchronous HTTP/JSON, with graceful degradation when statistics reporting is temporarily unavailable.</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>Internal communication relevant for gameplay:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>gamey &#8594; stats</code>: HTTP call to <code>/internal/v1/matches/finished</code> when a match ends.</p>
-</li>
-<li>
-<p><code>auth_service &#8594; mongo-auth</code>: credential and identity persistence.</p>
-</li>
-<li>
-<p><code>stats &#8594; mongo-stats</code>: match history and aggregate counters persistence.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Most calls are synchronous HTTP/JSON. Stats reporting is executed as a runtime side-effect and degrades gracefully if unavailable (game response still returns to the player).</p>
-</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_4_3_decisions_to_achieve_quality_goals">4.3. 4.3 Decisions to Achieve Quality Goals</h3>
+<h3 id="_quality_goals_and_solution_approaches">4.3. Quality Goals and Solution Approaches</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
+<col style="width: 12.5%;">
 <col style="width: 25%;">
-<col style="width: 75%;">
+<col style="width: 37.5%;">
+<col style="width: 25%;">
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Quality Goal</th>
-<th class="tableblock halign-left valign-top">Architectural Decision</th>
+<th class="tableblock halign-left valign-top">Quality goal</th>
+<th class="tableblock halign-left valign-top">Scenario</th>
+<th class="tableblock halign-left valign-top">Solution approach</th>
+<th class="tableblock halign-left valign-top">Link to details</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Security</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Dedicated <code>auth_service</code> with hashed passwords (<code>bcrypt</code>), JWT-based sessions, and protected internal stats endpoint via service token.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Performance</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Game-critical logic in <code>gamey</code> (Rust) and lightweight proxying in <code>gateway</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Robustness</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A game action, invalid move or temporary backend problem must not break the user flow.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey</code> validates moves and isolates live game state. The <code>gateway</code> returns normalized upstream errors, and match reporting to <code>stats</code> does not block the game response.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-runtime-view">Section 6</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Usability</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">SPA frontend with immediate feedback on auth/game errors and a single public entry point through <code>gateway</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A player should be able to authenticate, start a match and continue it after a reload with little friction.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The frontend is a SPA, the public access point is unique, and the browser stores session and resumable game information locally.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-concepts">Section 8</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Reliability and Availability</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Isolated containers, explicit upstream-failure handling in <code>gateway</code> (<code>502 Bad Gateway</code>), and graceful degradation when stats reporting fails.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Performance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Moves and turn changes should feel immediate, especially during online play.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The critical path is kept short (<code>browser &#8594; gateway &#8594; gamey</code>) and active matches are processed in memory instead of being persisted after every action.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-runtime-view">Section 6</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Maintainability and Testability</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Clear bounded services (<code>webapp</code>, <code>gateway</code>, <code>auth_service</code>, <code>gamey</code>, <code>stats</code>) with service-level tests and explicit HTTP contracts.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compatibility</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The application should be reachable from standard browsers on desktop and mobile devices.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The user interface is delivered as a web application behind a single HTTP gateway, avoiding client-specific dependencies.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-deployment-view">Section 7</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Security</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Credentials and internal write operations must be protected against unauthorized access.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth_service</code> centralizes login and token validation, passwords are hashed with <code>bcrypt</code>, sessions use JWT, and the internal stats endpoint requires a service token.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-concepts">Section 8</a></p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_4_4_organizational_decisions">4.4. 4.4 Organizational Decisions</h3>
+<h3 id="_organizational_decisions">4.4. Organizational Decisions</h3>
 <div class="ulist">
 <ul>
 <li>
-<p>Central GitHub repository for source code and collaboration.</p>
+<p>Source code and documentation are maintained in a single repository.</p>
 </li>
 <li>
-<p>Task tracking and technical discussions through GitHub Issues.</p>
+<p>Documentation follows the <code>arc42</code> template and uses PlantUML diagrams stored as code.</p>
 </li>
 <li>
-<p>Periodic team meetings for progress review and task distribution.</p>
+<p>The team uses Docker Compose as the common integration environment.</p>
 </li>
 <li>
-<p>Decision and meeting traceability through documented records.</p>
+<p>Quality checks are part of the normal workflow before merging changes.</p>
 </li>
 </ul>
 </div>
@@ -1381,7 +1306,7 @@ Refer to details in the following sections.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="section-building-block-view">5. 5. Building Block View</h2>
+<h2 id="section-building-block-view">5. Building Block View</h2>
 <div class="sectionbody">
 <div class="sidebarblock arc42help">
 <div class="content">
@@ -1403,13 +1328,7 @@ abstraction.</p>
 </div>
 <div class="paragraph">
 <div class="title">Form</div>
-<p>The building block view is a hierarchical collection of black boxes and white boxes
-(see figure below) and their descriptions.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="./images/05_building_blocks-EN.png" alt="Hierarchy of building blocks">
-</div>
+<p>The building block view is a hierarchical collection of black boxes and white boxes.</p>
 </div>
 <div class="paragraph">
 <p><strong>Level 1</strong> is the white box description of the overall system together with black
@@ -1428,188 +1347,383 @@ Thus it contains the white box description of selected building blocks of level 
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>This section describes the static decomposition of Yovi in three levels. The first level presents the overall system. The second level zooms into the blocks that are most relevant for understanding the architecture. The third level refines the most complex internal coordination logic.</p>
+</div>
 <div class="sect2">
 <h3 id="_whitebox_overall_system">5.1. Whitebox Overall System</h3>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<p>Here you describe the decomposition of the overall system using the following white box template. It contains</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>an overview diagram</p>
-</li>
-<li>
-<p>a motivation for the decomposition</p>
-</li>
-<li>
-<p>black box descriptions of the contained building blocks. For these we offer you alternatives:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>use <em>one</em> table for a short and pragmatic overview of all contained building blocks and their interfaces</p>
-</li>
-<li>
-<p>use a list of black box descriptions of the building blocks according to the black box template (see below).
-Depending on your choice of tool this list could be sub-chapters (in text files), sub-pages (in a Wiki) or nested elements (in a modeling tool).</p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>(optional:) important interfaces, that are not explained in the black box templates of a building block,but are very important for understanding the white box.
-Since there are so many ways to specify interfaces why do not provide a specific template for them.
-In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
-restrictions, versions, qualities, necessary compatibilities and many things more.
-In the best case you will get away with examples or simple signatures.</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level1_yovi.png" alt="General View - System Boundary">
+<img src="./images/05_level1_yovi_overall.png" alt="05 level1 yovi overall" width="844" height="289">
 </div>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p>This first view shows the system at its highest abstraction level.
-It defines the system boundary (<code>Yovi</code>) and the external actor (<code>Usuario</code>) before introducing internal decomposition.
-This helps stakeholders understand scope and ownership before going into technical details.</p>
+<div class="paragraph">
+<p>The overall system is decomposed into a browser frontend, a single public entry point, three domain services and two persistence nodes. This separation makes the main responsibilities visible without exposing implementation details too early.</p>
+</div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
 <dd>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Yovi</code>: Main system boundary that contains the application internals, detailed in the next levels.</p>
-</li>
-</ul>
-</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 37.5%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Responsibility</th>
+<th class="tableblock halign-left valign-top">Interfaces</th>
+<th class="tableblock halign-left valign-top">Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Webapp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Single-page application for login, game configuration, gameplay, match history and help views.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses <code>/auth/<strong></code>, <code>/api/</strong></code> and <code>/stats/*</code> through the gateway.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Gateway</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Single external entry point, proxy router and public API facade.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exposes <code>/</code>, <code>/auth/<strong></code>, <code>/api/</strong></code>, <code>/stats/<strong></code>, <code>/external/</strong></code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gateway/gateway-service.js</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Auth Service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Registration, login, token verification and account persistence.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/register</code>, <code>/login</code>, <code>/verify</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth_service/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Gamey Service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game rules, bot execution, active sessions, matchmaking and timeout supervision.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/v1/games/<strong></code>, <code>/v1/matchmaking/</strong></code>, <code>/v1/ybot/choose/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Stats Service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persistence and query API for match history and player statistics.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/v1/me</code>, <code>/v1/me/history</code>, <code>/internal/v1/matches/finished</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>stats/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Mongo Auth</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persistent storage of users and password hashes.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MongoDB connection from <code>auth_service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Docker volume <code>mongo-auth-data</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Mongo Stats</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persistent storage of finished matches and aggregate counters.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MongoDB connection from <code>stats</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Docker volume <code>mongo-stats-data</code></p></td>
+</tr>
+</tbody>
+</table>
 </dd>
 <dt class="hdlist1">Important Interfaces</dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p><code>Usuario &#8594; Yovi</code>: Primary interaction interface between the end user and the system.</p>
+<p><code>Player &#8594; Gateway</code>: all browser traffic enters the system through one public HTTP endpoint.</p>
+</li>
+<li>
+<p><code>Gateway &#8594; internal services</code>: the gateway strips prefixes and forwards requests to the owning service.</p>
+</li>
+<li>
+<p><code>Gamey Service &#8594; Stats Service</code>: finished matches are reported internally without involving the browser.</p>
 </li>
 </ul>
 </div>
 </dd>
 </dl>
 </div>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<p>Insert your explanations of black boxes from level 1:</p>
-</div>
-<div class="paragraph">
-<p>If you use tabular form you will only describe your black boxes with name and
-responsibility according to the following schema:</p>
-</div>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top"><strong>Name</strong></th>
-<th class="tableblock halign-left valign-top"><strong>Responsibility</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;black box 1&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <em>&lt;Text&gt;</em></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>&lt;black box 2&gt;</em></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <em>&lt;Text&gt;</em></p></td>
-</tr>
-</tbody>
-</table>
-<div class="paragraph">
-<p>If you use a list of black box descriptions then you fill in a separate black box template for every important building block .
-Its headline is the name of the black box.</p>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_yovi">5.1.1. Yovi</h4>
-<div class="paragraph">
-<p>System boundary that provides gameplay capabilities to the user and is internally decomposed in the following levels.</p>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="_level_2">5.2. Level 2</h3>
-<div class="sidebarblock arc42help">
-<div class="content">
 <div class="paragraph">
-<p>Here you can specify the inner structure of (some) building blocks from level 1 as white boxes.</p>
-</div>
-<div class="paragraph">
-<p>You have to decide which building blocks of your system are important enough to justify such a detailed description.
-Please prefer relevance over completeness. Specify important, surprising, risky, complex or volatile building blocks.
-Leave out normal, simple, boring or standardized parts of your system</p>
-</div>
-</div>
+<p>Level 2 zooms into the blocks with the highest architectural relevance: <code>Webapp</code>, <code>Gateway</code> and <code>Gamey Service</code>. <code>Auth Service</code> and <code>Stats Service</code> remain at black box level because their internal structure is comparatively simple.</p>
 </div>
 <div class="sect3">
-<h4 id="_white_box_yovi">5.2.1. White Box <em>Yovi</em></h4>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<p>&#8230;&#8203;describes the internal structure of <em>building block 1</em>.</p>
-</div>
-</div>
-</div>
+<h4 id="_white_box_webapp">5.2.1. White Box <code>Webapp</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_yovi.png" alt="Level 2 - Yovi Main Decomposition">
+<img src="./images/05_level2_webapp.png" alt="05 level2 webapp" width="364" height="276">
 </div>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p>Level 2 decomposes <code>Yovi</code> into its main runtime building blocks while keeping implementation details hidden.
-This view clarifies responsibilities between presentation, backend logic, and persistence.</p>
+<div class="paragraph">
+<p>The frontend is organized around a small application shell, presentation views and dedicated hooks for the main user flows. This keeps rendering, remote communication and local persistence clearly separated.</p>
+</div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
 <dd>
-<div class="ulist">
-<ul>
-<li>
-<p><code>WebApp</code>: Frontend used by the player for interaction.</p>
-</li>
-<li>
-<p><code>Backend</code>: Server-side component that exposes business operations.</p>
-</li>
-<li>
-<p><code>BBDD</code>: Persistent storage used by backend services.</p>
-</li>
-</ul>
-</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 37.5%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Responsibility</th>
+<th class="tableblock halign-left valign-top">Interfaces</th>
+<th class="tableblock halign-left valign-top">Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>App shell</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Selects the active screen and connects hooks with views.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal React composition.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/App.tsx</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Views</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Render login, dashboard, game, history, help and supporting UI components.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">React props from the app shell and hooks.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/views/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>useAuth</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Manages authentication state, guest mode, token verification and logout.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Calls auth endpoints through API helpers and browser storage.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/hooks/useAuth.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>useGamey</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Handles game creation, matchmaking, online synchronization and in-game actions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Calls game endpoints and persists resumable game data.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/useGamey.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>useStats</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Loads player aggregates and recent match history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Calls stats endpoints for authenticated users.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/useStats.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>API clients</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Wrap low-level HTTP interaction with backend services.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fetch</code> calls to <code>/auth</code>, <code>/api</code> and <code>/stats</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/gameyApi.ts</code>, <code>webapp/src/statsApi.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Session store</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persists active session and resumable game metadata.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Browser local storage.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/gameSessionStore.ts</code></p></td>
+</tr>
+</tbody>
+</table>
 </dd>
 <dt class="hdlist1">Important Interfaces</dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p><code>Usuario &#8594; WebApp</code>: User interaction interface.</p>
+<p><code>useAuth &#8594; /auth/*</code>: login, registration and token verification.</p>
 </li>
 <li>
-<p><code>WebApp &#8594; Backend</code>: HTTP/JSON application interface.</p>
+<p><code>useGamey &#8594; /api/*</code>: game lifecycle, matchmaking and bot hints.</p>
 </li>
 <li>
-<p><code>Backend &#8594; BBDD</code>: Persistence access interface.</p>
+<p><code>useStats &#8594; /stats/*</code>: player statistics and match history.</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_white_box_gateway">5.2.2. White Box <code>Gateway</code></h4>
+<div class="imageblock">
+<div class="content">
+<img src="./images/05_level2_gateway.png" alt="05 level2 gateway" width="474" height="261">
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Motivation</dt>
+<dd>
+<div class="paragraph">
+<p>The gateway is intentionally thin. It centralizes public routing and normalized failure handling, while keeping business rules in the backend services that own them.</p>
+</div>
+</dd>
+<dt class="hdlist1">Contained Building Blocks</dt>
+<dd>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 37.5%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Responsibility</th>
+<th class="tableblock halign-left valign-top">Interfaces</th>
+<th class="tableblock halign-left valign-top">Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Proxy route map</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Maps public prefixes to internal services.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/</code>, <code>/auth/<strong></code>, <code>/api/</strong></code>, <code>/stats/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gateway/gateway-service.js</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>External API router</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exposes public endpoints for external consumers and bot-related documentation.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/external/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gateway/gateway-service.js</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Error normalization</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transforms upstream connection failures into predictable HTTP <code>502</code> responses.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JSON error response to the browser.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gateway/gateway-service.js</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Health endpoint</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Provides a basic liveness check.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/health</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gateway/gateway-service.js</code></p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt class="hdlist1">Important Interfaces</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Gateway &#8594; Webapp</code>: forwards root traffic to the SPA.</p>
+</li>
+<li>
+<p><code>Gateway &#8594; Auth Service</code>, <code>Gamey Service</code>, <code>Stats Service</code>: forwards route-specific API traffic.</p>
+</li>
+<li>
+<p><code>Gateway &#8594; browser</code>: returns normalized <code>502 Bad Gateway</code> on upstream failures.</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_white_box_gamey_service">5.2.3. White Box <code>Gamey Service</code></h4>
+<div class="imageblock">
+<div class="content">
+<img src="./images/05_level2_gamey.png" alt="05 level2 gamey" width="478" height="317">
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Motivation</dt>
+<dd>
+<div class="paragraph">
+<p><code>Gamey Service</code> is the domain core of the system. It concentrates the rules of the game, online coordination and bot logic so that gameplay remains consistent and isolated from the rest of the platform.</p>
+</div>
+</dd>
+<dt class="hdlist1">Contained Building Blocks</dt>
+<dd>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 37.5%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Responsibility</th>
+<th class="tableblock halign-left valign-top">Interfaces</th>
+<th class="tableblock halign-left valign-top">Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>HTTP API</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exposes endpoints for games, moves, resign/pass actions, matchmaking and bots.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP/JSON endpoints under <code>/v1/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/mod.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Game session store</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Keeps active matches and related metadata in memory.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shared internal state.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking state</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stores waiting tickets and matched ticket information in memory.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shared internal state.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking worker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Pairs waiting players and creates online games with player tokens.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Background worker over shared matchmaking state.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Timeout monitor</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Auto-passes turns and finishes inactive online games.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Background worker over active sessions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GameY engine</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Validates moves, applies actions and determines winners.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal domain API.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/core/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Bot registry</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Resolves the configured bot and computes automated moves.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal bot selection and execution.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot/</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Stats reporter</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sends finished match summaries to the stats service.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP call to <code>/internal/v1/matches/finished</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt class="hdlist1">Important Interfaces</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>x-user-id</code>: identifies authenticated users when a game is created or queried.</p>
+</li>
+<li>
+<p><code>x-opponent-user-id</code>: supports direct online game creation.</p>
+</li>
+<li>
+<p><code>x-player-token</code>: protects turn ownership in matchmaking-created online games.</p>
 </li>
 </ul>
 </div>
@@ -1620,66 +1734,111 @@ This view clarifies responsibilities between presentation, backend logic, and pe
 </div>
 <div class="sect2">
 <h3 id="_level_3">5.3. Level 3</h3>
-<div class="sidebarblock arc42help">
-<div class="content">
 <div class="paragraph">
-<p>Here you can specify the inner structure of (some) building blocks from level 2 as white boxes.</p>
-</div>
-<div class="paragraph">
-<p>When you need more detailed levels of your architecture please copy this
-part of arc42 for additional levels.</p>
-</div>
-</div>
+<p>Level 3 refines the part of <code>Gamey Service</code> that coordinates online matches, because it combines shared state, background workers and communication with the rest of the platform.</p>
 </div>
 <div class="sect3">
-<h4 id="_white_box_backend">5.3.1. White Box <em>Backend</em></h4>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<p>Specifies the internal structure of <em>building block x.1</em>.</p>
-</div>
-</div>
-</div>
+<h4 id="_white_box_online_match_coordination">5.3.1. White Box <code>Online Match Coordination</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level3_yovi.png" alt="Level 3 - Backend Internal Decomposition">
+<img src="./images/05_level3_online_coordination.png" alt="05 level3 online coordination" width="527" height="261">
 </div>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p>Level 3 details the internal structure of the backend component.
-It isolates the key business services and their collaboration for user and gameplay operations.</p>
+<div class="paragraph">
+<p>Online gameplay is the most coordination-heavy part of the system. It combines request handling, shared in-memory state, background processes and eventual reporting of the finished match.</p>
+</div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
 <dd>
-<div class="ulist">
-<ul>
-<li>
-<p><code>User</code>: Service responsible for user-related operations.</p>
-</li>
-<li>
-<p><code>Gamey</code>: Service responsible for game engine and game logic.</p>
-</li>
-<li>
-<p><code>BBDD</code>: Shared persistence component used by backend services.</p>
-</li>
-</ul>
-</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 37.5%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Responsibility</th>
+<th class="tableblock halign-left valign-top">Interfaces</th>
+<th class="tableblock halign-left valign-top">Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Game handlers</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Serve game creation, querying and in-game actions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP handlers for <code>/v1/games/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking handlers</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Serve enqueue, ticket query and cancellation operations.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP handlers for <code>/v1/matchmaking/*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Shared AppState</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Aggregates all in-memory structures used by the service.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared state.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Games map</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stores active sessions indexed by game id.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared map.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Active game index</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prevents a user from owning multiple active games at the same time.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared map.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Queue and tickets</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Store waiting players and matchmaking results.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared queue and ticket map.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking worker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Matches players and creates online sessions asynchronously.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Background coordination logic.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Timeout monitor</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Observes inactivity and turn timeout rules for online games.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Background supervision logic.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Stats reporter</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reports finished games without blocking the player response.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal HTTP client to <code>stats</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
+</tr>
+</tbody>
+</table>
 </dd>
 <dt class="hdlist1">Important Interfaces</dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p><code>User &#8592;&#8594; Gamey</code>: Internal service-to-service interface for game/user data exchange.</p>
+<p><code>Game handlers &#8594; Shared AppState</code>: read and update active sessions.</p>
 </li>
 <li>
-<p><code>User &#8594; BBDD</code>: User data persistence interface.</p>
+<p><code>Matchmaking worker &#8594; Queue and tickets</code>: consume waiting entries and produce matched results.</p>
 </li>
 <li>
-<p><code>Gamey &#8594; BBDD</code>: Game state persistence interface.</p>
+<p><code>Stats reporter &#8594; Stats Service</code>: persist the final match outcome after the game finishes.</p>
 </li>
 </ul>
 </div>
@@ -1698,7 +1857,7 @@ It isolates the key business services and their collaboration for user and gamep
 <div class="content">
 <div class="paragraph">
 <div class="title">Contents</div>
-<p>The runtime view describes concrete behavior and interactions of the system’s building blocks in form of scenarios from the following areas:</p>
+<p>The runtime view describes concrete behavior and interactions of the system&#8217;s building blocks in form of scenarios from the following areas:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -1757,21 +1916,7 @@ You will mainly capture scenarios in your documentation to communicate your arch
 </div>
 </div>
 <div class="paragraph">
-<p>This section documents representative runtime scenarios with architectural relevance.
-The selected scenarios show:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Core user flows (authentication and gameplay).</p>
-</li>
-<li>
-<p>Cooperation between internal services (<code>gateway</code>, <code>auth</code>, <code>gamey</code>, <code>stats</code>).</p>
-</li>
-<li>
-<p>Error and degradation behavior at runtime.</p>
-</li>
-</ul>
+<p>This section documents the runtime scenarios that are most useful to understand Yovi: authentication, game creation, multiplayer synchronization, statistics reporting and degraded behavior.</p>
 </div>
 <div class="sect2">
 <h3 id="_scenario_selection">6.1. Scenario Selection</h3>
@@ -1783,97 +1928,131 @@ The selected scenarios show:</p>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Scenario</th>
-<th class="tableblock halign-left valign-top">Why it is architecturally relevant</th>
+<th class="tableblock halign-left valign-top">Why it is relevant</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Login and session validation</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Traverses WebApp, Gateway, Auth Service and Mongo Auth; defines access control and session lifecycle.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Login and session recovery</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shows the complete path for authentication and explains how the webapp restores a valid session after reload.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Game creation and move processing</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Captures the main business flow and the runtime responsibilities of <code>gamey</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Create a new game</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Explains how the main business capability starts and where the live game state is stored.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Match completion and stats reporting</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Shows service-to-service integration (<code>gamey</code> &#8594; <code>stats</code>) and data consistency updates in Mongo Stats.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Matchmaking and online turn supervision</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Captures the polling flow, token-based online play and the background timeout behavior of <code>gamey</code>.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Upstream service failure</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Describes resilience behavior when the gateway cannot reach an upstream service.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Finish a match and update statistics</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shows the integration between <code>gamey</code> and <code>stats</code>, including graceful degradation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Gateway upstream failure</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Documents the standardized error path exposed to the browser when an internal service is unavailable.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_runtime_scenario_1_login_and_session_validation">6.2. Runtime Scenario 1: Login and Session Validation</h3>
+<h3 id="_login_and_session_recovery">6.2. Login and Session Recovery</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/runtime-auth-login-verify.png" alt="runtime auth login verify" width="867" height="1052">
+<img src="./images/06_runtime_login_recovery.png" alt="06 runtime login recovery" width="744" height="790">
 </div>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Gateway strips <code>/auth</code> and forwards requests to Auth Service.</p>
+<p>The gateway is the only public access point used by the browser.</p>
 </li>
 <li>
-<p>Authentication data and password hashes are stored in Mongo Auth.</p>
+<p><code>auth_service</code> owns credential validation and token issuance.</p>
 </li>
 <li>
-<p>Session validity is re-checked on app startup through <code>/auth/verify</code>.</p>
+<p>The browser keeps only session data; account data remains in <code>Mongo Auth</code>.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_runtime_scenario_2_create_game">6.3. Runtime Scenario 2: Create Game</h3>
+<h3 id="_create_a_new_game">6.3. Create a New Game</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/runtime-create-game.png" alt="runtime create game" width="945" height="543">
+<img src="./images/06_runtime_create_game.png" alt="06 runtime create game" width="723" height="577">
 </div>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Gateway strips <code>/api</code> and forwards to Gamey.</p>
+<p>Active matches are stored in memory inside <code>gamey</code>.</p>
 </li>
 <li>
-<p><code>x-user-id</code> is propagated to identify the player in later stats reporting.</p>
+<p>Creating a game does not require a database write.</p>
+</li>
+<li>
+<p>The webapp stores enough local state to resume the match later.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_runtime_scenario_3_play_move_and_report_match_result">6.4. Runtime Scenario 3: Play Move and Report Match Result</h3>
+<h3 id="_matchmaking_and_online_turn_supervision">6.4. Matchmaking and Online Turn Supervision</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/runtime-play-move-and-stats.png" alt="runtime play move and stats" width="1376" height="938">
+<img src="./images/06_runtime_matchmaking.png" alt="06 runtime matchmaking" width="1203" height="1104">
 </div>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Stats reporting is triggered only once when a match transitions to finished.</p>
+<p>Matchmaking tickets and active online games are held in memory in <code>gamey</code>.</p>
 </li>
 <li>
-<p>A failure in stats reporting does not abort the user response; Gamey logs and returns game state.</p>
+<p>The browser polls the ticket until it becomes <code>matched</code>, then opens the created game automatically.</p>
+</li>
+<li>
+<p><code>x-player-token</code> binds actions to the correct online player.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_runtime_scenario_4_upstream_failure_through_gateway">6.5. Runtime Scenario 4: Upstream Failure Through Gateway</h3>
+<h3 id="_finish_a_match_and_update_statistics">6.5. Finish a Match and Update Statistics</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/runtime-gateway-502.png" alt="runtime gateway 502" width="692" height="468">
+<img src="./images/06_runtime_finish_and_stats.png" alt="06 runtime finish and stats" width="1083" height="736">
 </div>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>This scenario documents the runtime error path that is implemented in the gateway proxy error handler.</p>
+<p>Statistics are updated only when a match reaches a finished state.</p>
+</li>
+<li>
+<p>The reporting call is internal and protected with a service token.</p>
+</li>
+<li>
+<p>A stats failure does not block the player from receiving the final game state.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_gateway_upstream_failure">6.6. Gateway Upstream Failure</h3>
+<div class="imageblock">
+<div class="content">
+<img src="./images/06_runtime_gateway_failure.png" alt="06 runtime gateway failure" width="548" height="415">
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The gateway converts connection problems into a predictable HTTP <code>502</code> response.</p>
+</li>
+<li>
+<p>The browser does not need to know which internal service failed.</p>
 </li>
 </ul>
 </div>
@@ -2826,7 +3005,7 @@ and a more stable and maintainable architecture.</p>
 <div id="footer">
 <div id="footer-text">
 Version 8.2 EN<br>
-Last updated 2026-03-03 14:20:37 +0100
+Last updated 2026-03-11 22:03:20 +0100
 </div>
 </div>
 </body>
