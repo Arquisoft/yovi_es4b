@@ -9,3 +9,6 @@ webapp/.env
 .node-coverage-temp-webapp/
 webapp/.node-coverage-build/
 webapp/.node-coverage-temp/
+gateway/certs/*
+!gateway/certs/.gitkeep
+!gateway/certs/README.md

@@ -6,7 +6,11 @@ const test = require('node:test');
 const {
   DEFAULT_EXTERNAL_BOT_ID,
   applyBotMoveToYen,
+  buildHttpsOrigin,
   createApp,
+  createRedirectApp,
+  getTlsConfig,
+  parseBoolean,
 } = require('./gateway-service');
 
 function noopProxyFactory() {
@@ -137,6 +141,54 @@ test('buildProxy returns a 502 response when upstream fails', () => {
   assert.equal(response.statusCode, 502);
   assert.deepEqual(response.headers, { 'Content-Type': 'application/json' });
   assert.equal(response.body, JSON.stringify({ message: 'Bad Gateway' }));
+});
+
+// TLS config remains disabled until both certificate paths are configured.
+test('getTlsConfig requires both certificate and key paths', () => {
+  assert.equal(getTlsConfig({}), null);
+  assert.equal(getTlsConfig({ HTTPS_CERT_PATH: '', HTTPS_KEY_PATH: '' }), null);
+  assert.throws(
+    () => getTlsConfig({ HTTPS_CERT_PATH: '/tmp/server.crt' }),
+    /must be set together/,
+  );
+  assert.deepEqual(
+    getTlsConfig({
+      HTTPS_CERT_PATH: '/tmp/server.crt',
+      HTTPS_KEY_PATH: '/tmp/server.key',
+    }),
+    {
+      certPath: '/tmp/server.crt',
+      keyPath: '/tmp/server.key',
+    },
+  );
+});
+
+// Boolean env parsing accepts common truthy values.
+test('parseBoolean understands common truthy and falsy values', () => {
+  assert.equal(parseBoolean(undefined), false);
+  assert.equal(parseBoolean('false'), false);
+  assert.equal(parseBoolean('TRUE'), true);
+  assert.equal(parseBoolean('yes'), true);
+});
+
+// HTTP redirects preserve path and query string while targeting HTTPS.
+test('createRedirectApp redirects requests to the configured HTTPS port', async () => {
+  const redirectApp = createRedirectApp({ httpsPort: 8443 });
+
+  await withServer(redirectApp, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/auth/login?next=dashboard`, {
+      redirect: 'manual',
+    });
+
+    assert.equal(response.status, 308);
+    assert.equal(response.headers.get('location'), 'https://127.0.0.1:8443/auth/login?next=dashboard');
+  });
+});
+
+// Standard HTTPS omits the port suffix in redirect targets.
+test('buildHttpsOrigin omits port 443 and preserves other ports', () => {
+  assert.equal(buildHttpsOrigin('example.com:80', 443), 'https://example.com');
+  assert.equal(buildHttpsOrigin('example.com:8080', 8443), 'https://example.com:8443');
 });
 
 // The external OpenAPI document is served by the gateway.

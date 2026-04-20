@@ -115,12 +115,56 @@ docker-compose up --build
 This command will build the Docker images and start the full stack behind the gateway.
 
 2.**Access the application:**
-- Web application: [http://localhost](http://localhost)
-- Auth API (through gateway): [http://localhost/auth/register](http://localhost/auth/register), [http://localhost/auth/login](http://localhost/auth/login), [http://localhost/auth/verify](http://localhost/auth/verify)
-- Gamey API (through gateway): [http://localhost/api/v1/games](http://localhost/api/v1/games)
-- External bot API documentation (through gateway): [http://localhost/external/docs](http://localhost/external/docs)
-- External bot OpenAPI contract (through gateway): [Invoke-RestMethod -Uri "http://localhost/external/v1/bots"
-](http://localhost/external/docs/openapi.json)
+- Web application: [https://localhost](https://localhost)
+- Auth API (through gateway): [https://localhost/auth/register](https://localhost/auth/register), [https://localhost/auth/login](https://localhost/auth/login), [https://localhost/auth/verify](https://localhost/auth/verify)
+- Gamey API (through gateway): [https://localhost/api/v1/games](https://localhost/api/v1/games)
+- External bot API documentation (through gateway): [https://localhost/external/docs](https://localhost/external/docs)
+- External bot OpenAPI contract (through gateway): [https://localhost/external/docs/openapi.json](https://localhost/external/docs/openapi.json)
+
+### HTTPS in the gateway
+
+The public entry point is the `gateway`. HTTPS is terminated there, while internal traffic to `webapp`, `auth`, `gamey`, and `stats` remains plain HTTP inside Docker.
+
+Certificate placement:
+
+- Put the public certificate in `gateway/certs/server.crt`
+- Put the private key in `gateway/certs/server.key`
+
+These files are mounted into the container at `/app/certs` and used by the gateway through:
+
+- `HTTPS_CERT_PATH=/app/certs/server.crt`
+- `HTTPS_KEY_PATH=/app/certs/server.key`
+
+Default Docker ports:
+
+- Host `443` -> gateway HTTPS listener
+- Host `8080` -> gateway HTTP listener
+
+Important deployment note:
+
+- If you do not want HTTP at all, set `HTTP_REDIRECT_ENABLED=false` and do not use host port `80`.
+- If you want automatic redirect from HTTP to HTTPS, set `HTTP_REDIRECT_ENABLED=true` and map host `80` to the gateway HTTP listener instead of exposing that port from any other service.
+- Only the `gateway` should publish public web ports. `webapp` must stay internal to avoid port conflicts.
+
+Recommended VM setup without risking another port-80 collision:
+
+```powershell
+$env:HTTP_REDIRECT_ENABLED="false"
+$env:GATEWAY_HTTPS_HOST_PORT="443"
+$env:GATEWAY_HTTP_HOST_PORT="8080"
+docker-compose up --build -d
+```
+
+If you want `http://...` to redirect to `https://...`, use:
+
+```powershell
+$env:HTTP_REDIRECT_ENABLED="true"
+$env:GATEWAY_HTTPS_HOST_PORT="443"
+$env:GATEWAY_HTTP_HOST_PORT="80"
+docker-compose up --build -d
+```
+
+With that configuration there is no duplicate use of port `80`, because the only container binding that host port is the `gateway`.
 
 ### Without Docker
 
@@ -207,10 +251,10 @@ npm install
 Run the gateway:
 
 ```bash
-$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:AUTH_SERVICE_URL="http://localhost:3500"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; $env:STATS_SERVICE_URL="http://localhost:3001"; npm start
+$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:AUTH_SERVICE_URL="http://localhost:3500"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; $env:STATS_SERVICE_URL="http://localhost:3001"; $env:HTTPS_CERT_PATH="C:\path\to\server.crt"; $env:HTTPS_KEY_PATH="C:\path\to\server.key"; $env:HTTPS_PORT="8443"; $env:PORT="8080"; $env:HTTP_REDIRECT_ENABLED="true"; npm start
 ```
 
-The gateway will be available at `http://localhost:8080`.
+The gateway will be available at `https://localhost:8443`. If `HTTP_REDIRECT_ENABLED=true`, `http://localhost:8080` will redirect to HTTPS.
 
 ## Available Scripts
 
