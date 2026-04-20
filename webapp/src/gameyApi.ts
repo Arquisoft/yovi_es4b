@@ -60,8 +60,19 @@ export interface MatchmakingTicketResponse {
 }
 
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
-const NORMALIZED_GAMEY_API_URL = GAMEY_API_URL.replace(/\/+$/, '');
 const SAFE_API_PATH_SEGMENT = /^[A-Za-z0-9_-]+$/;
+
+function trimTrailingSlashes(value: string): string {
+  let normalizedValue = value;
+
+  while (normalizedValue.endsWith('/')) {
+    normalizedValue = normalizedValue.slice(0, -1);
+  }
+
+  return normalizedValue;
+}
+
+const NORMALIZED_GAMEY_API_URL = trimTrailingSlashes(GAMEY_API_URL);
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

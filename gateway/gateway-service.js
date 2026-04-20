@@ -97,7 +97,13 @@ function buildProxy({ target, stripPrefix }, proxyFactory = createProxyMiddlewar
 }
 
 function normalizeBaseUrl(url) {
-  return String(url).replace(/\/+$/, '');
+  let normalizedUrl = String(url);
+
+  while (normalizedUrl.endsWith('/')) {
+    normalizedUrl = normalizedUrl.slice(0, -1);
+  }
+
+  return normalizedUrl;
 }
 
 function buildServiceUrls(env = process.env) {
