@@ -1,3 +1,7 @@
+const fs = require('node:fs');
+const http = require('node:http');
+const https = require('node:https');
+
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
@@ -125,6 +129,77 @@ function normalizeOptionalString(value) {
 
   const clean = value.trim();
   return clean.length > 0 ? clean : null;
+}
+
+function normalizeOptionalPort(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const port = Number(value);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    throw new Error(`Invalid port value: ${value}`);
+  }
+
+  return port;
+}
+
+function parseBoolean(value, defaultValue = false) {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) {
+    return defaultValue;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(normalized.toLowerCase());
+}
+
+function getTlsConfig(env = process.env) {
+  const certPath = normalizeOptionalString(env.HTTPS_CERT_PATH);
+  const keyPath = normalizeOptionalString(env.HTTPS_KEY_PATH);
+
+  if (!certPath && !keyPath) {
+    return null;
+  }
+
+  if (!certPath || !keyPath) {
+    throw new Error('HTTPS_CERT_PATH and HTTPS_KEY_PATH must be set together');
+  }
+
+  return {
+    certPath,
+    keyPath,
+  };
+}
+
+function loadTlsOptions(env = process.env) {
+  const tlsConfig = getTlsConfig(env);
+  if (!tlsConfig) {
+    return null;
+  }
+
+  return {
+    cert: fs.readFileSync(tlsConfig.certPath),
+    key: fs.readFileSync(tlsConfig.keyPath),
+  };
+}
+
+function buildHttpsOrigin(hostHeader, httpsPort) {
+  const fallbackHost = 'localhost';
+  const rawHost = normalizeOptionalString(hostHeader) ?? fallbackHost;
+  const hostname = rawHost.replace(/:\d+$/, '');
+  const portSuffix = httpsPort === 443 ? '' : `:${httpsPort}`;
+  return `https://${hostname}${portSuffix}`;
+}
+
+function createRedirectApp({ httpsPort = 443 } = {}) {
+  const app = express();
+
+  app.use((req, res) => {
+    const destination = `${buildHttpsOrigin(req.headers.host, httpsPort)}${req.originalUrl}`;
+    res.redirect(308, destination);
+  });
+
+  return app;
 }
 
 function extractMessage(payload, fallbackMessage = 'Request failed') {
@@ -747,10 +822,38 @@ function createApp({
 
 function start({ port = DEFAULT_PORT, env = process.env } = {}) {
   const { app } = createApp({ env });
+  const tlsOptions = loadTlsOptions(env);
 
-  return app.listen(port, () => {
-    console.log(`Gateway listening at http://localhost:${port}`);
+  if (!tlsOptions) {
+    const httpServer = http.createServer(app);
+    httpServer.listen(port, () => {
+      console.log(`Gateway listening at http://localhost:${port}`);
+    });
+    return {
+      httpServer,
+      httpsServer: null,
+    };
+  }
+
+  const httpsPort = normalizeOptionalPort(env.HTTPS_PORT) ?? 8443;
+  const httpsServer = https.createServer(tlsOptions, app);
+  httpsServer.listen(httpsPort, () => {
+    console.log(`Gateway listening at https://localhost:${httpsPort}`);
   });
+
+  let httpServer = null;
+  if (parseBoolean(env.HTTP_REDIRECT_ENABLED)) {
+    const redirectApp = createRedirectApp({ httpsPort });
+    httpServer = http.createServer(redirectApp);
+    httpServer.listen(port, () => {
+      console.log(`Gateway redirecting http://localhost:${port} -> https://localhost:${httpsPort}`);
+    });
+  }
+
+  return {
+    httpServer,
+    httpsServer,
+  };
 }
 
 function isDirectExecution() {
@@ -770,10 +873,15 @@ module.exports = {
   applyBotMoveToYen,
   buildDocsHtml,
   buildProxy,
+  buildHttpsOrigin,
   createApp,
+  createRedirectApp,
   createExternalApiRouter,
   getProxyRoutes,
+  getTlsConfig,
   isDirectExecution,
+  loadTlsOptions,
   pickPlayBotId,
+  parseBoolean,
   start,
 };
