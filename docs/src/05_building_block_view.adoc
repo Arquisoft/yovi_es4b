@@ -142,14 +142,13 @@ component "Views" as Views
 component "useAuth" as UseAuth
 component "useGamey" as UseGamey
 component "useStats" as UseStats
-component "API clients" as Api
+component "Game/Stats API clients" as Api
 database "Session store" as Store
 
 App --> Views
 App --> UseAuth
 App --> UseGamey
 App --> UseStats
-UseAuth --> Api
 UseGamey --> Api
 UseStats --> Api
 UseAuth --> Store
@@ -179,7 +178,7 @@ Contained Building Blocks::
 
 |`useAuth`
 |Manages authentication state, guest mode, token verification and logout.
-|Calls auth endpoints through API helpers and browser storage.
+|Calls auth endpoints and browser storage directly.
 |`webapp/src/hooks/useAuth.ts`
 
 |`useGamey`
@@ -192,9 +191,9 @@ Contained Building Blocks::
 |Calls stats endpoints for authenticated users.
 |`webapp/src/useStats.ts`
 
-|`API clients`
-|Wrap low-level HTTP interaction with backend services.
-|`fetch` calls to `/auth`, `/api` and `/stats`.
+|`Game/Stats API clients`
+|Wrap low-level HTTP interaction for gameplay and statistics flows.
+|`fetch` calls to `/api` and `/stats`.
 |`webapp/src/gameyApi.ts`, `webapp/src/statsApi.ts`
 
 |`Session store`
@@ -235,9 +234,8 @@ Proxy --> Stats
 ExternalApi --> Auth
 ExternalApi --> Gamey
 ExternalApi --> Stats
-Errors ..> Proxy
-Errors ..> ExternalApi
-Health ..> Proxy
+Proxy ..> Errors
+ExternalApi ..> Errors
 @enduml
 ----
 
@@ -306,6 +304,8 @@ Worker --> Matchmaking
 Worker --> Sessions
 Worker --> Engine
 Monitor --> Sessions
+Monitor --> Engine
+Monitor --> Reporter
 Reporter --> Stats
 @enduml
 ----
@@ -379,7 +379,7 @@ Bot execution remains at level 2 because it is orthogonal to the online human-vs
 ----
 @startuml
 title Level 3 - White Box Gamey Service: Online Gameplay Runtime
-left to right direction
+top to bottom direction
 skinparam componentStyle rectangle
 
 component "Game API" as Games
@@ -389,6 +389,11 @@ component "Background coordinators" as Workers
 component "GameY engine" as Engine
 component "Completion reporting" as Reporter
 component "Stats Service" as Stats
+
+MatchApi -[hidden]right-> Games
+Games -[hidden]right-> Workers
+Runtime -[hidden]right-> Engine
+Engine -[hidden]right-> Reporter
 
 Games --> Runtime
 Games --> Engine
