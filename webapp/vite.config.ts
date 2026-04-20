@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 function proxyRule(target: string, prefix: string) {
   return {
@@ -18,6 +18,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    exclude: [...configDefaults.exclude, 'node-tests/**', '.node-coverage-build/**'],
     coverage: {
       reporter: ['text', ['lcov', { projectRoot: '..' }]],
     },
