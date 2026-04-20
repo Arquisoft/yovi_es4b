@@ -45,6 +45,8 @@ export const uiColors = {
   },
 } as const;
 
+const desktopSidebarViewportOffset = 118;
+
 type HistoryStatTone = 'neutral' | 'win' | 'loss' | 'info';
 type GameCountdownTone = 'self' | 'opponent' | 'disconnect';
 type BoardOwner = 'human' | 'opponent' | 'empty';
@@ -513,7 +515,7 @@ export const uiSx = {
   } satisfies SxProps<Theme>,
   appBody: {
     display: 'flex',
-    alignItems: 'stretch',
+    alignItems: { xs: 'stretch', md: 'flex-start' },
     width: '100%',
     flex: 1,
     minHeight: 0,
@@ -532,6 +534,7 @@ export const uiSx = {
   sidebar: {
     width: { xs: '100%', md: 206 },
     flexShrink: 0,
+    alignSelf: { xs: 'auto', md: 'flex-start' },
     px: 2,
     py: 2.5,
     borderRight: { xs: 'none', md: `1px solid ${uiColors.border.faint}` },
@@ -543,7 +546,12 @@ export const uiSx = {
     flexDirection: 'column',
     gap: 1.5,
     position: 'relative',
+    top: { md: 0 },
+    height: { md: `calc(100dvh - ${desktopSidebarViewportOffset}px)` },
     overflow: 'visible',
+    '@media (min-width: 900px)': {
+      position: 'sticky',
+    },
   } satisfies SxProps<Theme>,
   sidebarItem: (active: boolean): SxProps<Theme> => ({
     border: 'none',
