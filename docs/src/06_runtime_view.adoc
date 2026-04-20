@@ -8,7 +8,7 @@ ifdef::arc42help[]
 [role="arc42help"]
 ****
 .Contents
-The runtime view describes concrete behavior and interactions of the system’s building blocks in form of scenarios from the following areas:
+The runtime view describes concrete behavior and interactions of the system's building blocks in form of scenarios from the following areas:
 
 * important use cases or features: how do building blocks execute them?
 * interactions at critical external interfaces: how do building blocks cooperate with users and neighboring systems?
@@ -39,190 +39,218 @@ See https://docs.arc42.org/section-6/[Runtime View] in the arc42 documentation.
 ****
 endif::arc42help[]
 
-This section documents representative runtime scenarios with architectural relevance.
-The selected scenarios show:
-
-* Core user flows (authentication and gameplay).
-* Cooperation between internal services (`gateway`, `auth`, `gamey`, `stats`).
-* Error and degradation behavior at runtime.
+This section documents the runtime scenarios that are most useful to understand Yovi: authentication, game creation, multiplayer synchronization, statistics reporting and degraded behavior.
 
 === Scenario Selection
 
 [cols="1,3",options="header"]
 |===
-| Scenario
-| Why it is architecturally relevant
+|Scenario | Why it is relevant
 
-| Login and session validation
-| Traverses WebApp, Gateway, Auth Service and Mongo Auth; defines access control and session lifecycle.
+|Login and session recovery
+|Shows the complete path for authentication and explains how the webapp restores a valid session after reload.
 
-| Game creation and move processing
-| Captures the main business flow and the runtime responsibilities of `gamey`.
+|Create a new game
+|Explains how the main business capability starts and where the live game state is stored.
 
-| Match completion and stats reporting
-| Shows service-to-service integration (`gamey` -> `stats`) and data consistency updates in Mongo Stats.
+|Matchmaking and online turn supervision
+|Captures the polling flow, token-based online play and the background timeout behavior of `gamey`.
 
-| Upstream service failure
-| Describes resilience behavior when the gateway cannot reach an upstream service.
+|Finish a match and update statistics
+|Shows the integration between `gamey` and `stats`, including graceful degradation.
+
+|Gateway upstream failure
+|Documents the standardized error path exposed to the browser when an internal service is unavailable.
 |===
 
-=== Runtime Scenario 1: Login and Session Validation
+=== Login and Session Recovery
 
-[plantuml,"runtime-auth-login-verify",png]
+[plantuml,"06_runtime_login_recovery",png]
 ----
 @startuml
-title Runtime 1 - Login and session validation
+title Runtime 1 - Login and session recovery
 
 actor Player
-participant "WebApp (React)" as WebApp
-participant "Gateway (Express + Proxy)" as Gateway
+participant "Webapp" as Webapp
+participant "Gateway" as Gateway
 participant "Auth Service" as Auth
 database "Mongo Auth" as MongoAuth
 
-Player -> WebApp: Submit username + password
-WebApp -> Gateway: POST /auth/login
+Player -> Webapp: Submit username and password
+Webapp -> Gateway: POST /auth/login
 Gateway -> Auth: POST /login
-Auth -> MongoAuth: findOne(username)
-MongoAuth --> Auth: user + passwordHash
-Auth -> Auth: bcrypt.compare + jwt.sign
+Auth -> MongoAuth: find user
+MongoAuth --> Auth: user + password hash
+Auth -> Auth: compare password\nsign JWT
+Auth --> Gateway: 200 { token, user }
+Gateway --> Webapp: 200 { token, user }
+Webapp -> Webapp: Persist session locally
 
-alt Valid credentials
-  Auth --> Gateway: 200 { token, username, id }
-  Gateway --> WebApp: 200 { token, username, id }
-  WebApp -> WebApp: Store token in localStorage
-  WebApp --> Player: Session started
-else Invalid credentials
-  Auth --> Gateway: 401 { message }
-  Gateway --> WebApp: 401 { message }
-  WebApp --> Player: Show login error
-end
-
-== App reload ==
-WebApp -> Gateway: GET /auth/verify + Bearer token
-Gateway -> Auth: GET /verify + Bearer token
-Auth -> Auth: jwt.verify(token)
-
-alt Token valid
-  Auth --> Gateway: 200 { valid: true, user }
-  Gateway --> WebApp: 200 { valid: true, user }
-else Token invalid/expired
-  Auth --> Gateway: 401 { message: "Invalid token" }
-  Gateway --> WebApp: 401 { message: "Invalid token" }
-  WebApp -> WebApp: Remove local session
-end
+== Later, after reload ==
+Webapp -> Gateway: GET /auth/verify
+Gateway -> Auth: GET /verify
+Auth -> Auth: validate JWT
+Auth --> Gateway: 200 { valid, user }
+Gateway --> Webapp: 200 { valid, user }
+Webapp -> Webapp: Restore authenticated state
 @enduml
 ----
 
-* Gateway strips `/auth` and forwards requests to Auth Service.
-* Authentication data and password hashes are stored in Mongo Auth.
-* Session validity is re-checked on app startup through `/auth/verify`.
+* The gateway is the only public access point used by the browser.
+* `auth_service` owns credential validation and token issuance.
+* The browser keeps only session data; account data remains in `Mongo Auth`.
 
-=== Runtime Scenario 2: Create Game
+=== Create a New Game
 
-[plantuml,"runtime-create-game",png]
+[plantuml,"06_runtime_create_game",png]
 ----
 @startuml
-title Runtime 2 - Create game (human_vs_bot)
+title Runtime 2 - Create a new game
 
 actor Player
-participant "WebApp (React)" as WebApp
-participant "Gateway (Express + Proxy)" as Gateway
-participant "Gamey Service (Rust)" as Gamey
+participant "Webapp" as Webapp
+participant "Gateway" as Gateway
+participant "Gamey Service" as Gamey
 
-Player -> WebApp: Click "Create game"
-WebApp -> Gateway: POST /api/v1/games + x-user-id
+Player -> Webapp: Create game
+Webapp -> Gateway: POST /api/v1/games
 Gateway -> Gamey: POST /v1/games + x-user-id
-Gamey -> Gamey: Validate board size, mode and bot_id
-Gamey -> Gamey: Create GameSession in memory
+Gamey -> Gamey: validate request
+Gamey -> Gamey: create in-memory GameSession
+Gamey -> Gamey: register active user if present
 Gamey --> Gateway: 200 GameStateResponse
-Gateway --> WebApp: 200 GameStateResponse
-WebApp --> Player: Render initial board and game id
-
-note right of Gamey
-Active game sessions are kept in memory.
-No database write occurs during game creation.
-end note
+Gateway --> Webapp: 200 GameStateResponse
+Webapp -> Webapp: Persist resumable game state
+Webapp --> Player: Open game view
 @enduml
 ----
 
-* Gateway strips `/api` and forwards to Gamey.
-* `x-user-id` is propagated to identify the player in later stats reporting.
+* Active matches are stored in memory inside `gamey`.
+* Creating a game does not require a database write.
+* The webapp stores enough local state to resume the match later.
 
-=== Runtime Scenario 3: Play Move and Report Match Result
+=== Matchmaking and Online Turn Supervision
 
-[plantuml,"runtime-play-move-and-stats",png]
+[plantuml,"06_runtime_matchmaking",png]
 ----
 @startuml
-title Runtime 3 - Play move and report finished match
+title Runtime 3 - Matchmaking and online turn supervision
+
+actor "Player A" as PlayerA
+actor "Player B" as PlayerB
+participant "Webapp A" as WebappA
+participant "Webapp B" as WebappB
+participant "Gateway" as Gateway
+participant "Gamey Service" as Gamey
+participant "Matchmaking worker" as Worker
+participant "Timeout monitor" as Monitor
+
+PlayerA -> WebappA: Start matchmaking
+WebappA -> Gateway: POST /api/v1/matchmaking/enqueue
+Gateway -> Gamey: POST /v1/matchmaking/enqueue + x-user-id
+Gamey --> Gateway: waiting ticket
+Gateway --> WebappA: waiting ticket
+
+PlayerB -> WebappB: Start matchmaking
+WebappB -> Gateway: POST /api/v1/matchmaking/enqueue
+Gateway -> Gamey: POST /v1/matchmaking/enqueue + x-user-id
+Gamey --> Gateway: waiting ticket
+Gateway --> WebappB: waiting ticket
+
+Worker -> Gamey: pair compatible tickets
+Worker -> Gamey: create game and player tokens
+
+loop Poll ticket status
+  WebappA -> Gateway: GET /api/v1/matchmaking/tickets/{id}
+  Gateway -> Gamey: GET /v1/matchmaking/tickets/{id}
+  Gamey --> Gateway: matched { gameId, playerId, playerToken }
+  Gateway --> WebappA: matched
+end
+
+WebappA -> Gateway: GET /api/v1/games/{id}
+Gateway -> Gamey: GET /v1/games/{id} + x-player-token
+Gamey -> Gamey: update last seen and timers
+Gamey --> Gateway: current online state
+Gateway --> WebappA: current online state
+
+loop During online play
+  WebappA -> Gateway: GET or POST game action
+  Gateway -> Gamey: forward request + x-player-token
+  Gamey -> Gamey: validate token, update timers
+end
+
+opt A player is inactive or out of turn time
+  Monitor -> Gamey: auto-pass current turn or resign inactive player
+end
+@enduml
+----
+
+* Matchmaking tickets and active online games are held in memory in `gamey`.
+* The browser polls the ticket until it becomes `matched`, then opens the created game automatically.
+* `x-player-token` binds actions to the correct online player.
+
+=== Finish a Match and Update Statistics
+
+[plantuml,"06_runtime_finish_and_stats",png]
+----
+@startuml
+title Runtime 4 - Finish match and update statistics
 
 actor Player
-participant "WebApp (React)" as WebApp
-participant "Gateway (Express + Proxy)" as Gateway
-participant "Gamey Service (Rust)" as Gamey
-participant "Stats Service (Node.js)" as Stats
+participant "Webapp" as Webapp
+participant "Gateway" as Gateway
+participant "Gamey Service" as Gamey
+participant "Stats Service" as Stats
 database "Mongo Stats" as MongoStats
 
-Player -> WebApp: Select board cell
-WebApp -> Gateway: POST /api/v1/games/{id}/moves + x-user-id
-Gateway -> Gamey: POST /v1/games/{id}/moves + x-user-id
-Gamey -> Gamey: Validate coordinates and turn
-Gamey -> Gamey: Apply human move
-
-opt Mode = human_vs_bot and game not finished
-  Gamey -> Gamey: Choose bot move and apply it
-end
-
-Gamey -> Gamey: Evaluate game status
+Player -> Webapp: Play move, pass or resign
+Webapp -> Gateway: POST /api/v1/games/{id}/...
+Gateway -> Gamey: forward request
+Gamey -> Gamey: apply action and evaluate match state
 
 alt Match finished
   Gamey -> Stats: POST /internal/v1/matches/finished + x-service-token
-  alt Stats accepted
-    Stats -> MongoStats: upsert player_matches
-    Stats -> MongoStats: upsert/increment player_stats
-    Stats --> Gamey: 202 { processed, created, duplicates }
-  else Stats error/timeout
-    Stats --> Gamey: non-2xx or timeout
-    Gamey -> Gamey: Log warning and continue
-  end
-else Match not finished
-  note right of Gamey
-  No report is sent to Stats yet.
-  end note
+  Stats -> MongoStats: upsert player_matches
+  Stats -> MongoStats: upsert player_stats
+  Stats --> Gamey: 202 processed summary
+else Match still active
+  Gamey -> Gamey: keep session in memory
 end
 
-Gamey --> Gateway: 200 GameStateResponse
-Gateway --> WebApp: 200 GameStateResponse
-WebApp --> Player: Updated board and turn information
+Gamey --> Gateway: GameStateResponse
+Gateway --> Webapp: GameStateResponse
+Webapp --> Player: Show updated game status
+
+opt Stats service fails
+  Gamey -> Gamey: log warning and keep user response
+end
 @enduml
 ----
 
-* Stats reporting is triggered only once when a match transitions to finished.
-* A failure in stats reporting does not abort the user response; Gamey logs and returns game state.
+* Statistics are updated only when a match reaches a finished state.
+* The reporting call is internal and protected with a service token.
+* A stats failure does not block the player from receiving the final game state.
 
-=== Runtime Scenario 4: Upstream Failure Through Gateway
+=== Gateway Upstream Failure
 
-[plantuml,"runtime-gateway-502",png]
+[plantuml,"06_runtime_gateway_failure",png]
 ----
 @startuml
-title Runtime 4 - Upstream unavailable (degraded behavior)
+title Runtime 5 - Gateway upstream failure
 
 actor Player
-participant "WebApp (React)" as WebApp
-participant "Gateway (Express + Proxy)" as Gateway
-participant "Gamey Service (Rust)" as Gamey
+participant "Webapp" as Webapp
+participant "Gateway" as Gateway
+participant "Internal service" as Upstream
 
-Player -> WebApp: Trigger game action
-WebApp -> Gateway: POST /api/v1/games/{id}/moves
-Gateway -> Gamey: Forward request
-... Gamey unavailable (container down or network error) ...
-Gateway --> WebApp: 502 { "message": "Bad Gateway" }
-WebApp --> Player: Show request/network error
-
-note right of Gateway
-Gateway normalizes upstream failures
-with a JSON response and HTTP 502.
-end note
+Player -> Webapp: Trigger action
+Webapp -> Gateway: HTTP request
+Gateway -> Upstream: forward request
+... upstream unavailable ...
+Gateway --> Webapp: 502 { message: "Bad Gateway" }
+Webapp --> Player: Show request error
 @enduml
 ----
 
-* This scenario documents the runtime error path that is implemented in the gateway proxy error handler.
+* The gateway converts connection problems into a predictable HTTP `502` response.
+* The browser does not need to know which internal service failed.
