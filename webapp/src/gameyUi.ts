@@ -29,18 +29,24 @@ function getNeighborCoordinates(coords: Coordinates): Coordinates[] {
   const neighbors: Coordinates[] = [];
 
   if (x > 0) {
-    neighbors.push({ x: x - 1, y: y + 1, z });
-    neighbors.push({ x: x - 1, y, z: z + 1 });
+    neighbors.push(
+      { x: x - 1, y: y + 1, z },
+      { x: x - 1, y, z: z + 1 },
+    );
   }
 
   if (y > 0) {
-    neighbors.push({ x: x + 1, y: y - 1, z });
-    neighbors.push({ x, y: y - 1, z: z + 1 });
+    neighbors.push(
+      { x: x + 1, y: y - 1, z },
+      { x, y: y - 1, z: z + 1 },
+    );
   }
 
   if (z > 0) {
-    neighbors.push({ x: x + 1, y, z: z - 1 });
-    neighbors.push({ x, y: y + 1, z: z - 1 });
+    neighbors.push(
+      { x: x + 1, y, z: z - 1 },
+      { x, y: y + 1, z: z - 1 },
+    );
   }
 
   return neighbors;
@@ -73,7 +79,32 @@ function findWinningComponentKeys(boardCells: BoardCell[][], symbol: string): Se
     return new Set();
   }
 
+  const winnerCells = collectSymbolCells(boardCells, symbol);
+
+  const visited = new Set<string>();
+  for (const [startKey, startCell] of winnerCells.entries()) {
+    if (visited.has(startKey)) {
+      continue;
+    }
+
+    const componentCells = collectConnectedComponent(
+      startKey,
+      startCell,
+      winnerCells,
+      visited,
+    );
+
+    if (touchesAllSides(componentCells)) {
+      return toBoardCellKeySet(componentCells);
+    }
+  }
+
+  return new Set();
+}
+
+function collectSymbolCells(boardCells: BoardCell[][], symbol: string): Map<string, BoardCell> {
   const winnerCells = new Map<string, BoardCell>();
+
   for (const row of boardCells) {
     for (const cell of row) {
       if (cell.symbol === symbol) {
@@ -82,42 +113,52 @@ function findWinningComponentKeys(boardCells: BoardCell[][], symbol: string): Se
     }
   }
 
-  const visited = new Set<string>();
-  for (const [startKey, startCell] of winnerCells.entries()) {
-    if (visited.has(startKey)) {
+  return winnerCells;
+}
+
+function collectConnectedComponent(
+  startKey: string,
+  startCell: BoardCell,
+  winnerCells: ReadonlyMap<string, BoardCell>,
+  visited: Set<string>,
+): BoardCell[] {
+  const componentCells: BoardCell[] = [];
+  const queue: BoardCell[] = [startCell];
+
+  visited.add(startKey);
+
+  for (const current of queue) {
+    componentCells.push(current);
+    enqueueConnectedNeighbors(current, winnerCells, visited, queue);
+  }
+
+  return componentCells;
+}
+
+function enqueueConnectedNeighbors(
+  cell: BoardCell,
+  winnerCells: ReadonlyMap<string, BoardCell>,
+  visited: Set<string>,
+  queue: BoardCell[],
+): void {
+  for (const neighborCoords of getNeighborCoordinates(cell.coords)) {
+    const neighborKey = toCoordsKey(neighborCoords);
+    if (visited.has(neighborKey)) {
       continue;
     }
 
-    const componentCells: BoardCell[] = [];
-    const queue: BoardCell[] = [startCell];
-    visited.add(startKey);
-
-    for (let index = 0; index < queue.length; index += 1) {
-      const current = queue[index];
-      componentCells.push(current);
-
-      for (const neighborCoords of getNeighborCoordinates(current.coords)) {
-        const neighborKey = toCoordsKey(neighborCoords);
-        if (visited.has(neighborKey)) {
-          continue;
-        }
-
-        const neighborCell = winnerCells.get(neighborKey);
-        if (!neighborCell) {
-          continue;
-        }
-
-        visited.add(neighborKey);
-        queue.push(neighborCell);
-      }
+    const neighborCell = winnerCells.get(neighborKey);
+    if (!neighborCell) {
+      continue;
     }
 
-    if (touchesAllSides(componentCells)) {
-      return new Set(componentCells.map((cell) => toCoordsKey(cell.coords)));
-    }
+    visited.add(neighborKey);
+    queue.push(neighborCell);
   }
+}
 
-  return new Set();
+function toBoardCellKeySet(cells: Iterable<BoardCell>): Set<string> {
+  return new Set(Array.from(cells, (cell) => toCoordsKey(cell.coords)));
 }
 
 export function findWinningConnectionCellKeys(game: GameStateResponse): Set<string> {

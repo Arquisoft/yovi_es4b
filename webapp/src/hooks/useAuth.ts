@@ -29,6 +29,18 @@ function ensureGuestSessionId(): string {
   return nextGuestSessionId;
 }
 
+function getDisplayName(token: string | null, username: string | null, isGuest: boolean): string | null {
+  if (token) {
+    return username;
+  }
+
+  if (isGuest) {
+    return GUEST_USERNAME;
+  }
+
+  return null;
+}
+
 export function useAuth() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem(USER_KEY));
@@ -98,12 +110,13 @@ export function useAuth() {
   }, [token]);
 
   const guestSessionId = isGuest ? getStoredGuestSessionId() : null;
+  const displayName = getDisplayName(token, username, isGuest);
 
   return {
     isAuthenticated: !!token,
     isGuest,
     hasSession: !!token || isGuest,
-    displayName: token ? username : isGuest ? GUEST_USERNAME : null,
+    displayName,
     sessionUserId: token ? username : guestSessionId,
     token,
     username,

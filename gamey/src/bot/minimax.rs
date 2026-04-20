@@ -7,6 +7,164 @@ pub struct MinimaxBot {
     max_depth: u32,
 }
 
+type PathHeap = BinaryHeap<Reverse<(u32, u32)>>;
+type TranspositionTable = HashMap<(BTreeSet<u32>, BTreeSet<u32>), (u32, f64)>;
+
+struct PathSearch<'a> {
+    my: &'a BTreeSet<u32>,
+    opp: &'a BTreeSet<u32>,
+    root_occupied: &'a BTreeSet<u32>,
+    n: u32,
+    nbrs: &'a HashMap<u32, Vec<u32>>,
+}
+
+impl<'a> PathSearch<'a> {
+    fn new(
+        my: &'a BTreeSet<u32>,
+        opp: &'a BTreeSet<u32>,
+        root_occupied: &'a BTreeSet<u32>,
+        n: u32,
+        nbrs: &'a HashMap<u32, Vec<u32>>,
+    ) -> Self {
+        Self {
+            my,
+            opp,
+            root_occupied,
+            n,
+            nbrs,
+        }
+    }
+
+    fn total_cells(&self) -> u32 {
+        self.n * (self.n + 1) / 2
+    }
+
+    fn is_wall(&self, idx: u32) -> bool {
+        self.opp.contains(&idx) || (self.root_occupied.contains(&idx) && !self.my.contains(&idx))
+    }
+
+    fn step_cost(&self, idx: u32) -> u32 {
+        if self.my.contains(&idx) { 0 } else { 1 }
+    }
+
+    fn touches_edge(&self, idx: u32, edge: u8) -> bool {
+        let (x, y, z) = MinimaxBot::xyz(idx, self.n);
+        MinimaxBot::edge_mask(x, y, z) & edge != 0
+    }
+
+    fn initialize_sources(&self, from_edge: u8, dist: &mut [u32], heap: &mut PathHeap) {
+        for idx in 0..self.total_cells() {
+            if self.is_wall(idx) || !self.touches_edge(idx, from_edge) {
+                continue;
+            }
+
+            let cost = self.step_cost(idx);
+            if cost < dist[idx as usize] {
+                dist[idx as usize] = cost;
+                heap.push(Reverse((cost, idx)));
+            }
+        }
+    }
+
+    fn find_goal(
+        &self,
+        to_edge: u8,
+        dist: &mut [u32],
+        prev: &mut [u32],
+        heap: &mut PathHeap,
+    ) -> Option<(u32, u32)> {
+        while let Some(Reverse((distance, idx))) = heap.pop() {
+            if dist[idx as usize] < distance {
+                continue;
+            }
+
+            if self.touches_edge(idx, to_edge) {
+                return Some((distance, idx));
+            }
+
+            self.relax_neighbors(idx, distance, dist, prev, heap);
+        }
+
+        None
+    }
+
+    fn relax_neighbors(
+        &self,
+        idx: u32,
+        distance: u32,
+        dist: &mut [u32],
+        prev: &mut [u32],
+        heap: &mut PathHeap,
+    ) {
+        let Some(neighbors) = self.nbrs.get(&idx) else {
+            return;
+        };
+
+        for &neighbor in neighbors {
+            if self.is_wall(neighbor) {
+                continue;
+            }
+
+            let next_distance = distance + self.step_cost(neighbor);
+            if next_distance < dist[neighbor as usize] {
+                dist[neighbor as usize] = next_distance;
+                prev[neighbor as usize] = idx;
+                heap.push(Reverse((next_distance, neighbor)));
+            }
+        }
+    }
+
+    fn reconstruct_path(&self, prev: &[u32], end: u32) -> Vec<u32> {
+        let mut path = Vec::new();
+        let mut current = end;
+
+        while current != u32::MAX {
+            if !self.my.contains(&current) {
+                path.push(current);
+            }
+            current = prev[current as usize];
+        }
+
+        path
+    }
+}
+
+struct SearchWindow {
+    alpha: f64,
+    beta: f64,
+    value: f64,
+    maximizing: bool,
+}
+
+impl SearchWindow {
+    fn new(maximizing: bool, alpha: f64, beta: f64) -> Self {
+        let value = if maximizing {
+            f64::NEG_INFINITY
+        } else {
+            f64::INFINITY
+        };
+
+        Self {
+            alpha,
+            beta,
+            value,
+            maximizing,
+        }
+    }
+
+    fn record(&mut self, eval: f64) -> bool {
+        if self.maximizing {
+            self.value = self.value.max(eval);
+            self.alpha = self.alpha.max(eval);
+        } else {
+            self.value = self.value.min(eval);
+            self.beta = self.beta.min(eval);
+        }
+
+        self.beta <= self.alpha
+    }
+}
+
 impl Default for MinimaxBot {
     fn default() -> Self {
         Self { max_depth: 6 }
@@ -14,6 +172,9 @@ impl Default for MinimaxBot {
 }
 
 impl MinimaxBot {
+    const THREAT_PATHS: [(u8, u8); 3] = [(0b001, 0b010), (0b010, 0b100), (0b001, 0b100)];
+    const RELEVANT_THREAT_COST_LIMIT: u32 = 4;
+
     pub fn new(max_depth: u32) -> Self {
         Self { max_depth }
     }
@@ -75,72 +236,16 @@ impl MinimaxBot {
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
     ) -> Option<(u32, Vec<u32>)> {
-        let total = n * (n + 1) / 2;
+        let search = PathSearch::new(my, opp, root_occupied, n, nbrs);
+        let total = search.total_cells();
         let mut dist = vec![u32::MAX; total as usize];
         let mut prev = vec![u32::MAX; total as usize];
-        let mut heap: BinaryHeap<Reverse<(u32, u32)>> = BinaryHeap::new();
+        let mut heap = PathHeap::new();
 
-        let is_wall = |i: u32| -> bool {
-            opp.contains(&i) || (root_occupied.contains(&i) && !my.contains(&i))
-        };
+        search.initialize_sources(from_edge, &mut dist, &mut heap);
+        let (cost, end) = search.find_goal(to_edge, &mut dist, &mut prev, &mut heap)?;
 
-        for i in 0..total {
-            if is_wall(i) {
-                continue;
-            }
-
-            let (x, y, z) = Self::xyz(i, n);
-            if Self::edge_mask(x, y, z) & from_edge == 0 {
-                continue;
-            }
-
-            let cost = if my.contains(&i) { 0 } else { 1 };
-            if cost < dist[i as usize] {
-                dist[i as usize] = cost;
-                heap.push(Reverse((cost, i)));
-            }
-        }
-
-        let mut goal = None;
-        'outer: while let Some(Reverse((d, idx))) = heap.pop() {
-            if dist[idx as usize] < d {
-                continue;
-            }
-
-            let (x, y, z) = Self::xyz(idx, n);
-            if Self::edge_mask(x, y, z) & to_edge != 0 {
-                goal = Some((d, idx));
-                break 'outer;
-            }
-
-            if let Some(nbs) = nbrs.get(&idx) {
-                for &nb in nbs {
-                    if is_wall(nb) {
-                        continue;
-                    }
-
-                    let step = if my.contains(&nb) { 0 } else { 1 };
-                    let nd = d + step;
-                    if nd < dist[nb as usize] {
-                        dist[nb as usize] = nd;
-                        prev[nb as usize] = idx;
-                        heap.push(Reverse((nd, nb)));
-                    }
-                }
-            }
-        }
-
-        let (cost, end) = goal?;
-        let mut path = Vec::new();
-        let mut cur = end;
-        while cur != u32::MAX {
-            if !my.contains(&cur) {
-                path.push(cur);
-            }
-            cur = prev[cur as usize];
-        }
-
-        Some((cost, path))
+        Some((cost, search.reconstruct_path(&prev, end)))
     }
 
     #[inline]
@@ -155,6 +260,105 @@ impl MinimaxBot {
     ) -> Option<u32> {
         Self::min_path_with_cells(from_edge, to_edge, my, opp, root_occupied, n, nbrs)
             .map(|(c, _)| c)
+    }
+
+    #[inline]
+    fn centrality(idx: u32, n: u32) -> u32 {
+        let (x, y, z) = Self::xyz(idx, n);
+        x.min(y).min(z)
+    }
+
+    fn sort_moves_by_centrality(moves: &mut [u32], n: u32) {
+        moves.sort_by_key(|&idx| Reverse(Self::centrality(idx, n)));
+    }
+
+    fn all_moves_by_centrality(available: &[u32], n: u32) -> Vec<u32> {
+        let mut moves = available.to_vec();
+        Self::sort_moves_by_centrality(&mut moves, n);
+        moves
+    }
+
+    fn insert_available_cells<I>(relevant: &mut HashSet<u32>, avail_set: &HashSet<u32>, cells: I)
+    where
+        I: IntoIterator<Item = u32>,
+    {
+        for cell in cells {
+            if avail_set.contains(&cell) {
+                relevant.insert(cell);
+            }
+        }
+    }
+
+    fn extend_relevant_neighbors(
+        origin: u32,
+        relevant: &mut HashSet<u32>,
+        avail_set: &HashSet<u32>,
+        nbrs: &HashMap<u32, Vec<u32>>,
+    ) {
+        let Some(neighbors) = nbrs.get(&origin) else {
+            return;
+        };
+
+        for &neighbor in neighbors {
+            if !avail_set.contains(&neighbor) {
+                continue;
+            }
+
+            relevant.insert(neighbor);
+            if let Some(second_ring) = nbrs.get(&neighbor) {
+                Self::insert_available_cells(relevant, avail_set, second_ring.iter().copied());
+            }
+        }
+    }
+
+    fn collect_neighbor_relevant_moves(
+        occupied: &BTreeSet<u32>,
+        avail_set: &HashSet<u32>,
+        nbrs: &HashMap<u32, Vec<u32>>,
+    ) -> HashSet<u32> {
+        let mut relevant = HashSet::new();
+
+        for &cell in occupied {
+            Self::extend_relevant_neighbors(cell, &mut relevant, avail_set, nbrs);
+        }
+
+        relevant
+    }
+
+    fn add_opponent_threat_moves(
+        relevant: &mut HashSet<u32>,
+        avail_set: &HashSet<u32>,
+        my: &BTreeSet<u32>,
+        opp: &BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
+        n: u32,
+        nbrs: &HashMap<u32, Vec<u32>>,
+    ) {
+        if opp.is_empty() {
+            return;
+        }
+
+        for (from_edge, to_edge) in Self::THREAT_PATHS {
+            let Some((cost, path)) =
+                Self::min_path_with_cells(from_edge, to_edge, opp, my, root_occupied, n, nbrs)
+            else {
+                continue;
+            };
+
+            if cost <= Self::RELEVANT_THREAT_COST_LIMIT {
+                Self::insert_available_cells(relevant, avail_set, path);
+            }
+        }
+    }
+
+    fn finalize_relevant_moves(available: &[u32], relevant: HashSet<u32>, n: u32) -> Vec<u32> {
+        let mut moves = if relevant.is_empty() {
+            available.to_vec()
+        } else {
+            relevant.into_iter().collect()
+        };
+        Self::sort_moves_by_centrality(&mut moves, n);
+        moves
     }
 
     // ── Move relevance filter ─────────────────────────────────────────────────
@@ -174,59 +378,14 @@ impl MinimaxBot {
     ) -> Vec<u32> {
         let avail_set: HashSet<u32> = available.iter().copied().collect();
 
-        let centrality = |i: u32| -> u32 {
-            let (x, y, z) = Self::xyz(i, n);
-            x.min(y).min(z)
-        };
-
         if occupied.len() < 2 {
-            let mut all = available.to_vec();
-            all.sort_by_key(|&i| Reverse(centrality(i)));
-            return all;
+            return Self::all_moves_by_centrality(available, n);
         }
 
-        let mut relevant: HashSet<u32> = HashSet::new();
+        let mut relevant = Self::collect_neighbor_relevant_moves(occupied, &avail_set, nbrs);
+        Self::add_opponent_threat_moves(&mut relevant, &avail_set, my, opp, root_occupied, n, nbrs);
 
-        for &occ in occupied {
-            if let Some(nbs) = nbrs.get(&occ) {
-                for &nb in nbs {
-                    if avail_set.contains(&nb) {
-                        relevant.insert(nb);
-                        if let Some(nbs2) = nbrs.get(&nb) {
-                            for &nb2 in nbs2 {
-                                if avail_set.contains(&nb2) {
-                                    relevant.insert(nb2);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if !opp.is_empty() {
-            for (fe, te) in [(0b001u8, 0b010u8), (0b010, 0b100), (0b001, 0b100)] {
-                if let Some((cost, path)) =
-                    Self::min_path_with_cells(fe, te, opp, my, root_occupied, n, nbrs)
-                {
-                    if cost <= 4 {
-                        for c in path {
-                            if avail_set.contains(&c) {
-                                relevant.insert(c);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        let mut v: Vec<u32> = if relevant.is_empty() {
-            available.to_vec()
-        } else {
-            relevant.into_iter().collect()
-        };
-        v.sort_by_key(|&i| Reverse(centrality(i)));
-        v
+        Self::finalize_relevant_moves(available, relevant, n)
     }
 
     // ── Heurística de conectividad ────────────────────────────────────────────
@@ -324,45 +483,54 @@ impl MinimaxBot {
 
     // ── Alpha-beta minimax ────────────────────────────────────────────────────
 
-    #[allow(clippy::too_many_arguments)]
-    fn minimax(
-        &self,
-        board: &GameY,
+    fn cached_minimax_value(
+        transposition_table: &TranspositionTable,
+        key: &(BTreeSet<u32>, BTreeSet<u32>),
         depth: u32,
+    ) -> Option<f64> {
+        match transposition_table.get(key) {
+            Some(&(stored_depth, stored_value)) if stored_depth >= depth => Some(stored_value),
+            _ => None,
+        }
+    }
+
+    fn store_minimax_value(
+        transposition_table: &mut TranspositionTable,
+        key: (BTreeSet<u32>, BTreeSet<u32>),
+        depth: u32,
+        value: f64,
+    ) -> f64 {
+        transposition_table.insert(key, (depth, value));
+        value
+    }
+
+    fn is_terminal_minimax_node(board: &GameY, depth: u32) -> bool {
+        depth == 0 || matches!(board.status(), crate::GameStatus::Finished { .. })
+    }
+
+    fn current_player(maximizing: bool, player: PlayerId, opponent: PlayerId) -> PlayerId {
+        if maximizing { player } else { opponent }
+    }
+
+    fn filter_sets<'a>(
         maximizing: bool,
-        player: PlayerId,
-        opponent: PlayerId,
-        mut alpha: f64,
-        mut beta: f64,
-        pc: &mut BTreeSet<u32>,
-        oc: &mut BTreeSet<u32>,
-        occupied: &mut BTreeSet<u32>,
+        pc: &'a BTreeSet<u32>,
+        oc: &'a BTreeSet<u32>,
+    ) -> (&'a BTreeSet<u32>, &'a BTreeSet<u32>) {
+        if maximizing { (pc, oc) } else { (oc, pc) }
+    }
+
+    fn ordered_minimax_moves(
+        board: &GameY,
+        maximizing: bool,
+        pc: &BTreeSet<u32>,
+        oc: &BTreeSet<u32>,
+        occupied: &BTreeSet<u32>,
         root_occupied: &BTreeSet<u32>,
         n: u32,
         nbrs: &HashMap<u32, Vec<u32>>,
-        transposition_table: &mut HashMap<(BTreeSet<u32>, BTreeSet<u32>), (u32, f64)>,
-    ) -> f64 {
-        let key = (pc.clone(), oc.clone());
-        if let Some(&(stored_depth, stored_value)) = transposition_table.get(&key)
-            && stored_depth >= depth
-        {
-            return stored_value;
-        }
-
-        if depth == 0 || matches!(board.status(), crate::GameStatus::Finished { .. }) {
-            let eval = Self::evaluate(board, player, pc, oc, root_occupied, n, nbrs);
-            transposition_table.insert(key, (depth, eval));
-            return eval;
-        }
-
-        let current = if maximizing { player } else { opponent };
-
-        let (my_in_filter, opp_in_filter) = if maximizing {
-            (pc as &BTreeSet<u32>, oc as &BTreeSet<u32>)
-        } else {
-            (oc as &BTreeSet<u32>, pc as &BTreeSet<u32>)
-        };
-
+    ) -> Vec<u32> {
+        let (my_in_filter, opp_in_filter) = Self::filter_sets(maximizing, pc, oc);
         let mut moves = Self::relevant_moves(
             board.available_cells(),
             my_in_filter,
@@ -374,73 +542,279 @@ impl MinimaxBot {
         );
 
         moves.sort_by_key(|&cell| {
-            let s = Self::fast_score(cell, my_in_filter, opp_in_filter, n, nbrs);
-            if maximizing { -s } else { s }
+            let score = Self::fast_score(cell, my_in_filter, opp_in_filter, n, nbrs);
+            if maximizing { -score } else { score }
         });
 
-        let mut value = if maximizing {
-            f64::NEG_INFINITY
+        moves
+    }
+
+    fn apply_search_move(
+        maximizing: bool,
+        cell: u32,
+        pc: &mut BTreeSet<u32>,
+        oc: &mut BTreeSet<u32>,
+        occupied: &mut BTreeSet<u32>,
+    ) {
+        if maximizing {
+            pc.insert(cell);
         } else {
-            f64::INFINITY
-        };
+            oc.insert(cell);
+        }
+        occupied.insert(cell);
+    }
 
+    fn rollback_search_move(
+        maximizing: bool,
+        cell: u32,
+        pc: &mut BTreeSet<u32>,
+        oc: &mut BTreeSet<u32>,
+        occupied: &mut BTreeSet<u32>,
+    ) {
+        if maximizing {
+            pc.remove(&cell);
+        } else {
+            oc.remove(&cell);
+        }
+        occupied.remove(&cell);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn evaluate_minimax_child(
+        &self,
+        board: &GameY,
+        cell: u32,
+        depth: u32,
+        maximizing: bool,
+        player: PlayerId,
+        opponent: PlayerId,
+        alpha: f64,
+        beta: f64,
+        pc: &mut BTreeSet<u32>,
+        oc: &mut BTreeSet<u32>,
+        occupied: &mut BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
+        n: u32,
+        nbrs: &HashMap<u32, Vec<u32>>,
+        transposition_table: &mut TranspositionTable,
+    ) -> Option<f64> {
+        let coords = Coordinates::from_index(cell, n);
+        let current = Self::current_player(maximizing, player, opponent);
+        let mut next_board = board.clone();
+
+        next_board
+            .add_move(crate::Movement::Placement {
+                player: current,
+                coords,
+            })
+            .ok()?;
+
+        Self::apply_search_move(maximizing, cell, pc, oc, occupied);
+        let eval = self.minimax(
+            &next_board,
+            depth - 1,
+            !maximizing,
+            player,
+            opponent,
+            alpha,
+            beta,
+            pc,
+            oc,
+            occupied,
+            root_occupied,
+            n,
+            nbrs,
+            transposition_table,
+        );
+        Self::rollback_search_move(maximizing, cell, pc, oc, occupied);
+
+        Some(eval)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn search_minimax_children(
+        &self,
+        board: &GameY,
+        depth: u32,
+        maximizing: bool,
+        player: PlayerId,
+        opponent: PlayerId,
+        moves: Vec<u32>,
+        window: &mut SearchWindow,
+        pc: &mut BTreeSet<u32>,
+        oc: &mut BTreeSet<u32>,
+        occupied: &mut BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
+        n: u32,
+        nbrs: &HashMap<u32, Vec<u32>>,
+        transposition_table: &mut TranspositionTable,
+    ) -> f64 {
         for cell in moves {
-            let coords = Coordinates::from_index(cell, n);
-            let mut nb = board.clone();
-            if nb
-                .add_move(crate::Movement::Placement {
-                    player: current,
-                    coords,
-                })
-                .is_ok()
-            {
-                if maximizing {
-                    pc.insert(cell);
-                } else {
-                    oc.insert(cell);
-                }
-                occupied.insert(cell);
+            let Some(eval) = self.evaluate_minimax_child(
+                board,
+                cell,
+                depth,
+                maximizing,
+                player,
+                opponent,
+                window.alpha,
+                window.beta,
+                pc,
+                oc,
+                occupied,
+                root_occupied,
+                n,
+                nbrs,
+                transposition_table,
+            ) else {
+                continue;
+            };
 
-                let eval = self.minimax(
-                    &nb,
-                    depth - 1,
-                    !maximizing,
-                    player,
-                    opponent,
-                    alpha,
-                    beta,
-                    pc,
-                    oc,
-                    occupied,
-                    root_occupied,
-                    n,
-                    nbrs,
-                    transposition_table,
-                );
-
-                if maximizing {
-                    pc.remove(&cell);
-                    if eval > value {
-                        value = eval;
-                    }
-                    alpha = alpha.max(eval);
-                } else {
-                    oc.remove(&cell);
-                    if eval < value {
-                        value = eval;
-                    }
-                    beta = beta.min(eval);
-                }
-                occupied.remove(&cell);
-
-                if beta <= alpha {
-                    break;
-                }
+            if window.record(eval) {
+                break;
             }
         }
 
-        transposition_table.insert(key, (depth, value));
-        value
+        window.value
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn minimax(
+        &self,
+        board: &GameY,
+        depth: u32,
+        maximizing: bool,
+        player: PlayerId,
+        opponent: PlayerId,
+        alpha: f64,
+        beta: f64,
+        pc: &mut BTreeSet<u32>,
+        oc: &mut BTreeSet<u32>,
+        occupied: &mut BTreeSet<u32>,
+        root_occupied: &BTreeSet<u32>,
+        n: u32,
+        nbrs: &HashMap<u32, Vec<u32>>,
+        transposition_table: &mut TranspositionTable,
+    ) -> f64 {
+        let key = (pc.clone(), oc.clone());
+        if let Some(cached_value) = Self::cached_minimax_value(transposition_table, &key, depth) {
+            return cached_value;
+        }
+
+        if Self::is_terminal_minimax_node(board, depth) {
+            let eval = Self::evaluate(board, player, pc, oc, root_occupied, n, nbrs);
+            return Self::store_minimax_value(transposition_table, key, depth, eval);
+        }
+
+        let moves = Self::ordered_minimax_moves(
+            board,
+            maximizing,
+            pc,
+            oc,
+            occupied,
+            root_occupied,
+            n,
+            nbrs,
+        );
+        let mut window = SearchWindow::new(maximizing, alpha, beta);
+        let value = self.search_minimax_children(
+            board,
+            depth,
+            maximizing,
+            player,
+            opponent,
+            moves,
+            &mut window,
+            pc,
+            oc,
+            occupied,
+            root_occupied,
+            n,
+            nbrs,
+            transposition_table,
+        );
+
+        Self::store_minimax_value(transposition_table, key, depth, value)
+    }
+
+    fn find_immediate_winning_move(
+        board: &GameY,
+        available: &[u32],
+        player: PlayerId,
+        n: u32,
+    ) -> Option<Coordinates> {
+        for &cell in available {
+            let coords = Coordinates::from_index(cell, n);
+            let mut test_board = board.clone();
+
+            if test_board
+                .add_move(crate::Movement::Placement { player, coords })
+                .is_ok()
+                && matches!(
+                    test_board.status(),
+                    crate::GameStatus::Finished { winner } if *winner == player
+                )
+            {
+                return Some(coords);
+            }
+        }
+
+        None
+    }
+
+    fn root_occupied_from_available(available: &[u32], n: u32) -> BTreeSet<u32> {
+        let total = n * (n + 1) / 2;
+        let avail_set: HashSet<u32> = available.iter().copied().collect();
+        (0..total).filter(|idx| !avail_set.contains(idx)).collect()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn choose_best_root_move(
+        &self,
+        board: &GameY,
+        current_player: PlayerId,
+        opponent: PlayerId,
+        root_occupied: &BTreeSet<u32>,
+        n: u32,
+        nbrs: &HashMap<u32, Vec<u32>>,
+        transposition_table: &mut TranspositionTable,
+    ) -> Option<Coordinates> {
+        let mut occupied = root_occupied.clone();
+        let mut pc = BTreeSet::new();
+        let mut oc = BTreeSet::new();
+        let moves =
+            Self::ordered_minimax_moves(board, true, &pc, &oc, &occupied, root_occupied, n, nbrs);
+        let mut best_move = None;
+        let mut best_value = f64::NEG_INFINITY;
+
+        for cell in moves {
+            let Some(value) = self.evaluate_minimax_child(
+                board,
+                cell,
+                self.max_depth,
+                true,
+                current_player,
+                opponent,
+                f64::NEG_INFINITY,
+                f64::INFINITY,
+                &mut pc,
+                &mut oc,
+                &mut occupied,
+                root_occupied,
+                n,
+                nbrs,
+                transposition_table,
+            ) else {
+                continue;
+            };
+
+            if value > best_value {
+                best_value = value;
+                best_move = Some(Coordinates::from_index(cell, n));
+            }
+        }
+
+        best_move
     }
 }
 
@@ -455,106 +829,34 @@ impl YBot for MinimaxBot {
             return None;
         }
 
-        let current_player = match board.status() {
-            crate::GameStatus::Ongoing { next_player } => *next_player,
-            _ => return None,
-        };
+        let current_player = board.next_player()?;
         let opponent = crate::other_player(current_player);
         let n = board.board_size();
         let nbrs = Self::build_neighbor_map(n);
-        let mut transposition_table: HashMap<(BTreeSet<u32>, BTreeSet<u32>), (u32, f64)> =
-            HashMap::new();
+        let mut transposition_table: TranspositionTable = HashMap::new();
 
-        for &cell in available {
-            let coords = Coordinates::from_index(cell, n);
-            let mut test = board.clone();
-            if test
-                .add_move(crate::Movement::Placement {
-                    player: current_player,
-                    coords,
-                })
-                .is_ok()
-                && matches!(
-                    test.status(),
-                    crate::GameStatus::Finished { winner } if *winner == current_player
-                )
-            {
-                return Some(coords);
-            }
+        if let Some(winning_move) =
+            Self::find_immediate_winning_move(board, available, current_player, n)
+        {
+            return Some(winning_move);
         }
 
-        for &cell in available {
-            let coords = Coordinates::from_index(cell, n);
-            let mut test = board.clone();
-            if test
-                .add_move(crate::Movement::Placement {
-                    player: opponent,
-                    coords,
-                })
-                .is_ok()
-                && matches!(
-                    test.status(),
-                    crate::GameStatus::Finished { winner } if *winner == opponent
-                )
-            {
-                return Some(coords);
-            }
+        if let Some(blocking_move) =
+            Self::find_immediate_winning_move(board, available, opponent, n)
+        {
+            return Some(blocking_move);
         }
 
-        let total = n * (n + 1) / 2;
-        let avail_set: HashSet<u32> = available.iter().copied().collect();
-        let root_occupied: BTreeSet<u32> = (0..total).filter(|i| !avail_set.contains(i)).collect();
-
-        let mut occupied = root_occupied.clone();
-        let mut pc: BTreeSet<u32> = BTreeSet::new();
-        let mut oc: BTreeSet<u32> = BTreeSet::new();
-
-        let mut moves =
-            Self::relevant_moves(available, &pc, &oc, &occupied, &root_occupied, n, &nbrs);
-        moves.sort_by_key(|&cell| Reverse(Self::fast_score(cell, &pc, &oc, n, &nbrs)));
-
-        let mut best_move = None;
-        let mut best_value = f64::NEG_INFINITY;
-
-        for cell in moves {
-            let coords = Coordinates::from_index(cell, n);
-            let mut new_board = board.clone();
-            if new_board
-                .add_move(crate::Movement::Placement {
-                    player: current_player,
-                    coords,
-                })
-                .is_ok()
-            {
-                pc.insert(cell);
-                occupied.insert(cell);
-                let value = self.minimax(
-                    &new_board,
-                    self.max_depth - 1,
-                    false,
-                    current_player,
-                    opponent,
-                    f64::NEG_INFINITY,
-                    f64::INFINITY,
-                    &mut pc,
-                    &mut oc,
-                    &mut occupied,
-                    &root_occupied,
-                    n,
-                    &nbrs,
-                    &mut transposition_table,
-                );
-                pc.remove(&cell);
-                occupied.remove(&cell);
-
-                if value > best_value {
-                    best_value = value;
-                    best_move = Some(coords);
-                }
-            }
-        }
-
-        best_move
+        let root_occupied = Self::root_occupied_from_available(available, n);
+        self.choose_best_root_move(
+            board,
+            current_player,
+            opponent,
+            &root_occupied,
+            n,
+            &nbrs,
+            &mut transposition_table,
+        )
     }
 }
 
@@ -662,5 +964,25 @@ mod tests {
             game.add_move(mv).unwrap();
         }
         assert_eq!(bot.choose_move(&game).unwrap(), Coordinates::new(0, 2, 0));
+    }
+
+    #[test]
+    fn test_min_path_with_cells_reconstructs_the_only_open_route() {
+        let n = 2;
+        let my_cell = Coordinates::new(0, 0, 1).to_index(n);
+        let blocked_cell = Coordinates::new(0, 1, 0).to_index(n);
+        let required_free_cell = Coordinates::new(1, 0, 0).to_index(n);
+
+        let my = BTreeSet::from([my_cell]);
+        let opp = BTreeSet::from([blocked_cell]);
+        let root_occupied = BTreeSet::from([my_cell, blocked_cell]);
+        let nbrs = MinimaxBot::build_neighbor_map(n);
+
+        let (cost, path) =
+            MinimaxBot::min_path_with_cells(0b001, 0b100, &my, &opp, &root_occupied, n, &nbrs)
+                .expect("expected a valid path");
+
+        assert_eq!(cost, 1);
+        assert_eq!(path, vec![required_free_cell]);
     }
 }

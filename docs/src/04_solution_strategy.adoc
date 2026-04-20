@@ -33,112 +33,54 @@ See https://docs.arc42.org/section-4/[Solution Strategy] in the arc42 documentat
 ****
 endif::arc42help[]
 
-This section summarizes the fundamental architecture decisions and explains how they support the most important quality goals.
+This section summarizes the main solution approaches that shape the architecture of Yovi. It focuses on the decisions that most clearly explain why the system is structured as it is.
 
-=== 4.1 Technology Decisions
+=== Technology Decisions
 
-* `Frontend`: React + TypeScript + Vite (+ MUI).
-+
-Reason: productive SPA development, typed UI code, and fast local feedback loops.
+* `Web frontend`: React, TypeScript, Vite and MUI are used to build a browser-based SPA with fast interaction and typed UI code.
+* `Gateway`: Node.js and Express provide a lightweight public entry point for routing and error normalization.
+* `Authentication and statistics`: Node.js services with MongoDB persistence keep account management and historical data in independent boundaries.
+* `Gameplay core`: Rust and Axum are used in `gamey` to isolate game rules, bots, matchmaking and online turn supervision.
+* `Deployment and operation`: Docker Compose is the default integration environment, with Prometheus and Grafana available for monitoring.
 
-* `Edge/API Entry Point`: `gateway` built with Node.js + Express + `http-proxy-middleware`.
-+
-Reason: central route mapping and a single external entry point for browser clients.
+=== Decomposition Strategy
 
-* `Authentication Service`: `auth_service` with Node.js + Express + Mongoose + JWT + bcrypt.
-+
-Reason: dedicated identity boundary, password hashing, and stateless token-based sessions.
+* The system exposes a single public entry point through the `gateway`.
+* Responsibilities are separated into focused services: `webapp`, `auth_service`, `gamey` and `stats`.
+* Live game state and matchmaking remain in memory inside `gamey`, which keeps the gameplay path short.
+* Persistent business data is split across `mongo-auth` and `mongo-stats`.
+* Inter-service communication is mainly synchronous HTTP/JSON, with graceful degradation when statistics reporting is temporarily unavailable.
 
-* `Game Engine Service`: `gamey` with Rust + Axum.
-+
-Reason: game rules and bot logic are isolated in a specialized service with strong correctness guarantees.
+=== Quality Goals and Solution Approaches
 
-* `Stats Service`: `stats` with Node.js + Express + MongoDB driver.
-+
-Reason: dedicated storage and query API for player statistics and match history.
-
-* `Data Storage`: MongoDB with separated instances (`mongo-auth`, `mongo-stats`).
-+
-Reason: separation of concerns, independent lifecycle, and persistent volumes.
-
-* `Observability`: Prometheus + Grafana (+ service metrics middleware in Node services).
-+
-Reason: baseline monitoring for operational visibility.
-
-* `Packaging and Runtime`: Docker + Docker Compose.
-+
-Reason: reproducible multi-service environments and deterministic local integration.
-
-=== 4.2 Top-Level Decomposition Decision
-
-The system follows a microservice decomposition with a gateway at the edge and domain-specific backend services.
-
-1. `Webapp`
-+
-Responsibility: user interface, authentication/session UX, game interaction.
-
-2. `Gateway`
-+
-Responsibility: path-based request routing to internal services and normalized upstream error handling.
-
-3. `Auth Service`
-+
-Responsibility: register/login/verify workflows and JWT issuance/validation.
-
-4. `Gamey Service`
-+
-Responsibility: game state lifecycle, move validation, and bot decisions.
-
-5. `Stats Service`
-+
-Responsibility: match result persistence and player stats/history queries.
-
-6. `Data Stores (MongoDB)`
-+
-Responsibility: persistent storage for auth identities and game statistics.
-
-==== Communication Between Subsystems
-
-External communication is `Browser -> Gateway -> Internal Service`:
-
-* `/` -> `webapp`
-* `/auth/*` -> `auth_service`
-* `/api/*` -> `gamey`
-* `/stats/*` -> `stats`
-
-Internal communication relevant for gameplay:
-
-* `gamey -> stats`: HTTP call to `/internal/v1/matches/finished` when a match ends.
-* `auth_service -> mongo-auth`: credential and identity persistence.
-* `stats -> mongo-stats`: match history and aggregate counters persistence.
-
-Most calls are synchronous HTTP/JSON. Stats reporting is executed as a runtime side-effect and degrades gracefully if unavailable (game response still returns to the player).
-
-=== 4.3 Decisions to Achieve Quality Goals
-
-[cols="1,3",options="header"]
+[cols="1,2,4",options="header"]
 |===
-|Quality Goal |Architectural Decision
+|Quality goal | Scenario | Solution approach
 
-|Security
-|Dedicated `auth_service` with hashed passwords (`bcrypt`), JWT-based sessions, and protected internal stats endpoint via service token.
-
-|Performance
-|Game-critical logic in `gamey` (Rust) and lightweight proxying in `gateway`.
+|Robustness
+|A game action, invalid move or temporary backend problem must not break the user flow.
+|`gamey` validates moves and isolates live game state. The `gateway` returns normalized upstream errors, and match reporting to `stats` does not block the game response.
 
 |Usability
-|SPA frontend with immediate feedback on auth/game errors and a single public entry point through `gateway`.
+|A player should be able to authenticate, start a match and continue it after a reload with little friction.
+|The frontend is a SPA, the public access point is unique, and the browser stores session and resumable game information locally.
 
-|Reliability and Availability
-|Isolated containers, explicit upstream-failure handling in `gateway` (`502 Bad Gateway`), and graceful degradation when stats reporting fails.
+|Performance
+|Moves and turn changes should feel immediate, especially during online play.
+|The critical path is kept short (`browser -> gateway -> gamey`) and active matches are processed in memory instead of being persisted after every action.
 
-|Maintainability and Testability
-|Clear bounded services (`webapp`, `gateway`, `auth_service`, `gamey`, `stats`) with service-level tests and explicit HTTP contracts.
+|Compatibility
+|The application should be reachable from standard browsers on desktop and mobile devices.
+|The user interface is delivered as a web application behind a single HTTP gateway, avoiding client-specific dependencies.
+
+|Security
+|Credentials and internal write operations must be protected against unauthorized access.
+|`auth_service` centralizes login and token validation, passwords are hashed with `bcrypt`, sessions use JWT, and the internal stats endpoint requires a service token.
 |===
 
-=== 4.4 Organizational Decisions
+=== Organizational Decisions
 
-* Central GitHub repository for source code and collaboration.
-* Task tracking and technical discussions through GitHub Issues.
-* Periodic team meetings for progress review and task distribution.
-* Decision and meeting traceability through documented records.
+* Source code and documentation are maintained in a single repository.
+* Documentation follows the `arc42` template and uses PlantUML diagrams stored as code.
+* The team uses Docker Compose as the common integration environment.
+* Quality checks are part of the normal workflow before merging changes.

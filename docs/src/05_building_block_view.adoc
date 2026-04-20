@@ -2,8 +2,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 [[section-building-block-view]]
 
-
-== 5. Building Block View
+== Building Block View
 
 ifdef::arc42help[]
 [role="arc42help"]
@@ -21,10 +20,7 @@ abstraction.
 This allows you to communicate with your stakeholder on an abstract level without disclosing implementation details.
 
 .Form
-The building block view is a hierarchical collection of black boxes and white boxes
-(see figure below) and their descriptions.
-
-image::05_building_blocks-EN.png["Hierarchy of building blocks"]
+The building block view is a hierarchical collection of black boxes and white boxes.
 
 *Level 1* is the white box description of the overall system together with black
 box descriptions of all contained building blocks.
@@ -42,156 +38,419 @@ See https://docs.arc42.org/section-5/[Building Block View] in the arc42 document
 ****
 endif::arc42help[]
 
+This section describes the static decomposition of Yovi in three levels. The first level presents the overall system. The second level zooms into the blocks that are most relevant for understanding the architecture. The third level refines the most complex internal coordination logic.
+
 === Whitebox Overall System
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you describe the decomposition of the overall system using the following white box template. It contains
+[plantuml,"05_level1_yovi_overall",png]
+----
+@startuml
+title Level 1 - Whitebox Overall System
+left to right direction
+skinparam componentStyle rectangle
 
- * an overview diagram
- * a motivation for the decomposition
- * black box descriptions of the contained building blocks. For these we offer you alternatives:
+actor Player
 
-   ** use _one_ table for a short and pragmatic overview of all contained building blocks and their interfaces
-   ** use a list of black box descriptions of the building blocks according to the black box template (see below).
-   Depending on your choice of tool this list could be sub-chapters (in text files), sub-pages (in a Wiki) or nested elements (in a modeling tool).
+rectangle "Yovi" {
+  component "Webapp" as Webapp
+  component "Gateway" as Gateway
+  component "Auth Service" as Auth
+  component "Gamey Service" as Gamey
+  component "Stats Service" as Stats
+  database "Mongo Auth" as MongoAuth
+  database "Mongo Stats" as MongoStats
+}
 
-
- * (optional:) important interfaces, that are not explained in the black box templates of a building block,but are very important for understanding the white box.
-Since there are so many ways to specify interfaces why do not provide a specific template for them.
-In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
-restrictions, versions, qualities, necessary compatibilities and many things more.
-In the best case you will get away with examples or simple signatures.
-
-****
-endif::arc42help[]
-
-image::05_level1_yovi.png["General View - System Boundary"]
+Player --> Gateway : HTTP
+Gateway --> Webapp : /
+Gateway --> Auth : /auth/*
+Gateway --> Gamey : /api/*
+Gateway --> Stats : /stats/*
+Gamey --> Stats : /internal/v1/matches/finished
+Auth --> MongoAuth
+Stats --> MongoStats
+@enduml
+----
 
 Motivation::
-
-This first view shows the system at its highest abstraction level.
-It defines the system boundary (`Yovi`) and the external actor (`Usuario`) before introducing internal decomposition.
-This helps stakeholders understand scope and ownership before going into technical details.
-
++
+The overall system is decomposed into a browser frontend, a single public entry point, three domain services and two persistence nodes. This separation makes the main responsibilities visible without exposing implementation details too early.
 
 Contained Building Blocks::
 +
-* `Yovi`: Main system boundary that contains the application internals, detailed in the next levels.
+[cols="1,3,2,2",options="header"]
+|===
+|Name | Responsibility | Interfaces | Code
+
+|`Webapp`
+|Single-page application for login, game configuration, gameplay, match history and help views.
+|Uses `/auth/*`, `/api/*` and `/stats/*` through the gateway.
+|`webapp/`
+
+|`Gateway`
+|Single external entry point, proxy router and public API facade.
+|Exposes `/`, `/auth/*`, `/api/*`, `/stats/*`, `/external/*`.
+|`gateway/gateway-service.js`
+
+|`Auth Service`
+|Registration, login, token verification and account persistence.
+|`/register`, `/login`, `/verify`
+|`auth_service/`
+
+|`Gamey Service`
+|Game rules, bot execution, active sessions, matchmaking and timeout supervision.
+|`/v1/games/*`, `/v1/matchmaking/*`, `/v1/ybot/choose/*`
+|`gamey/`
+
+|`Stats Service`
+|Persistence and query API for match history and player statistics.
+|`/v1/me`, `/v1/me/history`, `/internal/v1/matches/finished`
+|`stats/`
+
+|`Mongo Auth`
+|Persistent storage of users and password hashes.
+|MongoDB connection from `auth_service`
+|Docker volume `mongo-auth-data`
+
+|`Mongo Stats`
+|Persistent storage of finished matches and aggregate counters.
+|MongoDB connection from `stats`
+|Docker volume `mongo-stats-data`
+|===
 
 Important Interfaces::
 +
-* `Usuario -> Yovi`: Primary interaction interface between the end user and the system.
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Insert your explanations of black boxes from level 1:
-
-If you use tabular form you will only describe your black boxes with name and
-responsibility according to the following schema:
-
-[cols="1,2" options="header"]
-|===
-| **Name** | **Responsibility**
-| _<black box 1>_ | _<Text>_
-| _<black box 2>_ | _<Text>_
-|===
-
-
-
-If you use a list of black box descriptions then you fill in a separate black box template for every important building block .
-Its headline is the name of the black box.
-****
-endif::arc42help[]
-
-==== Yovi
-
-System boundary that provides gameplay capabilities to the user and is internally decomposed in the following levels.
-
-
+* `Player -> Gateway`: all browser traffic enters the system through one public HTTP endpoint.
+* `Gateway -> internal services`: the gateway strips prefixes and forwards requests to the owning service.
+* `Gamey Service -> Stats Service`: finished matches are reported internally without involving the browser.
 
 === Level 2
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you can specify the inner structure of (some) building blocks from level 1 as white boxes.
+Level 2 zooms into the blocks with the highest architectural relevance: `Webapp`, `Gateway` and `Gamey Service`. `Auth Service` and `Stats Service` remain at black box level because their internal structure is comparatively simple.
 
-You have to decide which building blocks of your system are important enough to justify such a detailed description.
-Please prefer relevance over completeness. Specify important, surprising, risky, complex or volatile building blocks.
-Leave out normal, simple, boring or standardized parts of your system
-****
-endif::arc42help[]
+==== White Box `Webapp`
 
-==== White Box _Yovi_
+[plantuml,"05_level2_webapp",png]
+----
+@startuml
+title Level 2 - White Box Webapp
+left to right direction
+skinparam componentStyle rectangle
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-...describes the internal structure of _building block 1_.
-****
-endif::arc42help[]
+component "App shell" as App
+component "Views" as Views
+component "useAuth" as UseAuth
+component "useGamey" as UseGamey
+component "useStats" as UseStats
+component "Game/Stats API clients" as Api
+database "Session store" as Store
 
-image::05_level2_yovi.png["Level 2 - Yovi Main Decomposition"]
+App --> Views
+App --> UseAuth
+App --> UseGamey
+App --> UseStats
+UseGamey --> Api
+UseStats --> Api
+UseAuth --> Store
+UseGamey --> Store
+@enduml
+----
 
 Motivation::
-Level 2 decomposes `Yovi` into its main runtime building blocks while keeping implementation details hidden.
-This view clarifies responsibilities between presentation, backend logic, and persistence.
++
+The frontend is organized around a small application shell, presentation views and dedicated hooks for the main user flows. This keeps rendering, remote communication and local persistence clearly separated.
 
 Contained Building Blocks::
 +
-* `WebApp`: Frontend used by the player for interaction.
-* `Backend`: Server-side component that exposes business operations.
-* `BBDD`: Persistent storage used by backend services.
+[cols="1,3,2,2",options="header"]
+|===
+|Name | Responsibility | Interfaces | Code
+
+|`App shell`
+|Selects the active screen and connects hooks with views.
+|Internal React composition.
+|`webapp/src/App.tsx`
+
+|`Views`
+|Render login, dashboard, game, history, help and supporting UI components.
+|React props from the app shell and hooks.
+|`webapp/src/views/`
+
+|`useAuth`
+|Manages authentication state, guest mode, token verification and logout.
+|Calls auth endpoints and browser storage directly.
+|`webapp/src/hooks/useAuth.ts`
+
+|`useGamey`
+|Handles game creation, matchmaking, online synchronization and in-game actions.
+|Calls game endpoints and persists resumable game data.
+|`webapp/src/useGamey.ts`
+
+|`useStats`
+|Loads player aggregates and recent match history.
+|Calls stats endpoints for authenticated users.
+|`webapp/src/useStats.ts`
+
+|`Game/Stats API clients`
+|Wrap low-level HTTP interaction for gameplay and statistics flows.
+|`fetch` calls to `/api` and `/stats`.
+|`webapp/src/gameyApi.ts`, `webapp/src/statsApi.ts`
+
+|`Session store`
+|Persists active session and resumable game metadata.
+|Browser local storage.
+|`webapp/src/gameSessionStore.ts`
+|===
 
 Important Interfaces::
 +
-* `Usuario -> WebApp`: User interaction interface.
-* `WebApp -> Backend`: HTTP/JSON application interface.
-* `Backend -> BBDD`: Persistence access interface.
+* `useAuth -> /auth/*`: login, registration and token verification.
+* `useGamey -> /api/*`: game lifecycle, matchmaking and bot hints.
+* `useStats -> /stats/*`: player statistics and match history.
 
+==== White Box `Gateway`
 
+[plantuml,"05_level2_gateway",png]
+----
+@startuml
+title Level 2 - White Box Gateway
+left to right direction
+skinparam componentStyle rectangle
 
+component "Proxy route map" as Proxy
+component "External API router" as ExternalApi
+component "Error normalization" as Errors
+component "Health endpoint" as Health
+
+component "Webapp" as Webapp
+component "Auth Service" as Auth
+component "Gamey Service" as Gamey
+component "Stats Service" as Stats
+
+Proxy --> Webapp
+Proxy --> Auth
+Proxy --> Gamey
+Proxy --> Stats
+ExternalApi --> Auth
+ExternalApi --> Gamey
+ExternalApi --> Stats
+Proxy ..> Errors
+ExternalApi ..> Errors
+@enduml
+----
+
+Motivation::
++
+The gateway is intentionally thin. It centralizes public routing and normalized failure handling, while keeping business rules in the backend services that own them.
+
+Contained Building Blocks::
++
+[cols="1,3,2,2",options="header"]
+|===
+|Name | Responsibility | Interfaces | Code
+
+|`Proxy route map`
+|Maps public prefixes to internal services.
+|`/`, `/auth/*`, `/api/*`, `/stats/*`
+|`gateway/gateway-service.js`
+
+|`External API router`
+|Exposes public endpoints for external consumers and bot-related documentation.
+|`/external/*`
+|`gateway/gateway-service.js`
+
+|`Error normalization`
+|Transforms upstream connection failures into predictable HTTP `502` responses.
+|JSON error response to the browser.
+|`gateway/gateway-service.js`
+
+|`Health endpoint`
+|Provides a basic liveness check.
+|`/health`
+|`gateway/gateway-service.js`
+|===
+
+Important Interfaces::
++
+* `Gateway -> Webapp`: forwards root traffic to the SPA.
+* `Gateway -> Auth Service`, `Gamey Service`, `Stats Service`: forwards route-specific API traffic.
+* `Gateway -> browser`: returns normalized `502 Bad Gateway` on upstream failures.
+
+==== White Box `Gamey Service`
+
+[plantuml,"05_level2_gamey",png]
+----
+@startuml
+title Level 2 - White Box Gamey Service
+left to right direction
+skinparam componentStyle rectangle
+
+component "HTTP API" as Api
+component "Game session store" as Sessions
+component "Matchmaking state" as Matchmaking
+component "Matchmaking worker" as Worker
+component "Timeout monitor" as Monitor
+component "GameY engine" as Engine
+component "Bot registry" as Bots
+component "Stats reporter" as Reporter
+component "Stats Service" as Stats
+
+Api --> Sessions
+Api --> Matchmaking
+Api --> Engine
+Api --> Bots
+Api --> Reporter
+Worker --> Matchmaking
+Worker --> Sessions
+Worker --> Engine
+Monitor --> Sessions
+Monitor --> Engine
+Monitor --> Reporter
+Reporter --> Stats
+@enduml
+----
+
+Motivation::
++
+`Gamey Service` is the domain core of the system. It concentrates the rules of the game, online coordination and bot logic so that gameplay remains consistent and isolated from the rest of the platform.
+
+Contained Building Blocks::
++
+[cols="1,3,2,2",options="header"]
+|===
+|Name | Responsibility | Interfaces | Code
+
+|`HTTP API`
+|Exposes endpoints for games, moves, resign/pass actions, matchmaking and bots.
+|HTTP/JSON endpoints under `/v1/*`
+|`gamey/src/bot_server/mod.rs`
+
+|`Game session store`
+|Keeps active matches and related metadata in memory.
+|Shared internal state.
+|`gamey/src/bot_server/state.rs`
+
+|`Matchmaking state`
+|Stores waiting tickets and matched ticket information in memory.
+|Shared internal state.
+|`gamey/src/bot_server/state.rs`
+
+|`Matchmaking worker`
+|Pairs waiting players and creates online games with player tokens.
+|Background worker over shared matchmaking state.
+|`gamey/src/bot_server/matchmaking.rs`
+
+|`Timeout monitor`
+|Auto-passes turns and finishes inactive online games.
+|Background worker over active sessions.
+|`gamey/src/bot_server/games.rs`
+
+|`GameY engine`
+|Validates moves, applies actions and determines winners.
+|Internal domain API.
+|`gamey/src/core/`
+
+|`Bot registry`
+|Resolves the configured bot and computes automated moves.
+|Internal bot selection and execution.
+|`gamey/src/bot/`
+
+|`Stats reporter`
+|Sends finished match summaries to the stats service.
+|HTTP call to `/internal/v1/matches/finished`
+|`gamey/src/bot_server/games.rs`
+|===
+
+Important Interfaces::
++
+* `x-user-id`: identifies authenticated users when a game is created or queried.
+* `x-opponent-user-id`: supports direct online game creation.
+* `x-player-token`: protects turn ownership in matchmaking-created online games.
 
 === Level 3
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you can specify the inner structure of (some) building blocks from level 2 as white boxes.
+Level 3 opens the `Gamey Service` block introduced in level 2. The refinement focuses on its online gameplay runtime, because that slice contains the most coordination-heavy behavior: request handling, shared in-memory state, background supervision and completion reporting.
 
-When you need more detailed levels of your architecture please copy this
-part of arc42 for additional levels.
-****
-endif::arc42help[]
+Bot execution remains at level 2 because it is orthogonal to the online human-vs-human flow documented here.
 
-==== White Box _Backend_
+==== White Box Gamey Service - Online Gameplay Runtime
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Specifies the internal structure of _building block x.1_.
-****
-endif::arc42help[]
+[plantuml,"05_level3_online_coordination",png]
+----
+@startuml
+title Level 3 - White Box Gamey Service: Online Gameplay Runtime
+top to bottom direction
+skinparam componentStyle rectangle
 
-image::05_level3_yovi.png["Level 3 - Backend Internal Decomposition"]
+component "Game API" as Games
+component "Matchmaking API" as MatchApi
+component "Runtime state" as Runtime
+component "Background coordinators" as Workers
+component "GameY engine" as Engine
+component "Completion reporting" as Reporter
+component "Stats Service" as Stats
+
+MatchApi -[hidden]right-> Games
+Games -[hidden]right-> Workers
+Runtime -[hidden]right-> Engine
+Engine -[hidden]right-> Reporter
+
+Games --> Runtime
+Games --> Engine
+MatchApi --> Runtime
+Workers --> Runtime
+Workers --> Engine
+Games --> Reporter
+Workers --> Reporter
+Reporter --> Stats
+@enduml
+----
 
 Motivation::
-Level 3 details the internal structure of the backend component.
-It isolates the key business services and their collaboration for user and gameplay operations.
++
+This white box zooms into the online human-vs-human runtime of `Gamey Service`. It mixes synchronous HTTP requests with asynchronous workers and must keep online matches consistent even though the runtime state is stored in memory.
 
 Contained Building Blocks::
 +
-* `User`: Service responsible for user-related operations.
-* `Gamey`: Service responsible for game engine and game logic.
-* `BBDD`: Shared persistence component used by backend services.
+[cols="1,3,2,2",options="header"]
+|===
+|Name | Responsibility | Interfaces | Code
+
+|`Game API`
+|Serve game creation, querying and in-game actions for active matches.
+|HTTP handlers for `/v1/games/*`
+|`gamey/src/bot_server/games.rs`
+
+|`Matchmaking API`
+|Serve enqueue, ticket query and cancellation operations for waiting players.
+|HTTP handlers for `/v1/matchmaking/*`
+|`gamey/src/bot_server/matchmaking.rs`
+
+|`Runtime state`
+|Keep active sessions, active-game ownership and matchmaking data in shared memory.
+|Internal state shared through `AppState`.
+|`gamey/src/bot_server/state.rs`
+
+|`Background coordinators`
+|Run asynchronous tasks that pair players and enforce inactivity and turn-timeout rules.
+|Internal scheduled workers.
+|`gamey/src/bot_server/matchmaking.rs`, `gamey/src/bot_server/games.rs`
+
+|`GameY engine`
+|Validate moves and actions, evolve the board and determine winners.
+|Internal domain API.
+|`gamey/src/core/`
+
+|`Completion reporting`
+|Send finished-match summaries to the statistics service after game completion.
+|HTTP call to `/internal/v1/matches/finished`
+|`gamey/src/bot_server/games.rs`
+|===
 
 Important Interfaces::
 +
-* `User <--> Gamey`: Internal service-to-service interface for game/user data exchange.
-* `User -> BBDD`: User data persistence interface.
-* `Gamey -> BBDD`: Game state persistence interface.
-
-
+* `Game API -> Runtime state`: load sessions, update player presence and persist match progress.
+* `Matchmaking API -> Runtime state`: create waiting tickets, expose queue status and publish matched results.
+* `Background coordinators -> Runtime state`: consume waiting entries and enforce online timeout rules.
+* `Game API / Background coordinators -> GameY engine`: apply moves and actions using the same rule implementation.
+* `Completion reporting -> Stats Service`: persist the finished match outcome through the internal stats endpoint.

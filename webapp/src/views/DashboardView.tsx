@@ -5,7 +5,7 @@ import { uiSx } from '../theme';
 import ConfigView from './ConfigView';
 import type { BotDifficulty } from '../stats/types';
 
-type Props = {
+type Props = Readonly<{
   boardSize: number;
   mode: GameMode;
   botDifficulty: BotDifficulty;
@@ -20,7 +20,11 @@ type Props = {
   matchmakingStatus: 'idle' | 'waiting' | 'matched' | 'cancelled';
   startMatchmaking: () => void | Promise<void>;
   cancelCurrentMatchmaking: () => void | Promise<void>;
-};
+}>;
+
+type AnimatedWaitingTextProps = Readonly<{
+  label: string;
+}>;
 
 function getGameConfigurationLockMessage(
   hasActiveGameInProgress: boolean,
@@ -51,15 +55,15 @@ function getMatchmakingStatusText(
   return null;
 }
 
-function AnimatedWaitingText({ label }: { label: string }) {
+function AnimatedWaitingText({ label }: AnimatedWaitingTextProps) {
   const [dotCount, setDotCount] = React.useState(3);
 
   React.useEffect(() => {
-    const intervalId = window.setInterval(() => {
+    const intervalId = globalThis.setInterval(() => {
       setDotCount((current) => (current + 1) % 4);
     }, 350);
 
-    return () => window.clearInterval(intervalId);
+    return () => globalThis.clearInterval(intervalId);
   }, []);
 
   return (

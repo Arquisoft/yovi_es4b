@@ -60,6 +60,19 @@ export interface MatchmakingTicketResponse {
 }
 
 const GAMEY_API_URL = import.meta.env.VITE_GAMEY_API_URL ?? '/api';
+const SAFE_API_PATH_SEGMENT = /^[A-Za-z0-9_-]+$/;
+
+function trimTrailingSlashes(value: string): string {
+  let normalizedValue = value;
+
+  while (normalizedValue.endsWith('/')) {
+    normalizedValue = normalizedValue.slice(0, -1);
+  }
+
+  return normalizedValue;
+}
+
+const NORMALIZED_GAMEY_API_URL = trimTrailingSlashes(GAMEY_API_URL);
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -127,8 +140,34 @@ function throwIfResponseFailed(response: Response, raw: string, payload: unknown
   throw new Error(message);
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${GAMEY_API_URL}${path}`;
+function buildApiUrl(path: string): string {
+  return `${NORMALIZED_GAMEY_API_URL}${path}`;
+}
+
+function encodeApiPathSegment(value: string, label: string): string {
+  const normalizedValue = value.trim();
+  if (normalizedValue.length === 0 || !SAFE_API_PATH_SEGMENT.test(normalizedValue)) {
+    throw new Error(`${label} is invalid`);
+  }
+
+  return encodeURIComponent(normalizedValue);
+}
+
+function buildGameUrl(gameId: string, action?: 'moves' | 'resign' | 'pass'): string {
+  const encodedGameId = encodeApiPathSegment(gameId, 'gameId');
+  return buildApiUrl(`/v1/games/${encodedGameId}${action ? `/${action}` : ''}`);
+}
+
+function buildBotChooseUrl(botId: string): string {
+  return buildApiUrl(`/v1/ybot/choose/${encodeApiPathSegment(botId, 'botId')}`);
+}
+
+function buildMatchmakingTicketUrl(ticketId: string, action?: 'cancel'): string {
+  const encodedTicketId = encodeApiPathSegment(ticketId, 'ticketId');
+  return buildApiUrl(`/v1/matchmaking/tickets/${encodedTicketId}${action ? `/${action}` : ''}`);
+}
+
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   const raw = await response.text();
   const payload = parseResponsePayload(response, raw, url);
@@ -156,7 +195,7 @@ export async function createGame(
     ...(request.bot_id ? { bot_id: request.bot_id } : {}),
   };
 
-  return requestJson<GameStateResponse>('/v1/games', {
+  return requestJson<GameStateResponse>(buildApiUrl('/v1/games'), {
     method: 'POST',
     headers: withUserIdHeader({ 'Content-Type': 'application/json' }, userId),
     body: JSON.stringify(body),
@@ -168,14 +207,14 @@ export async function getGame(
   userId?: string,
   playerToken?: string,
 ): Promise<GameStateResponse> {
-  return requestJson<GameStateResponse>(`/v1/games/${gameId}`, {
+  return requestJson<GameStateResponse>(buildGameUrl(gameId), {
     method: 'GET',
     headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
   });
 }
 
 export async function playMove(gameId: string, move: MoveRequest, userId?: string): Promise<GameStateResponse> {
-  return requestJson<GameStateResponse>(`/v1/games/${gameId}/moves`, {
+  return requestJson<GameStateResponse>(buildGameUrl(gameId, 'moves'), {
     method: 'POST',
     headers: withUserIdHeader({ 'Content-Type': 'application/json' }, userId),
     body: JSON.stringify(move),
@@ -187,7 +226,7 @@ export async function resignGame(
   userId?: string,
   playerToken?: string,
 ): Promise<GameStateResponse> {
-  return requestJson<GameStateResponse>(`/v1/games/${gameId}/resign`, {
+  return requestJson<GameStateResponse>(buildGameUrl(gameId, 'resign'), {
     method: 'POST',
     headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
   });
@@ -198,7 +237,7 @@ export async function passTurnGame(
   userId?: string,
   playerToken?: string,
 ): Promise<GameStateResponse> {
-  return requestJson<GameStateResponse>(`/v1/games/${gameId}/pass`, {
+  return requestJson<GameStateResponse>(buildGameUrl(gameId, 'pass'), {
     method: 'POST',
     headers: withPlayerTokenHeader(withUserIdHeader({}, userId), playerToken),
   });
@@ -214,7 +253,7 @@ export async function getBotHint(
   yen: YEN,
   botId = 'minimax_bot',
 ): Promise<BotMoveResponse> {
-  return requestJson<BotMoveResponse>(`/v1/ybot/choose/${encodeURIComponent(botId)}`, {
+  return requestJson<BotMoveResponse>(buildBotChooseUrl(botId), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -227,7 +266,7 @@ export async function enqueueMatchmaking(
   size = 7,
   userId?: string,
 ): Promise<MatchmakingTicketResponse> {
-  return requestJson<MatchmakingTicketResponse>('/v1/matchmaking/enqueue', {
+  return requestJson<MatchmakingTicketResponse>(buildApiUrl('/v1/matchmaking/enqueue'), {
     method: 'POST',
     headers: withUserIdHeader({ 'Content-Type': 'application/json' }, userId),
     body: JSON.stringify({ size }),
@@ -235,13 +274,13 @@ export async function enqueueMatchmaking(
 }
 
 export async function getMatchmakingTicket(ticketId: string): Promise<MatchmakingTicketResponse> {
-  return requestJson<MatchmakingTicketResponse>(`/v1/matchmaking/tickets/${ticketId}`, {
+  return requestJson<MatchmakingTicketResponse>(buildMatchmakingTicketUrl(ticketId), {
     method: 'GET',
   });
 }
 
 export async function cancelMatchmakingTicket(ticketId: string): Promise<MatchmakingTicketResponse> {
-  return requestJson<MatchmakingTicketResponse>(`/v1/matchmaking/tickets/${ticketId}/cancel`, {
+  return requestJson<MatchmakingTicketResponse>(buildMatchmakingTicketUrl(ticketId, 'cancel'), {
     method: 'POST',
   });
 }

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   cancelMatchmakingTicket,
   createGame,
+  getBotHint,
   enqueueMatchmaking,
   getGame,
   getMatchmakingTicket,
@@ -149,6 +150,17 @@ describe('gameyApi', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/matchmaking/tickets/ticket-1/cancel', {
       method: 'POST',
     });
+  });
+
+  test('rejects invalid path segments before issuing client requests', async () => {
+    await expect(getGame('game/1')).rejects.toThrow('gameId is invalid');
+    await expect(passTurnGame('game 1')).rejects.toThrow('gameId is invalid');
+    await expect(getMatchmakingTicket('../ticket-1')).rejects.toThrow('ticketId is invalid');
+    await expect(cancelMatchmakingTicket('ticket?1')).rejects.toThrow('ticketId is invalid');
+    await expect(getBotHint({ size: 3, turn: 0, players: ['B', 'R'], layout: 'B/../...' }, 'bot/unsafe'))
+      .rejects.toThrow('botId is invalid');
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   test('omits the user id header when it is blank', async () => {

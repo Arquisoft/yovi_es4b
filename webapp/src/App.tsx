@@ -15,7 +15,7 @@ import { uiSx } from './theme';
 
 function App() {
   const auth = useAuth();
-  const stats = useStats(auth.username ?? undefined);
+  const stats = useStats(!auth.loading && auth.isAuthenticated ? (auth.username ?? undefined) : undefined);
   const { refreshStats } = stats;
   const lastSyncedFinishedGameRef = useRef<string | null>(null);
   const [restrictedModalOpen, setRestrictedModalOpen] = useState(false);
@@ -126,7 +126,7 @@ function App() {
   }, [auth.hasSession, view]);
 
   useEffect(() => {
-    if (!auth.isAuthenticated || !game || !game.game_over) {
+    if (!auth.isAuthenticated || !game?.game_over) {
       return;
     }
 
