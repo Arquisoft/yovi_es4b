@@ -1236,17 +1236,15 @@ Refer to details in the following sections.</p>
 <h3 id="_quality_goals_and_solution_approaches">4.3. Quality Goals and Solution Approaches</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 12.5%;">
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-<col style="width: 25%;">
+<col style="width: 14.2857%;">
+<col style="width: 28.5714%;">
+<col style="width: 57.1429%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Quality goal</th>
 <th class="tableblock halign-left valign-top">Scenario</th>
 <th class="tableblock halign-left valign-top">Solution approach</th>
-<th class="tableblock halign-left valign-top">Link to details</th>
 </tr>
 </thead>
 <tbody>
@@ -1254,31 +1252,26 @@ Refer to details in the following sections.</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Robustness</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">A game action, invalid move or temporary backend problem must not break the user flow.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey</code> validates moves and isolates live game state. The <code>gateway</code> returns normalized upstream errors, and match reporting to <code>stats</code> does not block the game response.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-runtime-view">Section 6</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Usability</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">A player should be able to authenticate, start a match and continue it after a reload with little friction.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The frontend is a SPA, the public access point is unique, and the browser stores session and resumable game information locally.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-concepts">Section 8</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Performance</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Moves and turn changes should feel immediate, especially during online play.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The critical path is kept short (<code>browser &#8594; gateway &#8594; gamey</code>) and active matches are processed in memory instead of being persisted after every action.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-runtime-view">Section 6</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Compatibility</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The application should be reachable from standard browsers on desktop and mobile devices.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The user interface is delivered as a web application behind a single HTTP gateway, avoiding client-specific dependencies.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-deployment-view">Section 7</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Security</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Credentials and internal write operations must be protected against unauthorized access.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth_service</code> centralizes login and token validation, passwords are hashed with <code>bcrypt</code>, sessions use JWT, and the internal stats endpoint requires a service token.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#section-building-block-view">Section 5</a>, <a href="#section-concepts">Section 8</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -1735,13 +1728,16 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="sect2">
 <h3 id="_level_3">5.3. Level 3</h3>
 <div class="paragraph">
-<p>Level 3 refines the part of <code>Gamey Service</code> that coordinates online matches, because it combines shared state, background workers and communication with the rest of the platform.</p>
+<p>Level 3 refines the online gameplay runtime inside <code>Gamey Service</code>. This slice was selected because it contains the most coordination-heavy behavior: request handling, shared in-memory state, background supervision and completion reporting.</p>
+</div>
+<div class="paragraph">
+<p>Bot execution remains at level 2 because it is orthogonal to the online human-vs-human flow documented here.</p>
 </div>
 <div class="sect3">
-<h4 id="_white_box_online_match_coordination">5.3.1. White Box <code>Online Match Coordination</code></h4>
+<h4 id="_white_box_online_gameplay_runtime">5.3.1. White Box Online Gameplay Runtime</h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level3_online_coordination.png" alt="05 level3 online coordination" width="527" height="261">
+<img src="./images/05_level3_online_coordination.png" alt="05 level3 online coordination" width="511" height="205">
 </div>
 </div>
 <div class="dlist">
@@ -1749,7 +1745,7 @@ Thus it contains the white box description of selected building blocks of level 
 <dt class="hdlist1">Motivation</dt>
 <dd>
 <div class="paragraph">
-<p>Online gameplay is the most coordination-heavy part of the system. It combines request handling, shared in-memory state, background processes and eventual reporting of the finished match.</p>
+<p>This runtime is the most coordination-heavy part of the service. It mixes synchronous HTTP requests with asynchronous workers and must keep online matches consistent even though the runtime state is stored in memory.</p>
 </div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
@@ -1771,57 +1767,39 @@ Thus it contains the white box description of selected building blocks of level 
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Game handlers</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Serve game creation, querying and in-game actions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Game API</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Serve game creation, querying and in-game actions for active matches.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTP handlers for <code>/v1/games/*</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking handlers</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Serve enqueue, ticket query and cancellation operations.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking API</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Serve enqueue, ticket query and cancellation operations for waiting players.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">HTTP handlers for <code>/v1/matchmaking/*</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Shared AppState</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Aggregates all in-memory structures used by the service.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared state.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Runtime state</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Keep active sessions, active-game ownership and matchmaking data in shared memory.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal state shared through <code>AppState</code>.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Games map</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Stores active sessions indexed by game id.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared map.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Background coordinators</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Run asynchronous tasks that pair players and enforce inactivity and turn-timeout rules.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal scheduled workers.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code>, <code>gamey/src/bot_server/games.rs</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Active game index</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Prevents a user from owning multiple active games at the same time.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared map.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GameY engine</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Validate moves and actions, evolve the board and determine winners.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal domain API.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/core/</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Queue and tickets</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Store waiting players and matchmaking results.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Internal shared queue and ticket map.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking worker</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Matches players and creates online sessions asynchronously.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Background coordination logic.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Timeout monitor</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Observes inactivity and turn timeout rules for online games.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Background supervision logic.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Stats reporter</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Reports finished games without blocking the player response.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Internal HTTP client to <code>stats</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Completion reporting</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Send finished-match summaries to the statistics service after game completion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP call to <code>/internal/v1/matches/finished</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
 </tr>
 </tbody>
@@ -1832,13 +1810,19 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="ulist">
 <ul>
 <li>
-<p><code>Game handlers &#8594; Shared AppState</code>: read and update active sessions.</p>
+<p><code>Game API &#8594; Runtime state</code>: load sessions, update player presence and persist match progress.</p>
 </li>
 <li>
-<p><code>Matchmaking worker &#8594; Queue and tickets</code>: consume waiting entries and produce matched results.</p>
+<p><code>Matchmaking API &#8594; Runtime state</code>: create waiting tickets, expose queue status and publish matched results.</p>
 </li>
 <li>
-<p><code>Stats reporter &#8594; Stats Service</code>: persist the final match outcome after the game finishes.</p>
+<p><code>Background coordinators &#8594; Runtime state</code>: consume waiting entries and enforce online timeout rules.</p>
+</li>
+<li>
+<p><code>Game API / Background coordinators &#8594; GameY engine</code>: apply moves and actions using the same rule implementation.</p>
+</li>
+<li>
+<p><code>Completion reporting &#8594; Stats Service</code>: persist the finished match outcome through the internal stats endpoint.</p>
 </li>
 </ul>
 </div>
