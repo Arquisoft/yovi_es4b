@@ -1,15 +1,32 @@
-import React from 'react';
-import { Box, Paper, Typography } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Box, Button, Paper, Typography } from '@mui/material';
 import { uiSx } from '../theme';
+
+type HelpCategoryId = 'all' | 'play' | 'online' | 'account' | 'issues';
 
 type HelpSection = {
   title: string;
   body: string[];
+  category: Exclude<HelpCategoryId, 'all'>;
 };
+
+type HelpCategory = {
+  id: HelpCategoryId;
+  label: string;
+};
+
+const helpCategories: HelpCategory[] = [
+  { id: 'all', label: 'Todo' },
+  { id: 'play', label: 'Jugar' },
+  { id: 'online', label: 'Online' },
+  { id: 'account', label: 'Cuenta' },
+  { id: 'issues', label: 'Problemas' },
+];
 
 const helpSections: HelpSection[] = [
   {
     title: 'Reglas basicas',
+    category: 'play',
     body: [
       'Tu objetivo es unir los tres lados del triangulo con una sola cadena continua de tus fichas.',
       'No hace falta llenar mucho tablero: gana quien complete antes esa conexion.',
@@ -17,6 +34,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Si quieres empezar rapido',
+    category: 'play',
     body: [
       'Si buscas una partida tranquila, empieza contra bot en un tablero pequeno. Terminaras antes y te sera mas facil leer la posicion.',
       'Si quieres mas estrategia, aumenta el tamano del tablero. Cuanto mas grande, mas caminos y mas posibilidades hay.',
@@ -24,6 +42,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Como jugar durante una partida',
+    category: 'play',
     body: [
       'Pulsa una celda vacia para colocar tu ficha cuando sea tu turno.',
       'Si necesitas cortar el ritmo o la posicion se ha torcido, puedes usar Ceder turno o Rendirse.',
@@ -32,6 +51,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Ayuda con las pistas',
+    category: 'play',
     body: [
       'El boton Pista te sugiere un movimiento cuando puedes jugar. No coloca la ficha por ti: la decision final sigue siendo tuya.',
       'Usala cuando no veas una continuacion clara o cuando quieras comparar tu idea con una alternativa.',
@@ -39,6 +59,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Si juegas online',
+    category: 'online',
     body: [
       'Pulsa Buscar rival y espera a que aparezca partida. Si cambias de idea, puedes cancelar la busqueda.',
       'La busqueda online cuenta por identidad: no puedes emparejarte contigo mismo, ni con tu mismo usuario, ni con la misma sesion de invitado abierta en otra pestana del mismo navegador.',
@@ -47,6 +68,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Que significan los avisos de tiempo',
+    category: 'online',
     body: [
       'Si ves Tu turno o Turno del rival con cuenta atras, significa que esa jugada tiene tiempo limite.',
       'Si el tiempo llega a cero, el turno se cede automaticamente.',
@@ -55,6 +77,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Cuenta, invitado y estadisticas',
+    category: 'account',
     body: [
       'Puedes entrar como invitado para probar el juego sin registrarte.',
       'Si quieres conservar historial, victorias, derrotas y ver tus estadisticas, necesitas iniciar sesion con una cuenta registrada.',
@@ -64,6 +87,7 @@ const helpSections: HelpSection[] = [
   },
   {
     title: 'Si algo no te cuadra',
+    category: 'issues',
     body: [
       'Si una partida parece quedarse a medias, vuelve a la pantalla principal y usa Volver a la partida si aparece.',
       'Si estabas en matchmaking y quieres empezar de cero, cancela la busqueda actual antes de lanzar otra.',
@@ -71,7 +95,33 @@ const helpSections: HelpSection[] = [
   },
 ];
 
+const sectionOrder: Exclude<HelpCategoryId, 'all'>[] = ['play', 'online', 'account', 'issues'];
+
+const categoryHeadings: Record<Exclude<HelpCategoryId, 'all'>, string> = {
+  play: 'Jugar',
+  online: 'Online',
+  account: 'Cuenta',
+  issues: 'Problemas',
+};
+
 const HelpView: React.FC = () => {
+  const [selectedCategory, setSelectedCategory] = useState<HelpCategoryId>('all');
+
+  const groupedSections = useMemo(() => {
+    const visibleSections =
+      selectedCategory === 'all'
+        ? helpSections
+        : helpSections.filter((section) => section.category === selectedCategory);
+
+    return sectionOrder
+      .map((category) => ({
+        category,
+        heading: categoryHeadings[category],
+        sections: visibleSections.filter((section) => section.category === category),
+      }))
+      .filter((group) => group.sections.length > 0);
+  }, [selectedCategory]);
+
   return (
     <Paper sx={uiSx.historyFullscreenCard}>
       <Box sx={uiSx.historyHeader}>
@@ -84,37 +134,46 @@ const HelpView: React.FC = () => {
         Si vienes con una duda puntual, empieza por el bloque que mas se parezca a tu situacion.
       </Box>
 
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 1.5,
-          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-        }}
-      >
-        {helpSections.map((section) => (
-          <Box
-            key={section.title}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1.8,
-              backgroundColor: 'rgba(44, 42, 39, 0.65)',
-              px: 1.6,
-              py: 1.4,
-              display: 'grid',
-              gap: 0.85,
-              alignContent: 'start',
-            }}
-          >
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.18 }}>
-              {section.title}
+      <Box sx={uiSx.helpFilterRow}>
+        {helpCategories.map((category) => {
+          const selected = category.id === selectedCategory;
+
+          return (
+            <Button
+              key={category.id}
+              type="button"
+              variant={selected ? 'contained' : 'outlined'}
+              onClick={() => setSelectedCategory(category.id)}
+              sx={uiSx.helpFilterButton(selected)}
+            >
+              {category.label}
+            </Button>
+          );
+        })}
+      </Box>
+
+      <Box sx={uiSx.helpSectionsColumn}>
+        {groupedSections.map((group) => (
+          <Box key={group.category} sx={uiSx.helpSectionGroup}>
+            <Typography variant="h6" sx={uiSx.helpSectionHeading}>
+              {group.heading}
             </Typography>
 
-            {section.body.map((paragraph) => (
-              <Typography key={paragraph} color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                {paragraph}
-              </Typography>
-            ))}
+            <Box sx={uiSx.helpSectionGrid}>
+              {group.sections.map((section) => (
+                <Box key={section.title} sx={uiSx.helpCard}>
+                  <Typography variant="subtitle1" sx={uiSx.helpCardTitle}>
+                    {section.title}
+                  </Typography>
+
+                  {section.body.map((paragraph) => (
+                    <Typography key={paragraph} color="text.secondary" sx={uiSx.helpCardText}>
+                      {paragraph}
+                    </Typography>
+                  ))}
+                </Box>
+              ))}
+            </Box>
           </Box>
         ))}
       </Box>

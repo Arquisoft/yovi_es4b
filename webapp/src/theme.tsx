@@ -875,6 +875,69 @@ export const uiSx = {
     fontSize: '0.86rem',
     letterSpacing: 0.12,
   } satisfies SxProps<Theme>,
+  helpFilterRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 1,
+    mb: 2.2,
+  } satisfies SxProps<Theme>,
+  helpFilterButton: (selected: boolean): SxProps<Theme> => ({
+    minWidth: 0,
+    height: 38,
+    px: 1.8,
+    py: 0.7,
+    borderRadius: 999,
+    fontWeight: 800,
+    letterSpacing: 0.16,
+    color: selected ? '#112418' : '#9ad7a7',
+    borderColor: selected ? '#75d08d' : 'rgba(117, 208, 141, 0.5)',
+    background: selected
+      ? 'linear-gradient(135deg, #9bf0ae 0%, #75d08d 100%)'
+      : 'rgba(21, 47, 30, 0.52)',
+    '&:hover': {
+      borderColor: '#8be6a2',
+      background: selected
+        ? 'linear-gradient(135deg, #a5f3b6 0%, #82db99 100%)'
+        : 'rgba(27, 61, 38, 0.72)',
+    },
+  }),
+  helpSectionsColumn: {
+    display: 'grid',
+    gap: 2.25,
+  } satisfies SxProps<Theme>,
+  helpSectionGroup: {
+    display: 'grid',
+    gap: 1.2,
+  } satisfies SxProps<Theme>,
+  helpSectionHeading: {
+    color: '#8fe3a2',
+    fontWeight: 900,
+    letterSpacing: 0.22,
+    textTransform: 'uppercase',
+  } satisfies SxProps<Theme>,
+  helpSectionGrid: {
+    display: 'grid',
+    gap: 1.5,
+    gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+  } satisfies SxProps<Theme>,
+  helpCard: {
+    border: '1px solid',
+    borderColor: 'divider',
+    borderRadius: 1.8,
+    backgroundColor: 'rgba(44, 42, 39, 0.65)',
+    px: 1.6,
+    py: 1.4,
+    display: 'grid',
+    gap: 0.85,
+    alignContent: 'start',
+  } satisfies SxProps<Theme>,
+  helpCardTitle: {
+    fontWeight: 800,
+    letterSpacing: 0.18,
+  } satisfies SxProps<Theme>,
+  helpCardText: {
+    lineHeight: 1.6,
+  } satisfies SxProps<Theme>,
   historyStatsGrid: {
     display: 'grid',
     gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' },
