@@ -15,7 +15,7 @@ import { uiSx } from './theme';
 
 function App() {
   const auth = useAuth();
-  const stats = useStats(auth.username ?? undefined);
+  const stats = useStats(!auth.loading && auth.isAuthenticated ? (auth.username ?? undefined) : undefined);
   const { refreshStats } = stats;
   const lastSyncedFinishedGameRef = useRef<string | null>(null);
   const [restrictedModalOpen, setRestrictedModalOpen] = useState(false);

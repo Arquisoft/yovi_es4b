@@ -324,7 +324,7 @@ function getFallbackTurnCountdownSeed(
   game: GameStateResponse | null,
   loading: boolean,
 ): number | null {
-  if (!game || game.game_over || game.turn_timeout_remaining_ms !== null || loading) {
+  if (!game || game.game_over || typeof game.turn_timeout_remaining_ms === 'number' || loading) {
     return null;
   }
 
