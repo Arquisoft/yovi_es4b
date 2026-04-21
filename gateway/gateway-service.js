@@ -184,17 +184,36 @@ function loadTlsOptions(env = process.env) {
   };
 }
 
-function buildHttpsOrigin(hostname, httpsPort) {
-  const normalizedHost = normalizeOptionalString(hostname) ?? DEFAULT_REDIRECT_HTTPS_HOST;
-  const portSuffix = httpsPort === 443 ? '' : `:${httpsPort}`;
-  return `https://${normalizedHost}${portSuffix}`;
+function getRedirectHostname(env = process.env) {
+  return (
+    normalizeOptionalString(env.GATEWAY_PUBLIC_HOSTNAME) ??
+    normalizeOptionalString(env.GATEWAY_HTTPS_HOST) ??
+    DEFAULT_REDIRECT_HTTPS_HOST
+  );
 }
 
-function createRedirectApp({ httpsHost = DEFAULT_REDIRECT_HTTPS_HOST, httpsPort = 443 } = {}) {
+function buildHttpsOrigin(hostname, httpsPort) {
+  const normalizedHostname = normalizeOptionalString(hostname) ?? DEFAULT_REDIRECT_HTTPS_HOST;
+  const portSuffix = httpsPort === 443 ? '' : `:${httpsPort}`;
+  return `https://${normalizedHostname}${portSuffix}`;
+}
+
+function normalizeRedirectPath(originalUrl = '/') {
+  if (typeof originalUrl !== 'string' || originalUrl.trim().length === 0) {
+    return '/';
+  }
+
+  const parsedUrl = new URL(originalUrl, 'http://localhost');
+  const normalizedPath = parsedUrl.pathname.startsWith('/') ? parsedUrl.pathname : '/';
+  return `${normalizedPath}${parsedUrl.search}`;
+}
+
+function createRedirectApp({ httpsPort = 443, redirectHostname = DEFAULT_REDIRECT_HTTPS_HOST } = {}) {
   const app = express();
+  const redirectOrigin = buildHttpsOrigin(redirectHostname, httpsPort);
 
   app.use((req, res) => {
-    const destination = `${buildHttpsOrigin(httpsHost, httpsPort)}${req.originalUrl}`;
+    const destination = `${redirectOrigin}${normalizeRedirectPath(req.originalUrl)}`;
     res.redirect(308, destination);
   });
 
@@ -842,11 +861,11 @@ function start({ port = DEFAULT_PORT, env = process.env } = {}) {
 
   let httpServer = null;
   if (parseBoolean(env.HTTP_REDIRECT_ENABLED)) {
-    const redirectHost = normalizeOptionalString(env.GATEWAY_HTTPS_HOST) ?? DEFAULT_REDIRECT_HTTPS_HOST;
+    const redirectHost = getRedirectHostname(env);
     const redirectHttpsPort = normalizeOptionalPort(env.GATEWAY_HTTPS_HOST_PORT) ?? httpsPort;
     const redirectApp = createRedirectApp({
-      httpsHost: redirectHost,
       httpsPort: redirectHttpsPort,
+      redirectHostname: redirectHost,
     });
     httpServer = http.createServer(redirectApp);
     httpServer.listen(port, () => {
@@ -881,10 +900,12 @@ module.exports = {
   createApp,
   createRedirectApp,
   createExternalApiRouter,
+  getRedirectHostname,
   getProxyRoutes,
   getTlsConfig,
   isDirectExecution,
   loadTlsOptions,
+  normalizeRedirectPath,
   pickPlayBotId,
   parseBoolean,
   start,

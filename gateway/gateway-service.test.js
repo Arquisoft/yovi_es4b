@@ -1,5 +1,9 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const http = require('node:http');
+const https = require('node:https');
+const os = require('node:os');
+const path = require('node:path');
 const { once } = require('node:events');
 const test = require('node:test');
 
@@ -9,8 +13,12 @@ const {
   buildHttpsOrigin,
   createApp,
   createRedirectApp,
+  getRedirectHostname,
   getTlsConfig,
+  loadTlsOptions,
+  normalizeRedirectPath,
   parseBoolean,
+  start,
 } = require('./gateway-service');
 
 function noopProxyFactory() {
@@ -63,6 +71,27 @@ async function withJsonServer(handler, run) {
 function jsonResponse(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
+}
+
+function withPatchedMethod(object, methodName, replacement, run) {
+  const originalMethod = object[methodName];
+  object[methodName] = replacement;
+
+  const restore = () => {
+    object[methodName] = originalMethod;
+  };
+
+  try {
+    const result = run();
+    if (result && typeof result.then === 'function') {
+      return result.finally(restore);
+    }
+    restore();
+    return result;
+  } catch (error) {
+    restore();
+    throw error;
+  }
 }
 
 // GET /health returns service status.
@@ -163,6 +192,28 @@ test('getTlsConfig requires both certificate and key paths', () => {
   );
 });
 
+// TLS certificate contents are loaded from disk when HTTPS is configured.
+test('loadTlsOptions reads certificate files from disk', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-tls-'));
+  const certPath = path.join(tempDir, 'server.crt');
+  const keyPath = path.join(tempDir, 'server.key');
+
+  fs.writeFileSync(certPath, 'certificate-data');
+  fs.writeFileSync(keyPath, 'key-data');
+
+  assert.deepEqual(
+    loadTlsOptions({
+      HTTPS_CERT_PATH: certPath,
+      HTTPS_KEY_PATH: keyPath,
+    }),
+    {
+      cert: Buffer.from('certificate-data'),
+      key: Buffer.from('key-data'),
+    },
+  );
+  assert.equal(loadTlsOptions({}), null);
+});
+
 // Boolean env parsing accepts common truthy values.
 test('parseBoolean understands common truthy and falsy values', () => {
   assert.equal(parseBoolean(undefined), false);
@@ -173,22 +224,117 @@ test('parseBoolean understands common truthy and falsy values', () => {
 
 // HTTP redirects preserve path and query string while targeting HTTPS.
 test('createRedirectApp redirects requests to the configured HTTPS port', async () => {
-  const redirectApp = createRedirectApp({ httpsHost: 'localhost', httpsPort: 8443 });
+  const redirectApp = createRedirectApp({
+    httpsPort: 8443,
+    redirectHostname: 'gateway.example.com',
+  });
 
   await withServer(redirectApp, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/auth/login?next=dashboard`, {
       redirect: 'manual',
+      headers: {
+        Host: 'malicious.example.net',
+      },
     });
 
     assert.equal(response.status, 308);
-    assert.equal(response.headers.get('location'), 'https://localhost:8443/auth/login?next=dashboard');
+    assert.equal(response.headers.get('location'), 'https://gateway.example.com:8443/auth/login?next=dashboard');
   });
+});
+
+// Redirect hostnames come from trusted server configuration only.
+test('getRedirectHostname falls back to localhost when unset', () => {
+  assert.equal(getRedirectHostname({}), 'localhost');
+  assert.equal(getRedirectHostname({ GATEWAY_PUBLIC_HOSTNAME: 'gateway.example.com' }), 'gateway.example.com');
+  assert.equal(getRedirectHostname({ GATEWAY_HTTPS_HOST: 'legacy.example.com' }), 'legacy.example.com');
+});
+
+// Redirect paths are normalized as relative paths before building Location headers.
+test('normalizeRedirectPath preserves path and query string', () => {
+  assert.equal(normalizeRedirectPath('/auth/login?next=dashboard'), '/auth/login?next=dashboard');
+  assert.equal(normalizeRedirectPath(''), '/');
+  assert.equal(normalizeRedirectPath('https://malicious.example/path?q=1'), '/path?q=1');
 });
 
 // Standard HTTPS omits the port suffix in redirect targets.
 test('buildHttpsOrigin omits port 443 and preserves other ports', () => {
   assert.equal(buildHttpsOrigin('example.com', 443), 'https://example.com');
-  assert.equal(buildHttpsOrigin('gateway.local', 8443), 'https://gateway.local:8443');
+  assert.equal(buildHttpsOrigin('example.com', 8443), 'https://example.com:8443');
+});
+
+// start falls back to plain HTTP when TLS is not configured.
+test('start listens over HTTP when TLS is disabled', async () => {
+  const { httpServer, httpsServer } = start({
+    port: 0,
+    env: {
+      PORT: '0',
+    },
+  });
+
+  try {
+    await once(httpServer, 'listening');
+    assert.ok(httpServer.address().port > 0);
+    assert.equal(httpsServer, null);
+  } finally {
+    await new Promise((resolve) => httpServer.close(resolve));
+  }
+});
+
+// start creates HTTPS and redirect servers when TLS and redirects are enabled.
+test('start listens over HTTPS and starts redirect server when configured', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-start-'));
+  const certPath = path.join(tempDir, 'server.crt');
+  const keyPath = path.join(tempDir, 'server.key');
+
+  fs.writeFileSync(certPath, 'certificate-data');
+  fs.writeFileSync(keyPath, 'key-data');
+
+  const createdHttpServers = [];
+  const createdHttpsServers = [];
+
+  const createStubServer = () => ({
+    listenCalls: [],
+    listen(port, callback) {
+      this.listenCalls.push(port);
+      callback?.();
+    },
+  });
+
+  await withPatchedMethod(http, 'createServer', (app) => {
+    const server = createStubServer();
+    server.app = app;
+    createdHttpServers.push(server);
+    return server;
+  }, async () => withPatchedMethod(https, 'createServer', (tlsOptions, app) => {
+    const server = createStubServer();
+    server.tlsOptions = tlsOptions;
+    server.app = app;
+    createdHttpsServers.push(server);
+    return server;
+  }, async () => {
+    const result = start({
+      port: 8080,
+      env: {
+        HTTPS_CERT_PATH: certPath,
+        HTTPS_KEY_PATH: keyPath,
+        HTTPS_PORT: '8443',
+        HTTP_REDIRECT_ENABLED: 'true',
+        GATEWAY_PUBLIC_HOSTNAME: 'gateway.example.com',
+        GATEWAY_HTTPS_HOST_PORT: '443',
+      },
+    });
+
+    assert.equal(createdHttpsServers.length, 1);
+    assert.equal(createdHttpServers.length, 1);
+    assert.deepEqual(createdHttpsServers[0].tlsOptions, {
+      cert: Buffer.from('certificate-data'),
+      key: Buffer.from('key-data'),
+    });
+    assert.deepEqual(createdHttpsServers[0].listenCalls, [8443]);
+    assert.deepEqual(createdHttpServers[0].listenCalls, [8080]);
+    assert.equal(result.httpServer, createdHttpServers[0]);
+    assert.equal(result.httpsServer, createdHttpsServers[0]);
+  }));
 });
 
 // The external OpenAPI document is served by the gateway.
