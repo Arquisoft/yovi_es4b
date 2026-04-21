@@ -151,7 +151,7 @@ function formatHumanOpponentLabel(userId: string | null): string {
 
 function normalizeUserId(userId: string | null | undefined): string | null {
   const normalizedUserId = userId?.trim();
-  return normalizedUserId ? normalizedUserId : null;
+  return normalizedUserId || null;
 }
 
 function normalizeComparableUserId(userId: string | null | undefined): string | null {
@@ -492,9 +492,11 @@ function getTurnCountdownPresentation(
 }
 
 function getTurnCountdownTotalMs(displayedServerTurnTimeoutRemainingMs: number | null): number {
-  return displayedServerTurnTimeoutRemainingMs !== null
-    ? ONLINE_TURN_TIMEOUT_TOTAL_MS
-    : LOCAL_TURN_TIMEOUT_TOTAL_MS;
+  if (displayedServerTurnTimeoutRemainingMs === null) {
+    return LOCAL_TURN_TIMEOUT_TOTAL_MS;
+  }
+
+  return ONLINE_TURN_TIMEOUT_TOTAL_MS;
 }
 
 function getActiveCountdownCardProps(

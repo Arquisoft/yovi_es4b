@@ -173,7 +173,7 @@ test('parseBoolean understands common truthy and falsy values', () => {
 
 // HTTP redirects preserve path and query string while targeting HTTPS.
 test('createRedirectApp redirects requests to the configured HTTPS port', async () => {
-  const redirectApp = createRedirectApp({ httpsPort: 8443 });
+  const redirectApp = createRedirectApp({ httpsHost: 'localhost', httpsPort: 8443 });
 
   await withServer(redirectApp, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/auth/login?next=dashboard`, {
@@ -181,14 +181,14 @@ test('createRedirectApp redirects requests to the configured HTTPS port', async 
     });
 
     assert.equal(response.status, 308);
-    assert.equal(response.headers.get('location'), 'https://127.0.0.1:8443/auth/login?next=dashboard');
+    assert.equal(response.headers.get('location'), 'https://localhost:8443/auth/login?next=dashboard');
   });
 });
 
 // Standard HTTPS omits the port suffix in redirect targets.
 test('buildHttpsOrigin omits port 443 and preserves other ports', () => {
-  assert.equal(buildHttpsOrigin('example.com:80', 443), 'https://example.com');
-  assert.equal(buildHttpsOrigin('example.com:8080', 8443), 'https://example.com:8443');
+  assert.equal(buildHttpsOrigin('example.com', 443), 'https://example.com');
+  assert.equal(buildHttpsOrigin('gateway.local', 8443), 'https://gateway.local:8443');
 });
 
 // The external OpenAPI document is served by the gateway.
