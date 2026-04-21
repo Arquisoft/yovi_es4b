@@ -155,7 +155,8 @@ function encodeApiPathSegment(value: string, label: string): string {
 
 function buildGameUrl(gameId: string, action?: 'moves' | 'resign' | 'pass'): string {
   const encodedGameId = encodeApiPathSegment(gameId, 'gameId');
-  return buildApiUrl(`/v1/games/${encodedGameId}${action ? `/${action}` : ''}`);
+  const actionSuffix = action ? `/${action}` : '';
+  return buildApiUrl(`/v1/games/${encodedGameId}${actionSuffix}`);
 }
 
 function buildBotChooseUrl(botId: string): string {
@@ -164,7 +165,8 @@ function buildBotChooseUrl(botId: string): string {
 
 function buildMatchmakingTicketUrl(ticketId: string, action?: 'cancel'): string {
   const encodedTicketId = encodeApiPathSegment(ticketId, 'ticketId');
-  return buildApiUrl(`/v1/matchmaking/tickets/${encodedTicketId}${action ? `/${action}` : ''}`);
+  const actionSuffix = action ? `/${action}` : '';
+  return buildApiUrl(`/v1/matchmaking/tickets/${encodedTicketId}${actionSuffix}`);
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {

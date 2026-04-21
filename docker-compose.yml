@@ -51,6 +51,9 @@ services:
       - PORT=${PORT:-8080}
       - HTTPS_PORT=${HTTPS_PORT:-8443}
       - HTTP_REDIRECT_ENABLED=${HTTP_REDIRECT_ENABLED:-false}
+      - GATEWAY_HTTPS_HOST=${GATEWAY_HTTPS_HOST:-localhost}
+      - GATEWAY_PUBLIC_HOSTNAME=${GATEWAY_PUBLIC_HOSTNAME:-localhost}
+      - GATEWAY_HTTPS_HOST_PORT=${GATEWAY_HTTPS_HOST_PORT:-443}
       - HTTPS_CERT_PATH=${HTTPS_CERT_PATH:-/app/certs/server.crt}
       - HTTPS_KEY_PATH=${HTTPS_KEY_PATH:-/app/certs/server.key}
       - WEBAPP_SERVICE_URL=http://webapp:80

@@ -246,6 +246,7 @@ test('createRedirectApp redirects requests to the configured HTTPS port', async 
 test('getRedirectHostname falls back to localhost when unset', () => {
   assert.equal(getRedirectHostname({}), 'localhost');
   assert.equal(getRedirectHostname({ GATEWAY_PUBLIC_HOSTNAME: 'gateway.example.com' }), 'gateway.example.com');
+  assert.equal(getRedirectHostname({ GATEWAY_HTTPS_HOST: 'legacy.example.com' }), 'legacy.example.com');
 });
 
 // Redirect paths are normalized as relative paths before building Location headers.
@@ -319,6 +320,7 @@ test('start listens over HTTPS and starts redirect server when configured', asyn
         HTTPS_PORT: '8443',
         HTTP_REDIRECT_ENABLED: 'true',
         GATEWAY_PUBLIC_HOSTNAME: 'gateway.example.com',
+        GATEWAY_HTTPS_HOST_PORT: '443',
       },
     });
 
