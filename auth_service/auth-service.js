@@ -3,15 +3,17 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const promBundle = require('express-prom-bundle');
+const { createPrometheusMetrics } = require('./prometheus-metrics');
 
 const User = require('./models/user');
 
 const app = express();
 const port = Number(process.env.PORT ?? 3500);
+const metrics = createPrometheusMetrics({ serviceName: 'auth' });
 
 app.use(express.json());
-app.use(promBundle({ includeMethod: true }));
+app.use(metrics.middleware);
+app.get('/metrics', metrics.handler);
 
 const MONGO_AUTH_DB = process.env.MONGO_AUTH_DB ?? 'mongodb://mongo-auth:27017/auth';
 const JWT_SECRET = process.env.JWT_SECRET;

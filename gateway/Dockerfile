@@ -5,6 +5,7 @@ COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --silent
 
 COPY gateway-service.js ./
+COPY prometheus-metrics.js ./
 COPY external-api-spec.json ./
 
 EXPOSE 8080

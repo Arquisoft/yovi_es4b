@@ -120,6 +120,8 @@ This command will build the Docker images and start the full stack behind the ga
 - Gamey API (through gateway): [https://localhost/api/v1/games](https://localhost/api/v1/games)
 - External bot API documentation (through gateway): [https://localhost/external/docs](https://localhost/external/docs)
 - External bot OpenAPI contract (through gateway): [https://localhost/external/docs/openapi.json](https://localhost/external/docs/openapi.json)
+- Prometheus: [http://localhost:9090](http://localhost:9090)
+- Grafana: [http://localhost:9091](http://localhost:9091)
 
 ### HTTPS in the gateway
 
@@ -165,6 +167,25 @@ docker-compose up --build -d
 ```
 
 With that configuration there is no duplicate use of port `80`, because the only container binding that host port is the `gateway`.
+
+### Monitoring and dashboards
+
+The Docker Compose environment also provisions a monitoring stack:
+
+- `Prometheus` scrapes `/metrics` from `gateway`, `auth`, `stats`, and `gamey`
+- `Grafana` is automatically provisioned with the Prometheus datasource
+- A starter dashboard named `Yovi Observability` is loaded on startup
+
+Useful URLs:
+
+- Prometheus UI: `http://localhost:9090`
+- Grafana UI: `http://localhost:9091`
+
+The metrics exposed by the services include:
+
+- HTTP traffic counters and request-duration aggregates
+- Process uptime and memory gauges for Node.js services
+- Gamey domain gauges and counters for active games, matchmaking, and stats reporting
 
 ### Without Docker
 

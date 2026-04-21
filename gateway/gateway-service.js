@@ -6,6 +6,7 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const externalApiSpec = require('./external-api-spec.json');
+const { createPrometheusMetrics } = require('./prometheus-metrics');
 
 const DEFAULT_PORT = Number(process.env.PORT ?? 8080);
 const DEFAULT_EXTERNAL_BOT_ID = 'random_bot';
@@ -824,10 +825,14 @@ function createApp({
 } = {}) {
   const app = express();
   const proxyRoutes = getProxyRoutes(env);
+  const metrics = createPrometheusMetrics({ serviceName: 'gateway' });
+
+  app.use(metrics.middleware);
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
+  app.get('/metrics', metrics.handler);
 
   app.use('/external', createExternalApiRouter({ env, fetchImpl, spec }));
 

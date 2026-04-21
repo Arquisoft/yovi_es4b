@@ -168,6 +168,6 @@ From an operational perspective:
 
  - Logs are written to standard output.
 
- - No monitoring or automated scaling is currently implemented.
+ - Prometheus and Grafana are available in the Docker Compose environment to monitor service metrics and dashboards.
 
 The operational model favors simplicity and transparency over production-level optimization.

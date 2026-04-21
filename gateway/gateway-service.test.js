@@ -107,6 +107,23 @@ test('GET /health returns service status', async () => {
   });
 });
 
+// GET /metrics exposes Prometheus metrics after traffic is observed.
+test('GET /metrics exposes Prometheus metrics for gateway requests', async () => {
+  const { app } = createApp({ proxyFactory: noopProxyFactory });
+
+  await withServer(app, async (baseUrl) => {
+    await fetch(`${baseUrl}/health`);
+
+    const response = await fetch(`${baseUrl}/metrics`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /# TYPE yovi_http_requests_total counter/);
+    assert.match(body, /yovi_http_requests_total\{service="gateway",method="GET",route="\/health",status="200"\} 1/);
+    assert.match(body, /yovi_process_uptime_seconds\{service="gateway"\}/);
+  });
+});
+
 // createApp sets expected proxy configuration for each route.
 test('createApp sets expected proxy configuration for each route', () => {
   const capturedConfigs = [];

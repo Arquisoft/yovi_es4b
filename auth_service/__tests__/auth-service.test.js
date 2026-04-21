@@ -119,3 +119,16 @@ describe('GET /health', () => {
     expect(res.body.status).toBe('ok')
   })
 })
+
+describe('GET /metrics', () => {
+  it('returns Prometheus metrics after serving traffic', async () => {
+    await request(app).get('/health')
+
+    const res = await request(app).get('/metrics')
+
+    expect(res.status).toBe(200)
+    expect(res.text).toMatch(/# TYPE yovi_http_requests_total counter/)
+    expect(res.text).toMatch(/yovi_http_requests_total\{service="auth",method="GET",route="\/health",status="200"\} 1/)
+    expect(res.text).toMatch(/yovi_process_resident_memory_bytes\{service="auth"\}/)
+  })
+})

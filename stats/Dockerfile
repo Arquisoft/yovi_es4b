@@ -5,6 +5,7 @@ COPY package.json ./
 RUN npm install --omit=dev --silent
 
 COPY stats-service.js ./
+COPY prometheus-metrics.js ./
 
 EXPOSE 3001
 CMD ["node", "stats-service.js"]
