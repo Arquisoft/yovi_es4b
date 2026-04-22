@@ -123,21 +123,23 @@ This command will build the Docker images and start the full stack behind the ga
 - Prometheus: [http://localhost:9090](http://localhost:9090)
 - Grafana: [http://localhost:9091](http://localhost:9091)
 
-### HTTPS in the gateway
+### HTTPS certificates
 
-The public entry point is the `gateway`. HTTPS is terminated there, while internal traffic to `webapp`, `auth`, `gamey`, and `stats` remains plain HTTP inside Docker.
+The public entry point is the `gateway`. HTTPS is configured there, while internal traffic to `webapp`, `auth`, `gamey`, and `stats` remains inside Docker.
 
 For local development, the Docker Compose stack now starts the gateway in plain HTTP on `http://localhost:8080` unless you explicitly provide both TLS paths. This keeps Prometheus scraping and manual testing working out of the box.
 
 Certificate placement:
 
-- Put the public certificate in `gateway/certs/server.crt`
-- Put the private key in `gateway/certs/server.key`
+- The public certificate is in `gateway/certs/server.crt`
+- The private key is in `gateway/certs/server.key`
 
-These files are mounted into the container at `/app/certs` and used by the gateway through:
+These files are mounted into the container at `/app/certs` and loaded by the gateway with the default Docker Compose configuration.
 
 - `HTTPS_CERT_PATH=/app/certs/server.crt`
 - `HTTPS_KEY_PATH=/app/certs/server.key`
+
+For local development, self-signed certificates can be used.
 
 If both values are left empty, the gateway falls back to HTTP and Prometheus scrapes `http://gateway:8080/metrics`.
 
