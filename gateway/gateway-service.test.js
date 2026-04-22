@@ -10,13 +10,14 @@ const test = require('node:test');
 const {
   DEFAULT_EXTERNAL_BOT_ID,
   applyBotMoveToYen,
+  buildRedirectDestination,
   buildHttpsOrigin,
   createApp,
   createRedirectApp,
   getRedirectHostname,
   getTlsConfig,
   loadTlsOptions,
-  normalizeRedirectPath,
+  sanitizeRedirectPath,
   parseBoolean,
   start,
 } = require('./gateway-service');
@@ -104,6 +105,23 @@ test('GET /health returns service status', async () => {
 
     assert.equal(response.status, 200);
     assert.deepEqual(body, { status: 'ok' });
+  });
+});
+
+// GET /metrics exposes Prometheus metrics after traffic is observed.
+test('GET /metrics exposes Prometheus metrics for gateway requests', async () => {
+  const { app } = createApp({ proxyFactory: noopProxyFactory });
+
+  await withServer(app, async (baseUrl) => {
+    await fetch(`${baseUrl}/health`);
+
+    const response = await fetch(`${baseUrl}/metrics`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /# TYPE yovi_http_requests_total counter/);
+    assert.match(body, /yovi_http_requests_total\{service="gateway",method="GET",route="\/health",status="200"\} 1/);
+    assert.match(body, /yovi_process_uptime_seconds\{service="gateway"\}/);
   });
 });
 
@@ -222,7 +240,7 @@ test('parseBoolean understands common truthy and falsy values', () => {
   assert.equal(parseBoolean('yes'), true);
 });
 
-// HTTP redirects preserve path and query string while targeting HTTPS.
+// HTTP redirects preserve safe path segments while always targeting trusted HTTPS origins.
 test('createRedirectApp redirects requests to the configured HTTPS port', async () => {
   const redirectApp = createRedirectApp({
     httpsPort: 8443,
@@ -238,7 +256,7 @@ test('createRedirectApp redirects requests to the configured HTTPS port', async 
     });
 
     assert.equal(response.status, 308);
-    assert.equal(response.headers.get('location'), 'https://gateway.example.com:8443/auth/login?next=dashboard');
+    assert.equal(response.headers.get('location'), 'https://gateway.example.com:8443/auth/login');
   });
 });
 
@@ -249,11 +267,34 @@ test('getRedirectHostname falls back to localhost when unset', () => {
   assert.equal(getRedirectHostname({ GATEWAY_HTTPS_HOST: 'legacy.example.com' }), 'legacy.example.com');
 });
 
-// Redirect paths are normalized as relative paths before building Location headers.
-test('normalizeRedirectPath preserves path and query string', () => {
-  assert.equal(normalizeRedirectPath('/auth/login?next=dashboard'), '/auth/login?next=dashboard');
-  assert.equal(normalizeRedirectPath(''), '/');
-  assert.equal(normalizeRedirectPath('https://malicious.example/path?q=1'), '/path?q=1');
+// Redirect paths are reduced to safe relative paths before building Location headers.
+test('sanitizeRedirectPath preserves only safe path segments', () => {
+  assert.equal(sanitizeRedirectPath('/auth/login'), '/auth/login');
+  assert.equal(sanitizeRedirectPath('/play/123e4567-e89b-12d3-a456-426614174000'), '/play/123e4567-e89b-12d3-a456-426614174000');
+  assert.equal(sanitizeRedirectPath(''), '/');
+  assert.equal(sanitizeRedirectPath('https://malicious.example/path'), '/');
+  assert.equal(sanitizeRedirectPath('/../login'), '/');
+  assert.equal(sanitizeRedirectPath('/auth/%2Fsecret'), '/');
+});
+
+// Redirect destinations are always rebuilt from trusted server settings.
+test('buildRedirectDestination ignores user-controlled query strings and unsafe paths', () => {
+  assert.equal(
+    buildRedirectDestination({
+      redirectHostname: 'gateway.example.com',
+      httpsPort: 8443,
+      requestPath: '/auth/login',
+    }),
+    'https://gateway.example.com:8443/auth/login',
+  );
+  assert.equal(
+    buildRedirectDestination({
+      redirectHostname: 'gateway.example.com',
+      httpsPort: 8443,
+      requestPath: '/%2F%2Fevil.example',
+    }),
+    'https://gateway.example.com:8443/',
+  );
 });
 
 // Standard HTTPS omits the port suffix in redirect targets.

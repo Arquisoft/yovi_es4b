@@ -44,6 +44,64 @@ async fn test_status_endpoint_returns_ok() {
     assert_eq!(&body[..], b"OK");
 }
 
+#[tokio::test]
+async fn test_metrics_endpoint_reports_http_traffic_and_game_counters() {
+    let app = test_app();
+
+    let status_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/status")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(status_response.status(), StatusCode::OK);
+
+    let create_game_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/games")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"size":3}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(create_game_response.status(), StatusCode::OK);
+
+    let metrics_response = app
+        .oneshot(
+            Request::builder()
+                .uri("/metrics")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(metrics_response.status(), StatusCode::OK);
+
+    let body = metrics_response
+        .into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let metrics_text = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(metrics_text.contains(r#"yovi_http_requests_total{service="gamey",method="GET",route="/status",status="200"} 1"#));
+    assert!(metrics_text.contains(r#"yovi_http_requests_total{service="gamey",method="POST",route="/{api_version}/games",status="200"} 1"#));
+    assert!(metrics_text.contains(r#"yovi_gamey_games_created_total{service="gamey"} 1"#));
+    assert!(metrics_text.contains(r#"yovi_gamey_ongoing_games{service="gamey"} 1"#));
+}
+
 // ============================================================================
 // Choose endpoint tests - Success cases
 // ============================================================================

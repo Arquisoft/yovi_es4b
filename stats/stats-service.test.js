@@ -231,6 +231,25 @@ test('createApp requires injected collections', () => {
   assert.throws(() => createApp({}), /Stats collections are required/);
 });
 
+// health and metrics endpoints expose service status and Prometheus data.
+test('GET /health and /metrics expose operational telemetry', async () => {
+  const collections = createInMemoryCollections();
+  const app = createApp({ internalToken: 'test-token', ...collections });
+
+  await withServer(app, async (baseUrl) => {
+    const health = await requestJson(baseUrl, '/health');
+    const metricsResponse = await fetch(`${baseUrl}/metrics`);
+    const metricsBody = await metricsResponse.text();
+
+    assert.equal(health.status, 200);
+    assert.deepEqual(health.body, { status: 'ok', service: 'stats' });
+    assert.equal(metricsResponse.status, 200);
+    assert.match(metricsBody, /# TYPE yovi_http_requests_total counter/);
+    assert.match(metricsBody, /yovi_http_requests_total\{service="stats",method="GET",route="\/health",status="200"\} 1/);
+    assert.match(metricsBody, /yovi_process_heap_used_bytes\{service="stats"\}/);
+  });
+});
+
 // connectToMongo builds collections and indexes with injected client.
 test('connectToMongo builds collections and indexes with injected client', async () => {
   const createIndexCalls = [];

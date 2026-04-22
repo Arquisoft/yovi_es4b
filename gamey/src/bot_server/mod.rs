@@ -23,8 +23,10 @@ pub mod choose;
 pub mod error;
 pub mod games;
 pub mod matchmaking;
+pub mod metrics;
 pub mod state;
 pub mod version;
+use axum::middleware;
 use axum::response::IntoResponse;
 pub use choose::MoveResponse;
 pub use error::ErrorResponse;
@@ -38,8 +40,11 @@ use crate::{BiasedRandomBot, GameYError, GreedyBot, MinimaxBot, RandomBot, YBotR
 ///
 /// This is useful for testing the API without binding to a network port.
 pub fn create_router(state: AppState) -> axum::Router {
+    let metrics_state = state.clone();
+
     axum::Router::new()
         .route("/status", axum::routing::get(status))
+        .route("/metrics", axum::routing::get(metrics::render_metrics))
         .route(
             "/{api_version}/ybot/choose/{bot_id}",
             axum::routing::post(choose::choose),
@@ -77,6 +82,10 @@ pub fn create_router(state: AppState) -> axum::Router {
             axum::routing::post(matchmaking::cancel_ticket),
         )
         .with_state(state)
+        .layer(middleware::from_fn_with_state(
+            metrics_state,
+            metrics::track_http_metrics,
+        ))
 }
 
 /// Creates the default application state with the standard bot registry.

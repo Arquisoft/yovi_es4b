@@ -1,20 +1,27 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const { randomBytes, scrypt: scryptCallback, timingSafeEqual } = require('node:crypto');
 const jwt = require('jsonwebtoken');
-const promBundle = require('express-prom-bundle');
+const { promisify } = require('node:util');
+const { createPrometheusMetrics } = require('./prometheus-metrics');
 
 const User = require('./models/user');
 
 const app = express();
 const port = Number(process.env.PORT ?? 3500);
+const metrics = createPrometheusMetrics({ serviceName: 'auth' });
+app.locals.metrics = metrics;
 
 app.use(express.json());
-app.use(promBundle({ includeMethod: true }));
+app.use(metrics.middleware);
+app.get('/metrics', metrics.handler);
 
 const MONGO_AUTH_DB = process.env.MONGO_AUTH_DB ?? 'mongodb://mongo-auth:27017/auth';
 const JWT_SECRET = process.env.JWT_SECRET;
+const SCRYPT_KEY_LENGTH = 64;
+const SCRYPT_PREFIX = 'scrypt';
+const scrypt = promisify(scryptCallback);
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET environment variable is not set');
   process.exit(1);
@@ -32,6 +39,30 @@ mongoose.connect(MONGO_AUTH_DB, { autoIndex: true })
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+}
+
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  const derivedKey = await scrypt(password, salt, SCRYPT_KEY_LENGTH);
+
+  return `${SCRYPT_PREFIX}$${salt}$${Buffer.from(derivedKey).toString('hex')}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const [algorithm, salt, expectedHash] = String(storedHash ?? '').split('$');
+  if (algorithm !== SCRYPT_PREFIX || !salt || !expectedHash) {
+    return false;
+  }
+
+  const derivedKey = await scrypt(password, salt, SCRYPT_KEY_LENGTH);
+  const expectedBuffer = Buffer.from(expectedHash, 'hex');
+  const actualBuffer = Buffer.from(derivedKey);
+
+  if (expectedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
 function authMiddleware(req, res, next) {
@@ -66,7 +97,7 @@ app.post('/register', async (req, res) => {
       return res.status(409).json({ message: 'username already exists' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await hashPassword(password);
     const user = await User.create({ username, passwordHash });
 
     const token = signToken({ id: user._id.toString(), username: user.username });
@@ -96,7 +127,7 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'invalid username or password' });
     }
 
-    const match = await bcrypt.compare(password, user.passwordHash);
+    const match = await verifyPassword(password, user.passwordHash);
     if (!match) {
       return res.status(401).json({ message: 'invalid username or password' });
     }

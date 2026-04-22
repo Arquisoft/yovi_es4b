@@ -5,12 +5,23 @@ const USER_KEY = 'authUsername';
 const GUEST_SESSION_ID_KEY = 'guestSessionId';
 const GUEST_USERNAME = 'Usuario anonimo';
 
+function generateSecureRandomHex(byteLength = 16): string {
+  if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') {
+    throw new Error('Secure crypto API is required to create guest sessions');
+  }
+
+  const randomBytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(randomBytes);
+
+  return Array.from(randomBytes, (value) => value.toString(16).padStart(2, '0')).join('');
+}
+
 function generateGuestSessionId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `guest-${crypto.randomUUID()}`;
   }
 
-  return `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return `guest-${generateSecureRandomHex()}`;
 }
 
 function getStoredGuestSessionId(): string | null {
