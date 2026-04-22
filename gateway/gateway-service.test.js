@@ -12,6 +12,7 @@ const {
   applyBotMoveToYen,
   buildRedirectDestination,
   buildHttpsOrigin,
+  createSelfSignedTlsOptions,
   createApp,
   createRedirectApp,
   getRedirectHostname,
@@ -211,7 +212,7 @@ test('getTlsConfig requires both certificate and key paths', () => {
 });
 
 // TLS certificate contents are loaded from disk when HTTPS is configured.
-test('loadTlsOptions reads certificate files from disk', () => {
+test('loadTlsOptions reads certificate files from disk', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-tls-'));
   const certPath = path.join(tempDir, 'server.crt');
   const keyPath = path.join(tempDir, 'server.key');
@@ -220,7 +221,7 @@ test('loadTlsOptions reads certificate files from disk', () => {
   fs.writeFileSync(keyPath, 'key-data');
 
   assert.deepEqual(
-    loadTlsOptions({
+    await loadTlsOptions({
       HTTPS_CERT_PATH: certPath,
       HTTPS_KEY_PATH: keyPath,
     }),
@@ -229,7 +230,25 @@ test('loadTlsOptions reads certificate files from disk', () => {
       key: Buffer.from('key-data'),
     },
   );
-  assert.equal(loadTlsOptions({}), null);
+  assert.equal(await loadTlsOptions({}), null);
+});
+
+// loadTlsOptions can generate a self-signed certificate for local HTTPS.
+test('loadTlsOptions generates self-signed certificate when enabled', async () => {
+  const tlsOptions = await loadTlsOptions({ LOCAL_HTTPS_SELF_SIGNED: 'true' });
+
+  assert.equal(typeof tlsOptions.cert, 'string');
+  assert.equal(typeof tlsOptions.key, 'string');
+  assert.match(tlsOptions.cert, /BEGIN CERTIFICATE/);
+  assert.match(tlsOptions.key, /BEGIN PRIVATE KEY/);
+});
+
+// createSelfSignedTlsOptions returns a certificate/key pair usable by HTTPS server.
+test('createSelfSignedTlsOptions returns a valid certificate pair', async () => {
+  const tlsOptions = await createSelfSignedTlsOptions();
+
+  assert.match(tlsOptions.cert, /BEGIN CERTIFICATE/);
+  assert.match(tlsOptions.key, /BEGIN PRIVATE KEY/);
 });
 
 // Boolean env parsing accepts common truthy values.
@@ -305,7 +324,7 @@ test('buildHttpsOrigin omits port 443 and preserves other ports', () => {
 
 // start falls back to plain HTTP when TLS is not configured.
 test('start listens over HTTP when TLS is disabled', async () => {
-  const { httpServer, httpsServer } = start({
+  const { httpServer, httpsServer } = await start({
     port: 0,
     env: {
       PORT: '0',
@@ -353,7 +372,7 @@ test('start listens over HTTPS and starts redirect server when configured', asyn
     createdHttpsServers.push(server);
     return server;
   }, async () => {
-    const result = start({
+    const result = await start({
       port: 8080,
       env: {
         HTTPS_CERT_PATH: certPath,

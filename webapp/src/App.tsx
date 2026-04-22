@@ -14,6 +14,11 @@ import HelpView from './views/HelpView';
 import { uiSx } from './theme';
 
 function App() {
+  const licenseText = `Creative Commons Attribution Share Alike
+FontStruct is a trademark of FSI FontShop International GmbH
+Copyright Andrew McCluskey 2015
+http://creativecommons.org/licenses/by-sa/3.0/`;
+
   const auth = useAuth();
   const stats = useStats(!auth.loading && auth.isAuthenticated ? (auth.username ?? undefined) : undefined);
   const { refreshStats } = stats;
@@ -159,11 +164,14 @@ function App() {
   }
 
   return (
-    <Box sx={uiSx.appShell}>
+    <Box className="glitch-page" sx={uiSx.appShell}>
+      <Box className="glitch-background">
+        <pre>{licenseText}</pre>
+      </Box>
       <Box sx={uiSx.appHeader}>
         <Box sx={uiSx.appHeaderUserRow}>
           <Typography component="button" type="button" sx={uiSx.appHeaderTitleLink} onClick={handleOpenHome}>
-            GAME Y
+            Creative Commons Attribution Share Alike
           </Typography>
 
           {auth.hasSession ? (

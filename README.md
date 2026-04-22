@@ -115,11 +115,11 @@ docker-compose up --build
 This command will build the Docker images and start the full stack behind the gateway.
 
 2.**Access the application:**
-- Web application (default local setup, HTTP): [http://localhost:8080](http://localhost:8080)
-- Auth API (through gateway, default local setup): [http://localhost:8080/auth/register](http://localhost:8080/auth/register), [http://localhost:8080/auth/login](http://localhost:8080/auth/login), [http://localhost:8080/auth/verify](http://localhost:8080/auth/verify)
-- Gamey API (through gateway, default local setup): [http://localhost:8080/api/v1/games](http://localhost:8080/api/v1/games)
-- External bot API documentation (through gateway, default local setup): [http://localhost:8080/external/docs](http://localhost:8080/external/docs)
-- External bot OpenAPI contract (through gateway, default local setup): [http://localhost:8080/external/docs/openapi.json](http://localhost:8080/external/docs/openapi.json)
+- Web application (default local setup, HTTPS): [https://localhost](https://localhost)
+- Auth API (through gateway, default local setup): [https://localhost/auth/register](https://localhost/auth/register), [https://localhost/auth/login](https://localhost/auth/login), [https://localhost/auth/verify](https://localhost/auth/verify)
+- Gamey API (through gateway, default local setup): [https://localhost/api/v1/games](https://localhost/api/v1/games)
+- External bot API documentation (through gateway, default local setup): [https://localhost/external/docs](https://localhost/external/docs)
+- External bot OpenAPI contract (through gateway, default local setup): [https://localhost/external/docs/openapi.json](https://localhost/external/docs/openapi.json)
 - Prometheus: [http://localhost:9090](http://localhost:9090)
 - Grafana: [http://localhost:9091](http://localhost:9091)
 
@@ -127,7 +127,9 @@ This command will build the Docker images and start the full stack behind the ga
 
 The public entry point is the `gateway`. HTTPS is configured there, while internal traffic to `webapp`, `auth`, `gamey`, and `stats` remains inside Docker.
 
-For local development, the Docker Compose stack now starts the gateway in plain HTTP on `http://localhost:8080` unless you explicitly provide both TLS paths. This keeps Prometheus scraping and manual testing working out of the box.
+For local development, the Docker Compose stack starts the gateway with HTTPS on `https://localhost` by default. If no certificate files are provided, the gateway generates a local self-signed certificate automatically.
+
+For Azure production deployments (HTTPS-only on standard port 443), use `docker-compose.azure.yml` as an override on top of `docker-compose.yml`.
 
 Certificate placement:
 
@@ -143,15 +145,20 @@ For local development, self-signed certificates can be used.
 
 If both values are left empty, the gateway falls back to HTTP and Prometheus scrapes `http://gateway:8080/metrics`.
 
-Default Docker ports:
+Default Docker ports (local development):
+
+- Host `443` -> gateway HTTPS listener (default entry point)
+- Host `80` -> gateway HTTP listener (automatic redirect to HTTPS)
+
+Azure HTTPS-only deployment ports (with `docker-compose.azure.yml`):
 
 - Host `443` -> gateway HTTPS listener
-- Host `8080` -> gateway HTTP listener
+- Host `80` stays bound to loopback only (`127.0.0.1`) so it is not publicly reachable
 
 Important deployment note:
 
-- If you do not want HTTP at all, set `HTTP_REDIRECT_ENABLED=false` and do not use host port `80`.
-- If you want automatic redirect from HTTP to HTTPS, set `HTTP_REDIRECT_ENABLED=true` and map host `80` to the gateway HTTP listener instead of exposing that port from any other service.
+- If you want automatic redirect from HTTP to HTTPS (TLS terminated in the gateway), set `HTTP_REDIRECT_ENABLED=true`.
+- If TLS is terminated by the platform (for example Azure App Service/Front Door), set `ENFORCE_HTTPS=true` so requests that arrive as plain HTTP are redirected to HTTPS using forwarded headers.
 - Only the `gateway` should publish public web ports. `webapp` must stay internal to avoid port conflicts.
 
 Recommended VM setup without risking another port-80 collision:
@@ -159,7 +166,7 @@ Recommended VM setup without risking another port-80 collision:
 ```powershell
 $env:HTTP_REDIRECT_ENABLED="false"
 $env:GATEWAY_HTTPS_HOST_PORT="443"
-$env:GATEWAY_HTTP_HOST_PORT="8080"
+$env:GATEWAY_HTTP_HOST_PORT="80"
 docker-compose up --build -d
 ```
 
@@ -280,10 +287,37 @@ npm install
 Run the gateway:
 
 ```bash
-$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:AUTH_SERVICE_URL="http://localhost:3500"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; $env:STATS_SERVICE_URL="http://localhost:3001"; $env:HTTPS_CERT_PATH="C:\path\to\server.crt"; $env:HTTPS_KEY_PATH="C:\path\to\server.key"; $env:HTTPS_PORT="8443"; $env:PORT="8080"; $env:HTTP_REDIRECT_ENABLED="true"; npm start
+$env:WEBAPP_SERVICE_URL="http://localhost:5173"; $env:AUTH_SERVICE_URL="http://localhost:3500"; $env:GAMEY_SERVICE_URL="http://localhost:4000"; $env:STATS_SERVICE_URL="http://localhost:3001"; $env:HTTPS_CERT_PATH="C:\path\to\server.crt"; $env:HTTPS_KEY_PATH="C:\path\to\server.key"; $env:HTTPS_PORT="8443"; $env:PORT="8080"; $env:HTTP_REDIRECT_ENABLED="true"; $env:GATEWAY_HTTPS_HOST_PORT="443"; npm start
 ```
 
 The gateway will be available at `https://localhost:8443`. If `HTTP_REDIRECT_ENABLED=true`, `http://localhost:8080` will redirect to HTTPS.
+
+Azure recommendation:
+
+- Keep the container listening on HTTP (`PORT=8080`) and let Azure terminate TLS on 443.
+- Set `ENFORCE_HTTPS=true` in the gateway environment so non-HTTPS forwarded requests are redirected.
+
+Local HTTPS note:
+
+- The default local certificate is self-signed, so browsers may show a security warning the first time.
+- If you prefer your own local certificate, set `HTTPS_CERT_PATH` and `HTTPS_KEY_PATH` to files mounted in `gateway/certs`.
+
+If your Azure VM terminates TLS directly in the gateway container and you want HTTPS-only, deploy with both files:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.azure.yml up -d --build
+```
+
+For strict HTTPS-only public access, set:
+
+```bash
+GATEWAY_HTTP_HOST_PORT=127.0.0.1:80
+GATEWAY_HTTPS_HOST_PORT=443
+HTTP_REDIRECT_ENABLED=false
+ENFORCE_HTTPS=true
+```
+
+This keeps port 80 local-only on the VM while exposing 443 publicly.
 
 ## Available Scripts
 

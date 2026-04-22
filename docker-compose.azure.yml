@@ -1,0 +1,12 @@
+services:
+  gateway:
+    ports:
+      - "${GATEWAY_HTTPS_HOST_PORT:-443}:${HTTPS_PORT:-8443}"
+    environment:
+      - HTTPS_PORT=${HTTPS_PORT:-8443}
+      - HTTP_REDIRECT_ENABLED=${HTTP_REDIRECT_ENABLED:-false}
+      - ENFORCE_HTTPS=${ENFORCE_HTTPS:-true}
+      - LOCAL_HTTPS_SELF_SIGNED=${LOCAL_HTTPS_SELF_SIGNED:-false}
+      - GATEWAY_HTTPS_HOST_PORT=${GATEWAY_HTTPS_HOST_PORT:-443}
+      - HTTPS_CERT_PATH=${HTTPS_CERT_PATH:-/app/certs/server.crt}
+      - HTTPS_KEY_PATH=${HTTPS_KEY_PATH:-/app/certs/server.key}

@@ -211,40 +211,49 @@ jobs:
           script: |
             set -Eeuo pipefail
             trap 'rc=$?; echo "Deploy failed with exit code ${rc} on line ${LINENO}"; exit ${rc}' ERR
-            COMPOSE_BIN="docker compose"
-            if ! docker compose version >/dev/null 2>&1; then
-              COMPOSE_BIN="docker-compose"
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE_CMD=(docker compose)
+            else
+              COMPOSE_CMD=(docker-compose)
             fi
 
             wget -q https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}/docker-compose.yml -O docker-compose.yml
+            wget -q https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}/docker-compose.azure.yml -O docker-compose.azure.yml
             cat > .env << 'EOF'
             IMAGE_TAG=${{ env.IMAGE_TAG }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_EXPIRES=${{ secrets.JWT_EXPIRES }}
             MONGO_AUTH_DB=${{ secrets.MONGO_AUTH_DB }}
+            GATEWAY_HTTP_HOST_PORT=127.0.0.1:80
+            GATEWAY_HTTPS_HOST_PORT=443
+            HTTPS_PORT=8443
+            ENFORCE_HTTPS=true
+            HTTP_REDIRECT_ENABLED=false
+            HTTPS_CERT_PATH=/app/certs/server.crt
+            HTTPS_KEY_PATH=/app/certs/server.key
             EOF
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             for i in 1 2 3; do
-              if $COMPOSE_BIN pull; then
+              if "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml pull; then
                 break
               fi
               if [ "$i" -eq 3 ]; then
                 echo "docker compose pull failed after 3 attempts"
-                $COMPOSE_BIN ps || true
-                $COMPOSE_BIN logs --tail=200 || true
+                "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml ps || true
+                "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml logs --tail=200 || true
                 exit 1
               fi
               sleep 5
             done
 
-            $COMPOSE_BIN down --remove-orphans || true
-            if ! $COMPOSE_BIN up -d --no-build; then
-              $COMPOSE_BIN ps || true
-              $COMPOSE_BIN logs --tail=200 || true
+            "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml down --remove-orphans || true
+            if ! "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml up -d --no-build; then
+              "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml ps || true
+              "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml logs --tail=200 || true
               exit 1
             fi
 
-            $COMPOSE_BIN ps
+            "${COMPOSE_CMD[@]}" -f docker-compose.yml -f docker-compose.azure.yml ps
             echo "REMOTE_DEPLOY_OK"
             exit 0

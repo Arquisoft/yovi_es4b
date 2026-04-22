@@ -1,1 +1,146 @@
-/* Minimal legacy file kept for reference. Styling handled by MUI theme and components. */
+/* Glitch page styling */
+body {
+  overflow-x: hidden;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(126, 255, 238, 0.12), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(255, 141, 189, 0.12), transparent 28%),
+    #1f1d1b;
+  animation: hueShift 30s linear infinite;
+}
+
+.glitch-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.glitch-background {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(circle at top 30% left 10%, rgba(255, 255, 255, 0.05), transparent 15%),
+    radial-gradient(circle at bottom 20% right 30%, rgba(0, 255, 255, 0.08), transparent 18%),
+    radial-gradient(circle at center, rgba(255, 0, 128, 0.06), transparent 20%);
+}
+
+.glitch-background pre {
+  margin: 0;
+  padding: 5rem 3rem;
+  white-space: pre-wrap;
+  color: rgba(255, 255, 255, 0.08);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.8rem, 1vw, 1.2rem);
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  filter: blur(0.4px);
+  animation: drift 24s linear infinite, fadePulse 8s ease-in-out infinite alternate;
+}
+
+.glitch-page::before,
+.glitch-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%);
+  mix-blend-mode: lighten;
+}
+
+.glitch-page::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.04) 50%, transparent 100%);
+  opacity: 0.5;
+}
+
+.glitch-page h1,
+.glitch-page h2,
+.glitch-page h3,
+.glitch-page h4,
+.glitch-page h5,
+.glitch-page h6,
+.glitch-page p,
+.glitch-page span,
+.glitch-page button {
+  animation: float 5s ease-in-out infinite alternate, hueShiftText 12s ease-in-out infinite;
+}
+
+.glitch-page .MuiTypography-root {
+  position: relative;
+  animation: glitchText 2.5s infinite ease-in-out;
+}
+
+@keyframes drift {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(-20%) rotate(1deg);
+  }
+}
+
+@keyframes fadePulse {
+  from {
+    opacity: 0.06;
+  }
+  to {
+    opacity: 0.14;
+  }
+}
+
+@keyframes hueShift {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(15deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+  }
+}
+
+@keyframes hueShiftText {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(12deg);
+  }
+}
+
+@keyframes float {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes glitchText {
+  0%,
+  100% {
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.2), 0 0 2px rgba(0, 255, 255, 0.08);
+    transform: translate(0, 0);
+  }
+  10% {
+    text-shadow: -2px 0 1px rgba(255, 0, 255, 0.35), 2px 0 1px rgba(0, 255, 255, 0.35);
+    transform: translate(-1px, 1px);
+  }
+  20% {
+    text-shadow: 2px 0 1px rgba(255, 0, 255, 0.35), -2px 0 1px rgba(0, 255, 255, 0.35);
+    transform: translate(1px, -1px);
+  }
+  30% {
+    text-shadow: -2px 0 1px rgba(255, 0, 255, 0.35), 2px 0 1px rgba(0, 255, 255, 0.35);
+    transform: translate(-2px, 0);
+  }
+  40% {
+    text-shadow: 2px 0 1px rgba(255, 0, 255, 0.35), -2px 0 1px rgba(0, 255, 255, 0.35);
+    transform: translate(2px, 1px);
+  }
+}

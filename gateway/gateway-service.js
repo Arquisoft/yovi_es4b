@@ -4,6 +4,7 @@ const https = require('node:https');
 
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const selfsigned = require('selfsigned');
 
 const externalApiSpec = require('./external-api-spec.json');
 const { createPrometheusMetrics } = require('./prometheus-metrics');
@@ -11,6 +12,7 @@ const { createPrometheusMetrics } = require('./prometheus-metrics');
 const DEFAULT_PORT = Number(process.env.PORT ?? 8080);
 const DEFAULT_EXTERNAL_BOT_ID = 'random_bot';
 const DEFAULT_REDIRECT_HTTPS_HOST = 'localhost';
+const DEFAULT_HTTPS_HOST_PORT = 443;
 const SAFE_REDIRECT_SEGMENT = /^[A-Za-z0-9._~-]+$/;
 const EXTERNAL_DOCS_PATH = '/external/docs';
 const EXTERNAL_OPENAPI_PATH = '/external/docs/openapi.json';
@@ -174,16 +176,45 @@ function getTlsConfig(env = process.env) {
   };
 }
 
+async function createSelfSignedTlsOptions() {
+  const certificate = await selfsigned.generate(
+    [{ name: 'commonName', value: 'localhost' }],
+    {
+      algorithm: 'sha256',
+      keySize: 2048,
+      days: 365,
+      extensions: [
+        {
+          name: 'subjectAltName',
+          altNames: [
+            { type: 2, value: 'localhost' },
+            { type: 7, ip: '127.0.0.1' },
+          ],
+        },
+      ],
+    },
+  );
+
+  return {
+    cert: certificate.cert,
+    key: certificate.private,
+  };
+}
+
 function loadTlsOptions(env = process.env) {
   const tlsConfig = getTlsConfig(env);
-  if (!tlsConfig) {
+  if (tlsConfig) {
+    return {
+      cert: fs.readFileSync(tlsConfig.certPath),
+      key: fs.readFileSync(tlsConfig.keyPath),
+    };
+  }
+
+  if (!parseBoolean(env.LOCAL_HTTPS_SELF_SIGNED)) {
     return null;
   }
 
-  return {
-    cert: fs.readFileSync(tlsConfig.certPath),
-    key: fs.readFileSync(tlsConfig.keyPath),
-  };
+  return createSelfSignedTlsOptions();
 }
 
 function getRedirectHostname(env = process.env) {
@@ -238,6 +269,67 @@ function buildRedirectDestination({ redirectHostname, httpsPort, requestPath = '
   const destination = new URL(buildHttpsOrigin(redirectHostname, httpsPort));
   destination.pathname = sanitizeRedirectPath(requestPath);
   return destination.toString();
+}
+
+function normalizeRequestHostname(rawHost) {
+  const normalizedHost = normalizeOptionalString(rawHost);
+  if (!normalizedHost) {
+    return null;
+  }
+
+  const firstForwardedHost = normalizedHost.split(',')[0]?.trim();
+  if (!firstForwardedHost) {
+    return null;
+  }
+
+  try {
+    return new URL(`http://${firstForwardedHost}`).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function getRequestQueryString(req) {
+  const originalUrl = typeof req.originalUrl === 'string' ? req.originalUrl : '';
+  const queryStart = originalUrl.indexOf('?');
+  if (queryStart < 0 || queryStart === originalUrl.length - 1) {
+    return '';
+  }
+
+  return originalUrl.slice(queryStart + 1);
+}
+
+function createHttpsEnforcementMiddleware({ env = process.env } = {}) {
+  const configuredRedirectHost = getRedirectHostname(env);
+  const redirectHttpsPort = normalizeOptionalPort(env.GATEWAY_HTTPS_HOST_PORT) ?? DEFAULT_HTTPS_HOST_PORT;
+
+  return (req, res, next) => {
+    const forwardedProto = normalizeOptionalString(req.get('x-forwarded-proto'));
+    const firstForwardedProto = forwardedProto?.split(',')[0]?.trim().toLowerCase();
+    const isSecureRequest = req.secure || firstForwardedProto === 'https';
+
+    if (isSecureRequest) {
+      return next();
+    }
+
+    const forwardedHost = normalizeRequestHostname(req.get('x-forwarded-host'));
+    const requestHost = normalizeRequestHostname(req.get('host'));
+    const redirectHostname = forwardedHost ?? requestHost ?? configuredRedirectHost;
+    const destination = new URL(
+      buildRedirectDestination({
+        redirectHostname,
+        httpsPort: redirectHttpsPort,
+        requestPath: req.path,
+      }),
+    );
+    const queryString = getRequestQueryString(req);
+
+    if (queryString) {
+      destination.search = queryString;
+    }
+
+    return res.redirect(308, destination.toString());
+  };
 }
 
 function createRedirectApp({ httpsPort = 443, redirectHostname = DEFAULT_REDIRECT_HTTPS_HOST } = {}) {
@@ -860,6 +952,12 @@ function createApp({
   const app = express();
   const proxyRoutes = getProxyRoutes(env);
   const metrics = createPrometheusMetrics({ serviceName: 'gateway' });
+  const enforceHttps = parseBoolean(env.ENFORCE_HTTPS);
+
+  if (enforceHttps) {
+    app.set('trust proxy', true);
+    app.use(createHttpsEnforcementMiddleware({ env }));
+  }
 
   app.use(metrics.middleware);
 
@@ -877,9 +975,9 @@ function createApp({
   return { app, proxyRoutes };
 }
 
-function start({ port = DEFAULT_PORT, env = process.env } = {}) {
+async function start({ port = DEFAULT_PORT, env = process.env } = {}) {
   const { app } = createApp({ env });
-  const tlsOptions = loadTlsOptions(env);
+  const tlsOptions = await loadTlsOptions(env);
 
   if (!tlsOptions) {
     const httpServer = http.createServer(app);
@@ -923,7 +1021,10 @@ function isDirectExecution() {
 }
 
 if (isDirectExecution()) {
-  start();
+  start().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
 
 module.exports = {
@@ -937,7 +1038,9 @@ module.exports = {
   buildProxy,
   buildRedirectDestination,
   buildHttpsOrigin,
+  createSelfSignedTlsOptions,
   createApp,
+  createHttpsEnforcementMiddleware,
   createRedirectApp,
   createExternalApiRouter,
   getRedirectHostname,

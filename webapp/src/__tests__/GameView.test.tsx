@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import type React from 'react';
@@ -63,7 +63,7 @@ function buildGame(overrides: Partial<GameStateResponse> = {}): GameStateRespons
 }
 
 describe('GameView', () => {
-  test('auto-passes the turn when the fallback local countdown reaches zero', () => {
+  test('auto-passes the turn when the fallback local countdown reaches zero', async () => {
     vi.useFakeTimers();
 
     const passCurrentTurn = vi.fn();
@@ -79,9 +79,7 @@ describe('GameView', () => {
       />,
     );
 
-    act(() => {
-      vi.advanceTimersByTime(30_250);
-    });
+    await vi.advanceTimersByTimeAsync(30_250);
 
     expect(passCurrentTurn).toHaveBeenCalledTimes(1);
     vi.useRealTimers();

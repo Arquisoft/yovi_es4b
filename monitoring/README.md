@@ -117,7 +117,7 @@ Configuracion recomendada al probar manualmente:
 Para generar algo de trafico en local:
 
 ```powershell
-Invoke-WebRequest http://localhost:8080/health
+Invoke-WebRequest https://localhost/health -SkipCertificateCheck
 Invoke-WebRequest http://localhost:3500/health
 Invoke-WebRequest http://localhost:3001/health
 ```
