@@ -75,7 +75,7 @@ This section summarizes the main solution approaches that shape the architecture
 
 |Security
 |Credentials and internal write operations must be protected against unauthorized access.
-|`auth_service` centralizes login and token validation, passwords are hashed with `bcrypt`, sessions use JWT, and the internal stats endpoint requires a service token.
+|`auth_service` centralizes login and token validation, passwords are hashed with `scrypt`, sessions use JWT, and the internal stats endpoint requires a service token.
 |===
 
 === Organizational Decisions

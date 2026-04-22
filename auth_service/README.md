@@ -16,7 +16,7 @@ Authentication micro-service for the Yovi GameY platform.
 | Runtime | Node.js 22 |
 | Framework | Express 5 |
 | Database | MongoDB (via Mongoose) |
-| Auth | bcrypt + JSON Web Tokens |
+| Auth | scrypt + JSON Web Tokens |
 | Metrics | Prometheus-compatible `/metrics` endpoint |
 
 ## Environment variables

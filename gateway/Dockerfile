@@ -4,7 +4,7 @@ RUN chown node:node /app
 
 COPY --chown=root:root --chmod=444 package.json package-lock.json ./
 USER node
-RUN npm ci --omit=dev --silent
+RUN npm ci --omit=dev --ignore-scripts --silent
 
 USER root
 COPY --chown=root:root --chmod=444 gateway-service.js ./
