@@ -2,12 +2,15 @@ FROM node:22-alpine
 WORKDIR /app
 RUN chown node:node /app
 
-COPY --chown=node:node --chmod=444 package.json package-lock.json ./
+COPY --chown=root:root --chmod=444 package.json package-lock.json ./
 USER node
 RUN npm ci --omit=dev --silent
 
-COPY --chown=node:node --chmod=444 stats-service.js ./
-COPY --chown=node:node --chmod=444 prometheus-metrics.js ./
+USER root
+COPY --chown=root:root --chmod=444 stats-service.js ./
+COPY --chown=root:root --chmod=444 prometheus-metrics.js ./
+RUN chown -R root:root /app && chmod -R a-w /app
+USER node
 
 EXPOSE 3001
 CMD ["node", "stats-service.js"]
