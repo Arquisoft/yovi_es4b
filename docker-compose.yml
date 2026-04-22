@@ -54,8 +54,8 @@ services:
       - GATEWAY_HTTPS_HOST=${GATEWAY_HTTPS_HOST:-localhost}
       - GATEWAY_PUBLIC_HOSTNAME=${GATEWAY_PUBLIC_HOSTNAME:-localhost}
       - GATEWAY_HTTPS_HOST_PORT=${GATEWAY_HTTPS_HOST_PORT:-443}
-      - HTTPS_CERT_PATH=${HTTPS_CERT_PATH:-/app/certs/server.crt}
-      - HTTPS_KEY_PATH=${HTTPS_KEY_PATH:-/app/certs/server.key}
+      - HTTPS_CERT_PATH=${HTTPS_CERT_PATH:-}
+      - HTTPS_KEY_PATH=${HTTPS_KEY_PATH:-}
       - WEBAPP_SERVICE_URL=http://webapp:80
       - GAMEY_SERVICE_URL=http://gamey:4000
       - AUTH_SERVICE_URL=http://auth:3500

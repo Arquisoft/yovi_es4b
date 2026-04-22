@@ -115,17 +115,19 @@ docker-compose up --build
 This command will build the Docker images and start the full stack behind the gateway.
 
 2.**Access the application:**
-- Web application: [https://localhost](https://localhost)
-- Auth API (through gateway): [https://localhost/auth/register](https://localhost/auth/register), [https://localhost/auth/login](https://localhost/auth/login), [https://localhost/auth/verify](https://localhost/auth/verify)
-- Gamey API (through gateway): [https://localhost/api/v1/games](https://localhost/api/v1/games)
-- External bot API documentation (through gateway): [https://localhost/external/docs](https://localhost/external/docs)
-- External bot OpenAPI contract (through gateway): [https://localhost/external/docs/openapi.json](https://localhost/external/docs/openapi.json)
+- Web application (default local setup, HTTP): [http://localhost:8080](http://localhost:8080)
+- Auth API (through gateway, default local setup): [http://localhost:8080/auth/register](http://localhost:8080/auth/register), [http://localhost:8080/auth/login](http://localhost:8080/auth/login), [http://localhost:8080/auth/verify](http://localhost:8080/auth/verify)
+- Gamey API (through gateway, default local setup): [http://localhost:8080/api/v1/games](http://localhost:8080/api/v1/games)
+- External bot API documentation (through gateway, default local setup): [http://localhost:8080/external/docs](http://localhost:8080/external/docs)
+- External bot OpenAPI contract (through gateway, default local setup): [http://localhost:8080/external/docs/openapi.json](http://localhost:8080/external/docs/openapi.json)
 - Prometheus: [http://localhost:9090](http://localhost:9090)
 - Grafana: [http://localhost:9091](http://localhost:9091)
 
 ### HTTPS in the gateway
 
 The public entry point is the `gateway`. HTTPS is terminated there, while internal traffic to `webapp`, `auth`, `gamey`, and `stats` remains plain HTTP inside Docker.
+
+For local development, the Docker Compose stack now starts the gateway in plain HTTP on `http://localhost:8080` unless you explicitly provide both TLS paths. This keeps Prometheus scraping and manual testing working out of the box.
 
 Certificate placement:
 
@@ -136,6 +138,8 @@ These files are mounted into the container at `/app/certs` and used by the gatew
 
 - `HTTPS_CERT_PATH=/app/certs/server.crt`
 - `HTTPS_KEY_PATH=/app/certs/server.key`
+
+If both values are left empty, the gateway falls back to HTTP and Prometheus scrapes `http://gateway:8080/metrics`.
 
 Default Docker ports:
 
@@ -186,6 +190,8 @@ The metrics exposed by the services include:
 - HTTP traffic counters and request-duration aggregates
 - Process uptime and memory gauges for Node.js services
 - Gamey domain gauges and counters for active games, matchmaking, and stats reporting
+
+For a simpler explanation of each metric and each Grafana panel, see [monitoring/README.md](monitoring/README.md).
 
 ### Without Docker
 

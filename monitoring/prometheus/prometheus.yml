@@ -9,12 +9,9 @@ scrape_configs:
           - prometheus:9090
 
   - job_name: gateway
-    scheme: https
-    tls_config:
-      insecure_skip_verify: true
     static_configs:
       - targets:
-          - gateway:8443
+          - gateway:8080
 
   - job_name: auth
     static_configs:
