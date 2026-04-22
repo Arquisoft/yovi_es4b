@@ -1,0 +1,324 @@
+== Datos, Estado y Persistencia
+
+=== Idea principal
+
+Una de las claves de este proyecto es que no todo el estado vive en el mismo sitio.
+
+Hay al menos cuatro niveles distintos:
+
+- estado visual y de sesion en navegador
+- estado operativo casi nulo en `gateway`
+- estado vivo de partidas en `gamey`
+- estado persistente en Mongo
+
+Si entiendes esto, entiendes medio proyecto.
+
+=== Donde vive cada cosa
+
+[cols="1,3,3",options="header"]
+|===
+| Dato
+| Donde vive principalmente
+| Para que sirve
+
+| Token JWT
+| Navegador
+| Mantener sesion autenticada
+
+| Username y sesion invitado
+| Navegador
+| Identidad visible para la SPA
+
+| Partida local o online reanudable
+| Navegador
+| Recuperar estado tras recargar
+
+| Tabla de rutas publicas
+| Gateway
+| Reenvio de trafico
+
+| Usuarios y hashes
+| Mongo Auth
+| Registro e inicio de sesion
+
+| Partidas activas
+| Memoria de `gamey`
+| Juego en curso
+
+| Cola y tickets de matchmaking
+| Memoria de `gamey`
+| Emparejamiento online
+
+| Tokens de jugador online
+| Memoria de `gamey`
+| Validar acciones en partidas online
+
+| Ultima presencia de cada jugador
+| Memoria de `gamey`
+| Detectar abandono e inactividad
+
+| Historial de partidas terminadas
+| Mongo Stats
+| Consultas posteriores
+
+| Agregados de victorias y derrotas
+| Mongo Stats
+| Resumen estadistico
+|===
+
+=== Estado en el navegador
+
+==== Autenticacion
+
+El frontend guarda en `localStorage`:
+
+- `authToken`
+- `authUsername`
+- `guestSessionId`
+
+Con eso puede distinguir:
+
+- usuario autenticado
+- invitado
+- usuario sin sesion
+
+Cuando la app arranca:
+
+- si hay token, llama a `/auth/verify`
+- si el token ya no vale, lo limpia
+
+==== Sesion de juego reanudable
+
+La SPA tambien guarda una estructura propia de sesion de juego.
+
+Puede ser de tres tipos:
+
+- `online_waiting`
+- `online_active`
+- `local_active`
+
+Eso significa que el navegador no solo recuerda "que usuario soy", sino tambien:
+
+- si estoy esperando rival
+- si tengo una partida activa
+- con que token debo reanudar una partida online
+
+==== Que gana la app con esto
+
+Gana dos cosas:
+
+- mejor experiencia de usuario
+- menos fragilidad frente a recargas accidentales
+
+Pero no es una persistencia total del juego.
+
+El navegador solo guarda metadatos para reconectar. El estado real sigue estando en `gamey`.
+
+=== Estado en el gateway
+
+El `gateway` es casi sin estado.
+
+No guarda:
+
+- partidas
+- usuarios
+- historial
+
+Lo que si conserva es estado tecnico ligero:
+
+- configuracion de rutas
+- metricas
+- configuracion TLS
+
+Eso es bueno porque hace facil entenderlo y sustituirlo.
+
+=== Estado persistente de autenticacion
+
+`auth_service` guarda usuarios en `mongo-auth`.
+
+Cada usuario tiene:
+
+- nombre
+- hash de contrasena
+- fecha de creacion
+
+La base de auth no se usa para guardar partidas ni historial.
+
+Esto te permite decir que la identidad esta aislada del dominio de juego.
+
+=== Estado vivo en `gamey`
+
+==== Partidas activas
+
+Cada partida vive como `GameSession` en memoria.
+
+La sesion contiene, entre otras cosas:
+
+- el motor `GameY`
+- el bot si existe
+- instante de creacion
+- instante de inicio de turno
+- tokens por jugador en partidas online
+- ultima presencia de cada jugador online
+- ids de usuarios asociados
+- indicador de si ya se reporto a `stats`
+- motivo de finalizacion
+
+Es un estado muy rico y muy orientado a ejecucion.
+
+==== Indice de partida activa por usuario
+
+Ademas del mapa principal de partidas, `gamey` mantiene otro mapa:
+
+- `usuario normalizado -> game_id activo`
+
+Eso se usa para impedir:
+
+- crear varias partidas activas simultaneas con la misma identidad
+- entrar varias veces en matchmaking con la misma identidad
+
+==== Cola y tickets de matchmaking
+
+El matchmaking no se deduce de las partidas activas.
+
+Tiene su propio estado:
+
+- cola FIFO
+- mapa de tickets
+
+Esto es importante porque separa dos fases distintas:
+
+- `esperando rival`
+- `jugando partida`
+
+==== Partidas terminadas en memoria
+
+Hay un detalle importante que conviene conocer:
+
+- las partidas terminadas no se eliminan automaticamente del mapa en memoria de `gamey`
+
+Que implica esto:
+
+- la respuesta final se puede seguir consultando desde `gamey`
+- las metricas distinguen partidas en curso y partidas finalizadas en memoria
+- a largo plazo, si el proceso viviera muchisimo tiempo, habria crecimiento de memoria
+
+Esto es una limitacion real de la implementacion actual.
+
+=== Estado persistente en `stats`
+
+==== Coleccion `player_stats`
+
+Guarda el agregado por usuario:
+
+- totalGames
+- victories
+- defeats
+- updatedAt
+
+Sirve para pintar el resumen rapido del dashboard y del historial.
+
+==== Coleccion `player_matches`
+
+Guarda una fila por `usuario + partida`.
+
+Se conserva:
+
+- identificador de partida
+- modo
+- resultado
+- ganador
+- bot si aplica
+- motivo de finalizacion
+- tablero final
+- fecha de fin
+
+Gracias a eso el historial puede:
+
+- listar partidas
+- filtrar por tipo
+- ordenar por fecha
+- abrir una vista del tablero final
+
+==== Indices y consistencia
+
+`stats` crea indices para:
+
+- un usuario tenga un solo documento agregado
+- una combinacion `gameId + userId` no se inserte dos veces
+- recuperar historial por usuario ordenado por fecha
+
+Arquitectonicamente esto esta bien resuelto porque:
+
+- permite lecturas rapidas
+- evita contar dos veces una partida
+
+=== Identidades: punto sutil e importante
+
+Hay un matiz que merece que lo conozcas muy bien.
+
+No toda la aplicacion usa exactamente la misma representacion de identidad en todos los caminos.
+
+==== Camino de la SPA
+
+La SPA trabaja sobre todo con:
+
+- `username` cuando el usuario esta autenticado
+- `guestSessionId` cuando entra como invitado
+
+Esos valores viajan en cabeceras como `x-user-id` hacia `gamey` y `stats`.
+
+==== Camino de la API externa agregada
+
+La API bajo `/external/*` si verifica JWT y puede propagar el `id` verificado por `auth_service`.
+
+==== Como explicarlo sin liarte
+
+La forma mas limpia de decirlo es:
+
+`la aplicacion mezcla una identidad de sesion orientada a frontend con una identidad autenticada validada por auth, segun el camino de acceso que se utilice`
+
+No hace falta presentarlo como desastre, pero si como un detalle arquitectonico a tener en cuenta.
+
+=== Por que `stats` solo se actualiza al final
+
+No se registra cada movimiento en base de datos.
+
+La razon es sencilla:
+
+- `gamey` esta optimizado para juego vivo en memoria
+- `stats` esta optimizado para memoria historica
+
+Ventajas:
+
+- menos escrituras
+- menos latencia en jugadas
+- mejor separacion de responsabilidades
+
+Coste:
+
+- no tienes replay persistente movimiento a movimiento
+- si `gamey` se cae antes de acabar, la partida viva no pasa al historial
+
+=== Que pasa si se reinicia un servicio
+
+==== Si se reinicia `auth_service`
+
+- se pierde el proceso, no la base de usuarios
+- mientras el JWT siga siendo valido y use la misma clave, la sesion puede verificarse otra vez
+
+==== Si se reinicia `stats`
+
+- se pierde el proceso, no la base historica
+- podrian fallar temporalmente reportes de fin de partida si `gamey` intenta escribir justo en ese momento
+
+==== Si se reinicia `gamey`
+
+Este es el caso mas delicado:
+
+- se pierden partidas activas en memoria
+- se pierden tickets de matchmaking
+- se pierden tokens de jugador
+- la SPA puede tener datos para intentar restaurar, pero el servidor ya no conoceria esa partida
+
+Este es uno de los mejores ejemplos para explicar por que el estado vivo en memoria simplifica mucho, pero penaliza resiliencia ante reinicios.

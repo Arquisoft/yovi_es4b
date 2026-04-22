@@ -1,0 +1,327 @@
+== Online y Matchmaking
+
+=== La idea central
+
+El online de Yovi no esta construido con WebSockets ni con un sistema de eventos en tiempo real empujados desde servidor.
+
+Esta construido con una combinacion de:
+
+- `polling HTTP` desde el navegador
+- `estado en memoria` dentro de `gamey`
+- `workers asincronos` en segundo plano
+- `tokens de jugador` para identificar quien puede actuar
+
+Esta idea es fundamental para explicarlo bien:
+
+`no es tiempo real push, es sincronizacion periodica controlada`
+
+=== Piezas que participan
+
+Para una partida online intervienen estas piezas:
+
+- `DashboardView` y `useGamey` en frontend
+- `gameSessionStore` en navegador
+- `gateway`
+- endpoints de matchmaking y juegos de `gamey`
+- worker de emparejamiento
+- monitor de timeouts
+
+=== Paso 1. El usuario pulsa "Buscar rival"
+
+Cuando el usuario inicia matchmaking:
+
+- la SPA llama a `POST /api/v1/matchmaking/enqueue`
+- la peticion llega a `gamey`
+- `gamey` crea un `ticket_id`
+
+El ticket se mete en dos sitios:
+
+- en una cola FIFO
+- en un mapa de tickets con estado `waiting`
+
+Ademas se guarda informacion de contexto:
+
+- tamano del tablero
+- identidad del usuario o sesion invitada
+- instante de entrada
+
+Detalle importante:
+
+- si la identidad ya tiene otra partida activa, el servicio rechaza la operacion
+- si la identidad ya tiene un ticket esperando, tambien se rechaza
+
+=== Paso 2. La SPA empieza a hacer polling del ticket
+
+Nada mas recibir el ticket:
+
+- el frontend guarda `ticket_id` y estado `waiting`
+- persiste esa informacion en `localStorage`
+- programa un temporizador para volver a consultar el ticket
+
+La consulta es:
+
+- `GET /api/v1/matchmaking/tickets/{ticket_id}`
+
+La frecuencia base de polling es aproximadamente de `1 segundo`.
+
+Esto es importante:
+
+- el navegador no queda bloqueado
+- no necesita una conexion viva permanente
+- si recargas la pagina, la app puede recuperar la espera desde `localStorage`
+
+=== Paso 3. Worker de matchmaking en `gamey`
+
+Mientras el cliente esta preguntando, `gamey` tiene un worker asincrono propio corriendo en bucle.
+
+Comportamiento del worker:
+
+- despierta cada `300 ms`
+- intenta sacar dos tickets compatibles de la cola
+- exige mismo tamano de tablero
+- evita emparejar la misma identidad consigo misma
+
+Cuando encuentra pareja:
+
+- crea un `game_id`
+- genera un token distinto para cada jugador
+- crea una `GameSession` online en memoria
+- marca los tickets como `matched`
+
+Este es un muy buen punto para defender arquitectura:
+
+- no se usa una cola externa
+- no se usa una base de datos compartida para matchmaking
+- el emparejamiento se resuelve en memoria con un worker periodico sencillo
+
+=== Paso 4. El ticket pasa a `matched`
+
+En cuanto el worker empareja:
+
+- cada ticket deja de estar `waiting`
+- ahora incluye `game_id`
+- ahora incluye `player_id`
+- ahora incluye `player_token`
+
+La siguiente vez que el navegador hace polling:
+
+- ve que ya hay partida
+- deja de consultar el ticket
+- abre automaticamente la partida
+
+=== Paso 5. Se abre la partida online
+
+En ese momento el frontend:
+
+- pide `GET /api/v1/games/{game_id}`
+- incluye el `x-player-token`
+- guarda localmente que esa sesion online esta activa
+
+La sesion persistida en navegador recuerda:
+
+- `gameId`
+- `myPlayerId`
+- `playerToken`
+
+Esto es lo que hace posible reanudar una partida online despues de recargar.
+
+=== Paso 6. Sincronizacion continua de la partida
+
+Una vez abierta la partida online, el frontend entra en un segundo modo de polling.
+
+Hace consultas periodicas a la partida activa:
+
+- aproximadamente cada `1.2 segundos`
+
+Cada sincronizacion sirve para:
+
+- refrescar el tablero
+- ver de quien es el turno
+- actualizar cuenta atras
+- detectar si el rival ha jugado
+- saber si la partida ha terminado
+
+Es decir:
+
+- no hay push del servidor
+- el cliente pregunta y se sincroniza
+
+=== Paso 7. Que protege al online
+
+La proteccion del online no depende solo de saber el `game_id`.
+
+Cada partida de matchmaking genera `player_token` por jugador.
+
+Ese token se usa para:
+
+- leer la partida como jugador online identificado
+- jugar movimientos
+- pasar turno
+- rendirse
+
+`gamey` valida que:
+
+- el token exista
+- corresponda a uno de los jugadores de esa partida
+- en ciertas acciones, corresponda exactamente al jugador cuyo turno toca
+
+Ese detalle es importantisimo:
+
+- el `game_id` localiza la partida
+- el `player_token` acredita la identidad operativa dentro de esa partida
+
+=== Paso 8. Que pasa cuando alguien juega
+
+Cuando el jugador pulsa una celda:
+
+- la SPA envia `POST /api/v1/games/{id}/moves`
+- manda coordenadas
+- si es online, el backend valida token y turno
+
+Entonces `gamey`:
+
+1. valida coordenadas
+2. valida turno
+3. actualiza el motor del juego
+4. reinicia temporizador de turno si procede
+5. si termina la partida, prepara reporte a `stats`
+
+Si la partida es contra bot, ademas:
+
+- tras la jugada humana calcula y aplica inmediatamente la jugada del bot en la misma operacion logica
+
+=== Paso 9. Presencia e inactividad
+
+Cada vez que un jugador online consulta o actua sobre la partida:
+
+- `gamey` actualiza su `last_seen`
+
+Ese dato no se guarda en base de datos.
+
+Se guarda en memoria como parte de la `GameSession`.
+
+Esto permite detectar:
+
+- jugador activo
+- jugador ausente
+- rival que lleva demasiado tiempo sin volver
+
+=== Paso 10. Monitor de timeouts
+
+Ademas del worker de matchmaking, hay otro bucle asincrono de fondo.
+
+Ese monitor:
+
+- se despierta cada `1 segundo`
+- revisa todas las partidas online activas en memoria
+
+Aplica dos reglas:
+
+==== Regla A. Timeout de inactividad del jugador
+
+Si un jugador no da senales durante mas de `60 segundos`:
+
+- el sistema lo considera desconectado
+- la partida termina por `disconnect_timeout`
+- tecnicamente se resuelve como una rendicion forzada
+
+==== Regla B. Timeout de turno
+
+Si el turno actual supera `60 segundos`:
+
+- el monitor ejecuta un `pass` automatico
+- el turno cambia
+
+Esto te permite explicar que el online tiene:
+
+- supervision en backend
+- no solo temporizadores cosmeticos en frontend
+
+=== Lo que hace tambien el frontend con los temporizadores
+
+La interfaz no se limita a mostrar lo que manda el servidor.
+
+Tambien:
+
+- sincroniza una cuenta atras visual
+- la actualiza en local cada `250 ms`
+- en ciertos casos dispara automaticamente `passCurrentTurn()` cuando la cuenta llega a cero
+
+Interpretacion correcta para explicarlo:
+
+- el backend sigue siendo la autoridad real
+- el frontend mejora la experiencia visual y reduce sensacion de espera
+- hay una cooperacion entre la cuenta atras local y la supervision real de `gamey`
+
+=== Recuperacion tras recarga o salida accidental
+
+Este es uno de los detalles mejor resueltos de la SPA.
+
+`useGamey` intenta restaurar:
+
+- un matchmaking en curso
+- una partida local activa
+- una partida online activa
+
+Lo hace leyendo `localStorage`.
+
+Escenarios:
+
+==== Si habia un ticket esperando
+
+- recupera el `ticket_id`
+- vuelve a consultar su estado
+- si sigue esperando, reanuda polling
+- si ya esta emparejado, abre la partida
+
+==== Si habia una partida online activa
+
+- recupera `gameId`, `myPlayerId` y `playerToken`
+- vuelve a pedir el estado a `gamey`
+- si sigue activa, la reabre
+
+==== Si el servidor ya no tiene ese estado
+
+Puede fallar la restauracion si `gamey` ya no conserva el ticket o la partida.
+
+Esto pasa porque:
+
+- el estado vivo esta en memoria
+- si el proceso se reinicia, ese estado desaparece
+
+=== Como se cierra el flujo online
+
+Cuando la partida termina:
+
+- `gamey` determina ganador y motivo
+- limpia el indice de partidas activas por usuario
+- conserva la sesion terminada en su mapa en memoria
+- envia resumen a `stats`
+- la SPA puede refrescar estadisticas si el usuario esta autenticado
+
+=== Lo que debes decir si te preguntan "como funciona el online"
+
+Respuesta corta y fuerte:
+
+`El online de Yovi no usa WebSockets. Usa matchmaking y sesiones en memoria dentro de gamey, polling periodico desde la SPA, tokens por jugador para validar acciones y dos workers asincronos: uno empareja jugadores y otro supervisa inactividad y tiempo de turno.`
+
+Respuesta mas larga:
+
+`Cuando el usuario entra en cola, gamey crea un ticket y un worker lo revisa cada pocos cientos de milisegundos hasta emparejarlo con otro compatible. Una vez creada la partida, cada jugador recibe un token propio. El navegador consulta periodicamente el estado de esa partida y gamey va actualizando la presencia de cada jugador. En paralelo, otro worker recorre las partidas online para forzar un pass por exceso de tiempo o cerrar la partida por abandono. Al finalizar, gamey envia el resumen a stats para que el historial quede persistido.`
+
+=== Fortalezas de este enfoque
+
+- es sencillo de entender y depurar
+- evita complejidad de sockets o broker de eventos
+- separa bien estado vivo y estado historico
+- permite reanudar sesion desde navegador
+- mantiene `gamey` como autoridad unica del estado
+
+=== Costes de este enfoque
+
+- hay mas trafico HTTP por polling
+- el estado vivo depende de la memoria del proceso
+- si quisieras escalar horizontalmente `gamey`, ya no bastaria con otra replica sin mas
+- la experiencia no es tan inmediata como un sistema push real
+
+Saber contar tanto fortalezas como costes te da mucha credibilidad.

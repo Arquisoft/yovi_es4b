@@ -1,0 +1,210 @@
+== Vision General
+
+=== Que es Yovi
+
+Yovi es una aplicacion web para jugar al Game Y, un juego de conexion sobre tablero triangular.
+
+La aplicacion ofrece cuatro capacidades principales:
+
+- registro e inicio de sesion
+- partidas contra bots
+- partidas humanas en el mismo dispositivo
+- partidas humanas online con emparejamiento
+- almacenamiento de historial y estadisticas
+
+Si tuviera que resumir el proyecto en una sola frase para una presentacion, seria esta:
+
+`Yovi es una SPA que entra por un gateway y reparte responsabilidades entre servicios especializados: autenticacion, motor de juego y estadisticas.`
+
+=== Mapa mental del sistema
+
+La mejor manera de entenderlo es imaginar tres capas:
+
+1. `Capa de acceso`
++
+El navegador carga la SPA y todas las peticiones entran por el `gateway`.
+
+2. `Capa de servicios`
++
+Aqui viven `auth_service`, `gamey` y `stats`.
+
+3. `Capa de persistencia y operacion`
++
+Dos Mongo separadas guardan autenticacion y estadisticas. Prometheus y Grafana observan el sistema.
+
+=== Componentes principales
+
+==== Webapp
+
+Es la interfaz de usuario.
+
+Responsabilidades:
+
+- mostrar login, dashboard, partida, historial y ayuda
+- guardar sesion local del usuario
+- guardar informacion suficiente para reanudar partidas o matchmaking
+- hacer peticiones HTTP a backend
+- traducir el estado de juego a una representacion visual del tablero
+
+No contiene las reglas reales del juego. La autoridad del estado esta en `gamey`.
+
+==== Gateway
+
+Es la puerta de entrada publica.
+
+Responsabilidades:
+
+- recibir el trafico externo
+- reenviar cada prefijo al servicio correcto
+- servir la webapp como punto de entrada unico
+- exponer una API externa mas amigable bajo `/external/*`
+- normalizar errores de servicios caidos como `502 Bad Gateway`
+- manejar HTTP o HTTPS segun configuracion
+
+No deberia tener casi logica de negocio. Su papel es de fachada y orquestacion ligera.
+
+==== Auth Service
+
+Es el servicio de identidad.
+
+Responsabilidades:
+
+- registrar usuarios
+- verificar credenciales
+- emitir JWT
+- validar JWT
+- guardar usuarios y hashes de contrasena en Mongo
+
+==== Gamey
+
+Es el nucleo del proyecto.
+
+Responsabilidades:
+
+- aplicar reglas del Game Y
+- crear partidas
+- mantener partidas activas en memoria
+- ejecutar bots
+- gestionar matchmaking
+- supervisar tiempos de turno e inactividad
+- reportar partidas finalizadas a `stats`
+
+Si te preguntan cual es el microservicio mas importante, es `gamey`.
+
+==== Stats
+
+Es el servicio de historial y estadisticas.
+
+Responsabilidades:
+
+- devolver el resumen del jugador
+- devolver historial de partidas terminadas
+- recibir internamente los resultados finales desde `gamey`
+- actualizar contadores agregados
+- guardar snapshot del tablero final y datos de la partida
+
+=== Tecnologias y por que encajan
+
+==== Frontend
+
+`React + TypeScript + Vite + MUI`
+
+Encaja porque:
+
+- permite una SPA rapida y reactiva
+- facilita dividir la interfaz en vistas y hooks
+- hace sencillo persistir estado en navegador
+
+==== Gateway, auth y stats
+
+`Node.js + Express`
+
+Encaja porque:
+
+- son servicios HTTP relativamente ligeros
+- tienen poca carga computacional
+- la mayor parte del trabajo es I/O, no calculo pesado
+
+Importante para explicarlo bien:
+
+- estos servicios no montan manualmente hilos de trabajo
+- siguen el modelo habitual de Node.js: bucle de eventos y operaciones asincronas
+
+==== Gamey
+
+`Rust + Axum + Tokio`
+
+Encaja porque:
+
+- el motor del juego y los bots concentran la logica mas sensible
+- Rust permite controlar muy bien estado, concurrencia y rendimiento
+- Tokio facilita lanzar tareas asincronas de fondo para matchmaking y supervision
+
+Aqui si aparece una idea mas cercana a "workers" o "bucles periodicos":
+
+- una tarea asincrona revisa la cola de matchmaking
+- otra tarea asincrona revisa los timeouts de partidas online
+
+==== Persistencia
+
+`MongoDB`
+
+Se usan dos bases separadas:
+
+- `mongo-auth` para identidades
+- `mongo-stats` para historial y agregados
+
+La separacion refuerza la independencia entre dominios.
+
+=== Recorrido rapido de una sesion completa
+
+==== 1. El usuario entra
+
+- el navegador accede al `gateway`
+- el `gateway` sirve la SPA
+- la SPA comprueba si ya hay token valido
+
+==== 2. El usuario juega
+
+- la SPA pide crear partida o entrar en matchmaking
+- el `gateway` reenvia a `gamey`
+- `gamey` crea o recupera el estado de la partida
+
+==== 3. La partida avanza
+
+- en local o contra bot, la SPA hace peticiones puntuales
+- en online, la SPA va sincronizando el estado por polling
+- `gamey` actualiza el estado en memoria
+
+==== 4. La partida termina
+
+- `gamey` detecta ganador, rendicion o abandono
+- prepara un resumen de fin de partida
+- lo envia a `stats`
+
+==== 5. El historial se consulta despues
+
+- la SPA pide estadisticas e historial
+- `stats` lee Mongo y devuelve agregados y partidas terminadas
+
+=== Idea fuerza de la arquitectura
+
+La arquitectura esta pensada para separar muy bien tres tipos de responsabilidad:
+
+- `quien eres`: `auth_service`
+- `que esta pasando ahora mismo en una partida`: `gamey`
+- `que ha pasado historicamente`: `stats`
+
+El `gateway` une todo eso bajo una sola entrada publica.
+
+=== Donde esta la complejidad real
+
+La complejidad del proyecto no esta repartida por igual.
+
+Se concentra sobre todo en estas zonas:
+
+- `gamey`, porque mezcla reglas, bots, sesiones activas, matchmaking y timeouts
+- `useGamey` en frontend, porque coordina restauracion de estado, polling y persistencia local
+- el cruce `gamey -> stats`, porque separa estado vivo de historial persistente
+
+En cambio, `auth_service` y `stats` son mucho mas directos: reciben datos, validan, leen o escriben en Mongo y responden.
