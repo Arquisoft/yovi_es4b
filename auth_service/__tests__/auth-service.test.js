@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, afterAll, beforeAll, vi } from 'vitest'
 import request from 'supertest'
 
 // Use mongodb-memory-server so tests don't need a real MongoDB
@@ -20,10 +20,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await mongoose.default.disconnect()
   if (mongoServer) await mongoServer.stop()
-})
-
-beforeEach(() => {
-  app.locals.metrics.reset()
 })
 
 describe('POST /register', () => {
@@ -121,18 +117,5 @@ describe('GET /health', () => {
     const res = await request(app).get('/health')
     expect(res.status).toBe(200)
     expect(res.body.status).toBe('ok')
-  })
-})
-
-describe('GET /metrics', () => {
-  it('returns Prometheus metrics after serving traffic', async () => {
-    await request(app).get('/health')
-
-    const res = await request(app).get('/metrics')
-
-    expect(res.status).toBe(200)
-    expect(res.text).toMatch(/# TYPE yovi_http_requests_total counter/)
-    expect(res.text).toMatch(/yovi_http_requests_total\{service="auth",method="GET",route="\/health",status="200"\} 1/)
-    expect(res.text).toMatch(/yovi_process_resident_memory_bytes\{service="auth"\}/)
   })
 })

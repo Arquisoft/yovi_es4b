@@ -6,12 +6,10 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const externalApiSpec = require('./external-api-spec.json');
-const { createPrometheusMetrics } = require('./prometheus-metrics');
 
 const DEFAULT_PORT = Number(process.env.PORT ?? 8080);
 const DEFAULT_EXTERNAL_BOT_ID = 'random_bot';
 const DEFAULT_REDIRECT_HTTPS_HOST = 'localhost';
-const SAFE_REDIRECT_SEGMENT = /^[A-Za-z0-9._~-]+$/;
 const EXTERNAL_DOCS_PATH = '/external/docs';
 const EXTERNAL_OPENAPI_PATH = '/external/docs/openapi.json';
 const STRATEGY_TO_BOT_ID = {
@@ -200,55 +198,22 @@ function buildHttpsOrigin(hostname, httpsPort) {
   return `https://${normalizedHostname}${portSuffix}`;
 }
 
-function sanitizeRedirectPath(requestPath = '/') {
-  if (typeof requestPath !== 'string' || requestPath.trim().length === 0 || !requestPath.startsWith('/')) {
+function normalizeRedirectPath(originalUrl = '/') {
+  if (typeof originalUrl !== 'string' || originalUrl.trim().length === 0) {
     return '/';
   }
 
-  const safeSegments = [];
-
-  for (const rawSegment of requestPath.split('/')) {
-    if (rawSegment.length === 0) {
-      continue;
-    }
-
-    let decodedSegment;
-    try {
-      decodedSegment = decodeURIComponent(rawSegment);
-    } catch {
-      return '/';
-    }
-
-    if (
-      decodedSegment.length === 0 ||
-      decodedSegment === '.' ||
-      decodedSegment === '..' ||
-      !SAFE_REDIRECT_SEGMENT.test(decodedSegment)
-    ) {
-      return '/';
-    }
-
-    safeSegments.push(decodedSegment);
-  }
-
-  return safeSegments.length === 0 ? '/' : `/${safeSegments.join('/')}`;
-}
-
-function buildRedirectDestination({ redirectHostname, httpsPort, requestPath = '/' }) {
-  const destination = new URL(buildHttpsOrigin(redirectHostname, httpsPort));
-  destination.pathname = sanitizeRedirectPath(requestPath);
-  return destination.toString();
+  const parsedUrl = new URL(originalUrl, 'http://localhost');
+  const normalizedPath = parsedUrl.pathname.startsWith('/') ? parsedUrl.pathname : '/';
+  return `${normalizedPath}${parsedUrl.search}`;
 }
 
 function createRedirectApp({ httpsPort = 443, redirectHostname = DEFAULT_REDIRECT_HTTPS_HOST } = {}) {
   const app = express();
+  const redirectOrigin = buildHttpsOrigin(redirectHostname, httpsPort);
 
   app.use((req, res) => {
-    const destination = buildRedirectDestination({
-      redirectHostname,
-      httpsPort,
-      requestPath: req.path,
-    });
+    const destination = `${redirectOrigin}${normalizeRedirectPath(req.originalUrl)}`;
     res.redirect(308, destination);
   });
 
@@ -859,14 +824,10 @@ function createApp({
 } = {}) {
   const app = express();
   const proxyRoutes = getProxyRoutes(env);
-  const metrics = createPrometheusMetrics({ serviceName: 'gateway' });
-
-  app.use(metrics.middleware);
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
-  app.get('/metrics', metrics.handler);
 
   app.use('/external', createExternalApiRouter({ env, fetchImpl, spec }));
 
@@ -935,7 +896,6 @@ module.exports = {
   applyBotMoveToYen,
   buildDocsHtml,
   buildProxy,
-  buildRedirectDestination,
   buildHttpsOrigin,
   createApp,
   createRedirectApp,
@@ -945,7 +905,7 @@ module.exports = {
   getTlsConfig,
   isDirectExecution,
   loadTlsOptions,
-  sanitizeRedirectPath,
+  normalizeRedirectPath,
   pickPlayBotId,
   parseBoolean,
   start,

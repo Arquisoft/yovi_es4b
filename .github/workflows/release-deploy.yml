@@ -199,18 +199,13 @@ jobs:
     needs: [docker-push-webapp, docker-push-gateway, docker-push-gamey, docker-push-auth, docker-push-stats]
     steps:
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.5
+        uses: fifsky/ssh-action@master
         with:
           host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
+          user: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          fingerprint: ${{ secrets.DEPLOY_FINGERPRINT }}
-          timeout: 60s
-          command_timeout: 20m
-          request_pty: true
-          script: |
-            set -Eeuo pipefail
-            trap 'rc=$?; echo "Deploy failed with exit code ${rc} on line ${LINENO}"; exit ${rc}' ERR
+          command: |
+            set -euo pipefail
             COMPOSE_BIN="docker compose"
             if ! docker compose version >/dev/null 2>&1; then
               COMPOSE_BIN="docker-compose"
@@ -246,5 +241,3 @@ jobs:
             fi
 
             $COMPOSE_BIN ps
-            echo "REMOTE_DEPLOY_OK"
-            exit 0

@@ -1,6 +1,0 @@
-node_modules
-.npm-cache
-coverage
-coverage-output.txt
-*.test.js
-certs

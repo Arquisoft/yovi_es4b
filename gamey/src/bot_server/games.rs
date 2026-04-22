@@ -184,7 +184,6 @@ pub async fn create_game(
     let games = state.games();
     games.write().await.insert(game_id.clone(), session.clone());
     register_active_game_for_session_users(&state, &game_id, &session).await;
-    state.metrics().inc_games_created();
 
     Ok(Json(response))
 }
@@ -336,8 +335,7 @@ pub async fn play_move(
         user_ids_to_release_from_active_game_index,
     )
     .await;
-    state.metrics().inc_moves_played();
-    report_finished_match_if_needed(&state, pending_report).await;
+    report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
 }
@@ -410,8 +408,7 @@ pub async fn resign_game(
         user_ids_to_release_from_active_game_index,
     )
     .await;
-    state.metrics().inc_resignations();
-    report_finished_match_if_needed(&state, pending_report).await;
+    report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
 }
@@ -542,8 +539,7 @@ pub async fn pass_turn(
         user_ids_to_release_from_active_game_index,
     )
     .await;
-    state.metrics().inc_turn_passes();
-    report_finished_match_if_needed(&state, pending_report).await;
+    report_finished_match_if_needed(pending_report).await;
 
     Ok(Json(response))
 }
@@ -639,7 +635,7 @@ fn prepare_stats_report_if_needed(
     })
 }
 
-async fn report_finished_match_if_needed(state: &AppState, pending_report: Option<FinishedMatchRequest>) {
+async fn report_finished_match_if_needed(pending_report: Option<FinishedMatchRequest>) {
     let Some(payload) = pending_report else {
         return;
     };
@@ -655,7 +651,6 @@ async fn report_finished_match_if_needed(state: &AppState, pending_report: Optio
     );
 
     let client = reqwest::Client::new();
-    state.metrics().inc_stats_report_attempts();
     match client
         .post(&endpoint)
         .header("x-service-token", internal_token)
@@ -671,7 +666,6 @@ async fn report_finished_match_if_needed(state: &AppState, pending_report: Optio
                     "Failed to report finished game {} to stats. status={} body={}",
                     payload.game_id, status, body
                 );
-                state.metrics().inc_stats_report_failures();
             }
         }
         Err(error) => {
@@ -679,7 +673,6 @@ async fn report_finished_match_if_needed(state: &AppState, pending_report: Optio
                 "Could not report finished game {} to stats: {}",
                 payload.game_id, error
             );
-            state.metrics().inc_stats_report_failures();
         }
     }
 }
@@ -715,7 +708,6 @@ async fn process_online_game_timeouts(state: &AppState) -> Result<(), String> {
                 )
             })?;
         reset_turn_timer(session);
-        state.metrics().inc_resignations();
 
         if let Some(pending_report) = prepare_stats_report_if_needed(game_id, session) {
             pending_reports.push(pending_report);
@@ -749,7 +741,6 @@ async fn process_online_game_timeouts(state: &AppState) -> Result<(), String> {
                 )
             })?;
         reset_turn_timer(session);
-        state.metrics().inc_turn_passes();
     }
 
     drop(games_guard);
@@ -759,7 +750,7 @@ async fn process_online_game_timeouts(state: &AppState) -> Result<(), String> {
     }
 
     for pending_report in pending_reports {
-        report_finished_match_if_needed(state, Some(pending_report)).await;
+        report_finished_match_if_needed(Some(pending_report)).await;
     }
 
     Ok(())

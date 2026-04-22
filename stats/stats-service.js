@@ -1,6 +1,5 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
-const { createPrometheusMetrics } = require('./prometheus-metrics');
 
 // 1) Configuracion basica
 const DEFAULT_PORT = Number(process.env.PORT ?? 3001);
@@ -196,16 +195,7 @@ function createApp({ internalToken = INTERNAL_TOKEN, playerStatsCollection, play
   }
 
   const app = express();
-  const metrics = createPrometheusMetrics({ serviceName: 'stats' });
-
-  app.use(metrics.middleware);
   app.use(express.json());
-
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'stats' });
-  });
-
-  app.get('/metrics', metrics.handler);
 
   function requireServiceToken(req, res, next) {
     const token = req.get('x-service-token');

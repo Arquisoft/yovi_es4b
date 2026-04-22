@@ -1,4 +1,3 @@
-use super::metrics::AppMetrics;
 use crate::{GameY, YBotRegistry};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -82,8 +81,6 @@ pub struct AppState {
     active_game_id_by_user_id: Arc<RwLock<HashMap<String, String>>>,
     /// In-memory matchmaking queue and ticket statuses.
     matchmaking: Arc<RwLock<MatchmakingState>>,
-    /// In-memory metrics registry used to expose Prometheus telemetry.
-    metrics: Arc<AppMetrics>,
     /// Counter used to generate unique game identifiers.
     next_game_id: Arc<AtomicU64>,
     /// Counter used to generate unique ticket identifiers.
@@ -100,7 +97,6 @@ impl AppState {
             games: Arc::new(RwLock::new(HashMap::new())),
             active_game_id_by_user_id: Arc::new(RwLock::new(HashMap::new())),
             matchmaking: Arc::new(RwLock::new(MatchmakingState::default())),
-            metrics: Arc::new(AppMetrics::new()),
             next_game_id: Arc::new(AtomicU64::new(1)),
             next_ticket_id: Arc::new(AtomicU64::new(1)),
             next_player_token_id: Arc::new(AtomicU64::new(1)),
@@ -125,11 +121,6 @@ impl AppState {
     /// Returns the in-memory matchmaking storage.
     pub fn matchmaking(&self) -> Arc<RwLock<MatchmakingState>> {
         Arc::clone(&self.matchmaking)
-    }
-
-    /// Returns the shared metrics registry.
-    pub fn metrics(&self) -> Arc<AppMetrics> {
-        Arc::clone(&self.metrics)
     }
 
     /// Returns a new unique game identifier.
@@ -188,15 +179,5 @@ mod tests {
         let bots2 = state.bots();
         // Both Arcs should point to the same registry
         assert_eq!(bots1.names(), bots2.names());
-    }
-
-    #[test]
-    fn test_metrics_arc_clone() {
-        let registry = YBotRegistry::new();
-        let state = AppState::new(registry);
-        let metrics1 = state.metrics();
-        let metrics2 = state.metrics();
-
-        assert!(Arc::ptr_eq(&metrics1, &metrics2));
     }
 }

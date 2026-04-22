@@ -54,8 +54,8 @@ services:
       - GATEWAY_HTTPS_HOST=${GATEWAY_HTTPS_HOST:-localhost}
       - GATEWAY_PUBLIC_HOSTNAME=${GATEWAY_PUBLIC_HOSTNAME:-localhost}
       - GATEWAY_HTTPS_HOST_PORT=${GATEWAY_HTTPS_HOST_PORT:-443}
-      - HTTPS_CERT_PATH=${HTTPS_CERT_PATH:-}
-      - HTTPS_KEY_PATH=${HTTPS_KEY_PATH:-}
+      - HTTPS_CERT_PATH=${HTTPS_CERT_PATH:-/app/certs/server.crt}
+      - HTTPS_KEY_PATH=${HTTPS_KEY_PATH:-/app/certs/server.key}
       - WEBAPP_SERVICE_URL=http://webapp:80
       - GAMEY_SERVICE_URL=http://gamey:4000
       - AUTH_SERVICE_URL=http://auth:3500
@@ -114,15 +114,6 @@ services:
     container_name: prometheus
     ports:
       - "9090:9090"
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    depends_on:
-      - gateway
-      - auth
-      - stats
-      - gamey
     networks:
       - monitor-net
 
@@ -131,12 +122,6 @@ services:
     container_name: grafana
     ports:
       - "9091:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - prometheus
     networks:
       - monitor-net
 
@@ -147,4 +132,3 @@ networks:
 volumes:
   mongo-auth-data:
   mongo-stats-data:
-  grafana-data:

@@ -123,7 +123,6 @@ pub async fn enqueue(
             enqueued_at: Instant::now(),
         },
     );
-    state.metrics().inc_matchmaking_enqueued();
 
     let position = queue_position(&guard, &ticket_id);
     Ok(Json(TicketResponse {
@@ -214,7 +213,6 @@ pub async fn cancel_ticket(
             guard
                 .queue
                 .retain(|entry| entry.ticket_id != params.ticket_id);
-            state.metrics().inc_matchmaking_cancelled();
         }
         MatchmakingTicketStatus::Matched { .. } => {
             return Err(error_response(

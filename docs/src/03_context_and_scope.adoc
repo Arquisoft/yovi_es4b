@@ -119,9 +119,7 @@ Gamey --> Stats : HTTP /internal/v1/matches/finished + x-service-token
 Stats --> GameDB : TCP (DB driver) - stats data
 
 ' --- Monitoring ---
-Gateway --> Prometheus : HTTP /metrics
 Auth --> Prometheus : HTTP /metrics
-Stats --> Prometheus : HTTP /metrics
 Gamey --> Prometheus : HTTP /metrics
 Prometheus --> Grafana : HTTP (data source)
 
@@ -193,7 +191,7 @@ endif::arc42help[]
 
 
 | Prometheus
-| Metrics scraping from Gateway, Auth, Stats, and Gamey
+| Metrics scraping from Auth and Gamey
 | HTTP (/metrics)
 
 | Grafana
