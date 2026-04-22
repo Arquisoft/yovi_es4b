@@ -10,6 +10,7 @@ const User = require('./models/user');
 const app = express();
 const port = Number(process.env.PORT ?? 3500);
 const metrics = createPrometheusMetrics({ serviceName: 'auth' });
+app.locals.metrics = metrics;
 
 app.use(express.json());
 app.use(metrics.middleware);

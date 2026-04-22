@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll, beforeAll, vi } from 'vitest'
+import { describe, it, expect, afterAll, beforeAll, beforeEach } from 'vitest'
 import request from 'supertest'
 
 // Use mongodb-memory-server so tests don't need a real MongoDB
@@ -20,6 +20,10 @@ beforeAll(async () => {
 afterAll(async () => {
   await mongoose.default.disconnect()
   if (mongoServer) await mongoServer.stop()
+})
+
+beforeEach(() => {
+  app.locals.metrics.reset()
 })
 
 describe('POST /register', () => {

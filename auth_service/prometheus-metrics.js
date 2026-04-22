@@ -42,6 +42,10 @@ function createPrometheusMetrics({ serviceName }) {
     res.send(renderMetrics());
   }
 
+  function reset() {
+    requestMetrics.clear();
+  }
+
   function renderMetrics() {
     const memoryUsage = process.memoryUsage();
     const lines = [];
@@ -112,6 +116,7 @@ function createPrometheusMetrics({ serviceName }) {
   return {
     handler,
     middleware,
+    reset,
     renderMetrics,
   };
 }
