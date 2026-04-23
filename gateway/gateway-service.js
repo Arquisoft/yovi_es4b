@@ -407,6 +407,27 @@ function pickPlayBotId(body) {
   return STRATEGY_TO_BOT_ID[strategy.toLowerCase()] ?? strategy;
 }
 
+function parsePlayPositionQuery(positionQueryValue) {
+  const rawPosition = normalizeOptionalString(positionQueryValue);
+  if (!rawPosition) {
+    throw new Error('position is required');
+  }
+
+  let parsedPosition;
+  try {
+    parsedPosition = JSON.parse(rawPosition);
+  } catch {
+    throw new Error('position must be valid JSON object in YEN format');
+  }
+
+  const validatedPosition = validateYenPosition(parsedPosition);
+
+  return {
+    position: parsedPosition,
+    boardSize: validatedPosition.size,
+  };
+}
+
 function validateYenPlayers(players) {
   if (!Array.isArray(players) || players?.length !== 2 || players?.[0] !== 'B' || players?.[1] !== 'R') {
     throw new Error("position.players must be exactly ['B', 'R']");
@@ -798,34 +819,29 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
     sendPayload(res, result.status, result.payload);
   }));
 
-  router.post('/v1/play', asyncRoute(async (req, res) => {
-    if (!isObject(req.body)) {
-      res.status(400).json({ message: 'Body must be a JSON object' });
+  router.get('/v1/play', asyncRoute(async (req, res) => {
+    let playQuery;
+    try {
+      playQuery = parsePlayPositionQuery(req.query.position);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
       return;
     }
 
-    if (!isObject(req.body.position)) {
-      res.status(400).json({ message: 'position is required' });
-      return;
-    }
-
-    const botId = pickPlayBotId(req.body);
+    const botId = pickPlayBotId(req.query);
     const playResult = await fetchJson(
       fetchImpl,
       'gamey service',
       `${serviceUrls.gamey}/v1/ybot/choose/${encodeURIComponent(botId)}`,
-      buildJsonInit('POST', req.body.position, {
+      buildJsonInit('POST', playQuery.position, {
         'Content-Type': 'application/json',
       }),
     );
 
-    const move = applyBotMoveToYen(req.body.position, playResult.payload?.coords);
+    const coords = validateCoordinates(playResult.payload?.coords, playQuery.boardSize);
 
     res.json({
-      api_version: playResult.payload?.api_version ?? 'v1',
-      bot_id: playResult.payload?.bot_id ?? botId,
-      coords: playResult.payload?.coords,
-      move,
+      coords,
     });
   }));
 

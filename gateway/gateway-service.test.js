@@ -95,6 +95,20 @@ function withPatchedMethod(object, methodName, replacement, run) {
   }
 }
 
+function buildPlayQuery({ position, botId } = {}) {
+  const search = new URLSearchParams();
+
+  if (position !== undefined) {
+    search.set('position', JSON.stringify(position));
+  }
+
+  if (botId) {
+    search.set('bot_id', botId);
+  }
+
+  return search.toString();
+}
+
 // GET /health returns service status.
 test('GET /health returns service status', async () => {
   const { app } = createApp({ proxyFactory: noopProxyFactory });
@@ -389,6 +403,8 @@ test('GET /external/docs/openapi.json exposes the external API contract', async 
     assert.equal(response.status, 200);
     assert.equal(body.info.title, 'Yovi External Bot API');
     assert.ok(body.paths['/external/v1/play']);
+    assert.ok(body.paths['/external/v1/play'].get);
+    assert.equal(body.paths['/external/v1/play'].post, undefined);
   });
 });
 
@@ -533,8 +549,8 @@ test('POST /external/v1/games forwards user identity and opponent to gamey', asy
   });
 });
 
-// POST /external/v1/play returns the chosen move and the resulting YEN position.
-test('POST /external/v1/play returns resulting YEN move for bots', async () => {
+// GET /external/v1/play returns the chosen coordinates for bots.
+test('GET /external/v1/play returns chosen coordinates for bots', async () => {
   await withJsonServer(async (req, res, body) => {
     assert.equal(req.method, 'POST');
     assert.equal(req.url, `/v1/ybot/choose/${DEFAULT_EXTERNAL_BOT_ID}`);
@@ -559,34 +575,94 @@ test('POST /external/v1/play returns resulting YEN move for bots', async () => {
     });
 
     await withServer(app, async (baseUrl) => {
-      const response = await fetch(`${baseUrl}/external/v1/play`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          position: {
-            size: 3,
-            turn: 0,
-            players: ['B', 'R'],
-            layout: './../...',
-          },
-        }),
-      });
+      const position = {
+        size: 3,
+        turn: 0,
+        players: ['B', 'R'],
+        layout: './../...',
+      };
+      const query = buildPlayQuery({ position });
+      const response = await fetch(`${baseUrl}/external/v1/play?${query}`);
       const body = await response.json();
 
       assert.equal(response.status, 200);
       assert.deepEqual(body, {
-        api_version: 'v1',
-        bot_id: DEFAULT_EXTERNAL_BOT_ID,
         coords: { x: 2, y: 0, z: 0 },
-        move: {
-          size: 3,
-          turn: 1,
-          players: ['B', 'R'],
-          layout: 'B/../...',
-        },
       });
+    });
+  });
+});
+
+// GET /external/v1/play supports explicit bot identifiers via query parameter.
+test('GET /external/v1/play forwards explicit bot_id to gamey', async () => {
+  await withJsonServer(async (req, res, body) => {
+    assert.equal(req.method, 'POST');
+    assert.equal(req.url, '/v1/ybot/choose/greedy_bot');
+    assert.deepEqual(body, {
+      size: 3,
+      turn: 0,
+      players: ['B', 'R'],
+      layout: './../...',
+    });
+
+    jsonResponse(res, 200, {
+      api_version: 'v1',
+      bot_id: 'greedy_bot',
+      coords: { x: 1, y: 1, z: 0 },
+    });
+  }, async (gameyUrl) => {
+    const { app } = createApp({
+      proxyFactory: noopProxyFactory,
+      env: {
+        GAMEY_SERVICE_URL: gameyUrl,
+      },
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const position = {
+        size: 3,
+        turn: 0,
+        players: ['B', 'R'],
+        layout: './../...',
+      };
+      const query = buildPlayQuery({ position, botId: 'greedy_bot' });
+      const response = await fetch(`${baseUrl}/external/v1/play?${query}`);
+      const body = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(body, {
+        coords: { x: 1, y: 1, z: 0 },
+      });
+    });
+  });
+});
+
+// GET /external/v1/play requires position query parameter.
+test('GET /external/v1/play returns 400 when position is missing', async () => {
+  const { app } = createApp({ proxyFactory: noopProxyFactory });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/external/v1/play`);
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(body, {
+      message: 'position is required',
+    });
+  });
+});
+
+// GET /external/v1/play validates that position is JSON-encoded.
+test('GET /external/v1/play returns 400 for invalid position JSON', async () => {
+  const { app } = createApp({ proxyFactory: noopProxyFactory });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/external/v1/play?position=%7Binvalid`);
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(body, {
+      message: 'position must be valid JSON object in YEN format',
     });
   });
 });

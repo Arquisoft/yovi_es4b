@@ -400,27 +400,16 @@
         ],
         "properties": {
           "position": {
-            "$ref": "#/components/schemas/YENPosition"
+            "type": "string",
+            "description": "JSON-encoded YEN position. Example: {\"size\":3,\"turn\":0,\"players\":[\"B\",\"R\"],\"layout\":\"./../...\"}"
           },
           "bot_id": {
             "type": "string",
-            "description": "Explicit bot identifier. Takes precedence over strategy."
-          },
-          "strategy": {
-            "type": "string",
-            "description": "Optional strategy alias. Supported values: random, biased_random, greedy, minimax."
+            "description": "Optional bot identifier. Defaults to random_bot when omitted."
           }
         },
         "example": {
-          "position": {
-            "size": 3,
-            "turn": 0,
-            "players": [
-              "B",
-              "R"
-            ],
-            "layout": "./../..."
-          },
+          "position": "{\"size\":3,\"turn\":0,\"players\":[\"B\",\"R\"],\"layout\":\"./../...\"}",
           "bot_id": "random_bot"
         }
       },
@@ -428,23 +417,11 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "api_version",
-          "bot_id",
-          "coords",
-          "move"
+          "coords"
         ],
         "properties": {
-          "api_version": {
-            "type": "string"
-          },
-          "bot_id": {
-            "type": "string"
-          },
           "coords": {
             "$ref": "#/components/schemas/Coordinates"
-          },
-          "move": {
-            "$ref": "#/components/schemas/YENPosition"
           }
         }
       },
@@ -854,25 +831,35 @@
       }
     },
     "/external/v1/play": {
-      "post": {
+      "get": {
         "tags": [
           "Bots"
         ],
         "summary": "Ask a bot for the next move from a YEN position",
-        "description": "This is the tournament-friendly endpoint. It accepts the current board position in YEN, chooses a move with the requested bot and returns both the chosen coordinates and the resulting position in YEN after applying that move.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BotPlayRequest"
-              }
+        "description": "Tournament endpoint. It accepts the current board position as a JSON-encoded YEN record in the position query parameter and returns the chosen move coordinates.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "position",
+            "required": true,
+            "description": "JSON-encoded YEN position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bot_id",
+            "required": false,
+            "description": "Optional bot identifier. Defaults to random_bot.",
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Chosen move and updated position",
+            "description": "Chosen move coordinates",
             "content": {
               "application/json": {
                 "schema": {
