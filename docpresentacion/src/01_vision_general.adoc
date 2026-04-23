@@ -48,6 +48,36 @@ Responsabilidades:
 
 No contiene las reglas reales del juego. La autoridad del estado esta en `gamey`.
 
+==== Que significa aqui que sea una SPA
+
+Cuando en la presentacion digas que Yovi es una `SPA`, no significa solo "esta hecha con React".
+
+En este proyecto significa algo mas concreto:
+
+- el navegador carga una unica pagina base
+- React monta toda la aplicacion dentro de un unico punto de entrada
+- las vistas de login, dashboard, historial, ayuda y partida se cambian en cliente sin recargar toda la pagina
+- la webapp habla por HTTP con backend para autenticacion, juego e historial, pero la navegacion principal vive dentro del frontend
+
+Dicho de forma sencilla:
+
+`la aplicacion se comporta como una unica pagina larga de vida, y lo que cambia es el estado y la vista renderizada, no el documento HTML completo`
+
+Esto encaja muy bien con Yovi por varias razones:
+
+- jugar una partida requiere reaccion rapida en interfaz
+- hay que conservar estado local de sesion, partida y matchmaking
+- interesa cambiar entre vistas sin romper la experiencia del usuario
+- el online hace polling periodico y necesita una shell de frontend persistente
+
+Tambien te conviene saber un matiz importante:
+
+- el sistema completo no es "solo una SPA"
+- la `webapp` si es SPA
+- pero el producto entero incluye ademas `gateway`, `auth_service`, `gamey` y `stats`
+
+Esa distincion queda muy bien en una presentacion porque demuestra que sabes separar el frontend del sistema global.
+
 ==== Gateway
 
 Es la puerta de entrada publica.

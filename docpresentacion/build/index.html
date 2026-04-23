@@ -662,7 +662,76 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 <div class="sect3">
-<h4 id="_gateway">1.3.2. Gateway</h4>
+<h4 id="_que_significa_aqui_que_sea_una_spa">1.3.2. Que significa aqui que sea una SPA</h4>
+<div class="paragraph">
+<p>Cuando en la presentacion digas que Yovi es una <code>SPA</code>, no significa solo "esta hecha con React".</p>
+</div>
+<div class="paragraph">
+<p>En este proyecto significa algo mas concreto:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>el navegador carga una unica pagina base</p>
+</li>
+<li>
+<p>React monta toda la aplicacion dentro de un unico punto de entrada</p>
+</li>
+<li>
+<p>las vistas de login, dashboard, historial, ayuda y partida se cambian en cliente sin recargar toda la pagina</p>
+</li>
+<li>
+<p>la webapp habla por HTTP con backend para autenticacion, juego e historial, pero la navegacion principal vive dentro del frontend</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Dicho de forma sencilla:</p>
+</div>
+<div class="paragraph">
+<p><code>la aplicacion se comporta como una unica pagina larga de vida, y lo que cambia es el estado y la vista renderizada, no el documento HTML completo</code></p>
+</div>
+<div class="paragraph">
+<p>Esto encaja muy bien con Yovi por varias razones:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>jugar una partida requiere reaccion rapida en interfaz</p>
+</li>
+<li>
+<p>hay que conservar estado local de sesion, partida y matchmaking</p>
+</li>
+<li>
+<p>interesa cambiar entre vistas sin romper la experiencia del usuario</p>
+</li>
+<li>
+<p>el online hace polling periodico y necesita una shell de frontend persistente</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Tambien te conviene saber un matiz importante:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>el sistema completo no es "solo una SPA"</p>
+</li>
+<li>
+<p>la <code>webapp</code> si es SPA</p>
+</li>
+<li>
+<p>pero el producto entero incluye ademas <code>gateway</code>, <code>auth_service</code>, <code>gamey</code> y <code>stats</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Esa distincion queda muy bien en una presentacion porque demuestra que sabes separar el frontend del sistema global.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_gateway">1.3.3. Gateway</h4>
 <div class="paragraph">
 <p>Es la puerta de entrada publica.</p>
 </div>
@@ -696,7 +765,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 <div class="sect3">
-<h4 id="_auth_service">1.3.3. Auth Service</h4>
+<h4 id="_auth_service">1.3.4. Auth Service</h4>
 <div class="paragraph">
 <p>Es el servicio de identidad.</p>
 </div>
@@ -724,7 +793,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 <div class="sect3">
-<h4 id="_gamey">1.3.4. Gamey</h4>
+<h4 id="_gamey">1.3.5. Gamey</h4>
 <div class="paragraph">
 <p>Es el nucleo del proyecto.</p>
 </div>
@@ -761,7 +830,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 <div class="sect3">
-<h4 id="_stats">1.3.5. Stats</h4>
+<h4 id="_stats">1.3.6. Stats</h4>
 <div class="paragraph">
 <p>Es el servicio de historial y estadisticas.</p>
 </div>
@@ -4112,6 +4181,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="paragraph">
 <p><code>Yovi es una aplicacion web de Game Y organizada en microservicios. El gateway unifica el acceso, auth gestiona identidad, gamey concentra el motor del juego y el online, y stats persiste historial y agregados.</code></p>
 </div>
+<div class="paragraph">
+<p>Si quieres meter explicitamente la idea de SPA sin quedarte demasiado corto:</p>
+</div>
+<div class="paragraph">
+<p><code>El frontend de Yovi es una SPA: el navegador carga una unica aplicacion React y despues las vistas cambian en cliente sin recargar toda la pagina, mientras el gateway la conecta con auth, gamey y stats.</code></p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_mensaje_corto_del_online">6.2. Mensaje corto del online</h3>
@@ -4258,55 +4333,67 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 <div class="sect3">
-<h4 id="_por_que_rust_en_gamey">6.7.2. Por que Rust en <code>gamey</code></h4>
+<h4 id="_por_que_dices_que_es_una_spa">6.7.2. Por que dices que es una SPA</h4>
+<div class="paragraph">
+<p><code>Porque el frontend no esta compuesto por varias paginas HTML independientes. El navegador carga una sola webapp y, a partir de ahi, login, dashboard, historial o partida se renderizan como vistas del cliente sin recargar el documento completo.</code></p>
+</div>
+<div class="paragraph">
+<p>Si quieres afinar un poco mas:</p>
+</div>
+<div class="paragraph">
+<p><code>Eso no significa que todo el sistema sea solo frontend. La SPA es la webapp. Detras hay varios servicios separados a los que la SPA llama por HTTP a traves del gateway.</code></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_por_que_rust_en_gamey">6.7.3. Por que Rust en <code>gamey</code></h4>
 <div class="paragraph">
 <p><code>Porque es el servicio con mas logica y coordinacion interna. Concentrar ahi reglas, bots, estado vivo y workers asincronos encaja muy bien con una implementacion en Rust.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_por_que_no_se_guarda_cada_movimiento_en_base_de_datos">6.7.3. Por que no se guarda cada movimiento en base de datos</h4>
+<h4 id="_por_que_no_se_guarda_cada_movimiento_en_base_de_datos">6.7.4. Por que no se guarda cada movimiento en base de datos</h4>
 <div class="paragraph">
 <p><code>Porque el proyecto separa juego vivo de memoria historica. Guardar cada movimiento aumentaria complejidad y latencia. La implementacion actual solo persiste el resumen final y el tablero final cuando termina la partida.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_como_evitais_que_un_jugador_actue_por_el_otro_en_online">6.7.4. Como evitais que un jugador actue por el otro en online</h4>
+<h4 id="_como_evitais_que_un_jugador_actue_por_el_otro_en_online">6.7.5. Como evitais que un jugador actue por el otro en online</h4>
 <div class="paragraph">
 <p><code>Las partidas de matchmaking generan un token por jugador. Gamey valida ese token y ademas comprueba que corresponde al turno actual antes de aceptar ciertas acciones.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_como_se_emparejan_los_jugadores">6.7.5. Como se emparejan los jugadores</h4>
+<h4 id="_como_se_emparejan_los_jugadores">6.7.6. Como se emparejan los jugadores</h4>
 <div class="paragraph">
 <p><code>Hay una cola de tickets en memoria y un worker asincrono que la revisa periodicamente. Busca dos tickets compatibles por tamano de tablero y evita emparejar la misma identidad consigo misma.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_que_pasa_si_un_jugador_se_desconecta">6.7.6. Que pasa si un jugador se desconecta</h4>
+<h4 id="_que_pasa_si_un_jugador_se_desconecta">6.7.7. Que pasa si un jugador se desconecta</h4>
 <div class="paragraph">
 <p><code>Gamey va registrando la ultima vez que cada jugador online da senales. Otro worker revisa esa informacion cada segundo. Si alguien supera el umbral de inactividad, la partida termina por abandono.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_que_pasa_si_se_acaba_el_tiempo_de_turno">6.7.7. Que pasa si se acaba el tiempo de turno</h4>
+<h4 id="_que_pasa_si_se_acaba_el_tiempo_de_turno">6.7.8. Que pasa si se acaba el tiempo de turno</h4>
 <div class="paragraph">
 <p><code>El monitor de gamey fuerza un pass automatico del turno. El frontend tambien muestra una cuenta atras sincronizada para que el usuario entienda lo que esta ocurriendo.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_donde_esta_la_seguridad">6.7.8. Donde esta la seguridad</h4>
+<h4 id="_donde_esta_la_seguridad">6.7.9. Donde esta la seguridad</h4>
 <div class="paragraph">
 <p><code>Auth protege credenciales con bcrypt y JWT. Stats protege su endpoint interno de escritura con un token de servicio. En online, gamey protege acciones sensibles con player tokens.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_que_papel_tiene_el_gateway_aparte_de_reenviar">6.7.9. Que papel tiene el gateway aparte de reenviar</h4>
+<h4 id="_que_papel_tiene_el_gateway_aparte_de_reenviar">6.7.10. Que papel tiene el gateway aparte de reenviar</h4>
 <div class="paragraph">
 <p><code>Ademas de proxy, centraliza errores de servicios caidos, puede actuar como borde HTTPS y expone una API externa agregada con documentacion Swagger para consumidores externos.</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_cual_es_el_mayor_limite_arquitectonico">6.7.10. Cual es el mayor limite arquitectonico</h4>
+<h4 id="_cual_es_el_mayor_limite_arquitectonico">6.7.11. Cual es el mayor limite arquitectonico</h4>
 <div class="paragraph">
 <p><code>La dependencia del estado en memoria dentro de gamey para el online. Simplifica mucho la implementacion, pero hace mas dificil tolerar reinicios o escalar horizontalmente.</code></p>
 </div>
@@ -4376,7 +4463,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-04-22 10:49:09 +0200
+Last updated 2026-04-22 21:35:25 +0200
 </div>
 </div>
 </body>

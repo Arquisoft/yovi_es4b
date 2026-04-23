@@ -6,6 +6,10 @@ Si te piden una explicacion breve:
 
 `Yovi es una aplicacion web de Game Y organizada en microservicios. El gateway unifica el acceso, auth gestiona identidad, gamey concentra el motor del juego y el online, y stats persiste historial y agregados.`
 
+Si quieres meter explicitamente la idea de SPA sin quedarte demasiado corto:
+
+`El frontend de Yovi es una SPA: el navegador carga una unica aplicacion React y despues las vistas cambian en cliente sin recargar toda la pagina, mientras el gateway la conecta con auth, gamey y stats.`
+
 === Mensaje corto del online
 
 `El online funciona con matchmaking en memoria, polling desde el cliente, tokens por jugador y workers asincronos en gamey para emparejar, vigilar inactividad y forzar cambios de turno por timeout.`
@@ -76,6 +80,14 @@ Reconocer limites no te debilita. Te hace sonar serio.
 Respuesta util:
 
 `Porque las responsabilidades estan muy diferenciadas. Autenticacion, motor del juego y estadisticas tienen ciclos de cambio distintos. Separarlos hace mas facil razonar sobre cada dominio y desplegarlos de forma independiente.`
+
+==== Por que dices que es una SPA
+
+`Porque el frontend no esta compuesto por varias paginas HTML independientes. El navegador carga una sola webapp y, a partir de ahi, login, dashboard, historial o partida se renderizan como vistas del cliente sin recargar el documento completo.`
+
+Si quieres afinar un poco mas:
+
+`Eso no significa que todo el sistema sea solo frontend. La SPA es la webapp. Detras hay varios servicios separados a los que la SPA llama por HTTP a traves del gateway.`
 
 ==== Por que Rust en `gamey`
 
