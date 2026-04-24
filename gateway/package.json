@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node gateway-service.js",
     "test": "node --test",
+    "test:routes": "node --test gateway-service-routes.test.js",
+    "test:e2e": "node --test e2e/external-play.e2e.test.js",
+    "test:e2e:real": "node --test e2e/gateway-api.e2e.test.js",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
   },
   "dependencies": {
