@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import HistoryView from '../views/HistoryView';
 import type { MatchHistoryItem, PlayerStatsSummary } from '../stats/types';
@@ -40,12 +40,18 @@ describe('HistoryView', () => {
       buildMatch({
         gameId: 'match-2',
         result: 'loss',
-        mode: 'human_vs_human',
+        mode: 'local_human_vs_human',
         winnerId: 'rival',
         botId: null,
       }),
       buildMatch({
         gameId: 'match-3',
+        mode: 'online',
+        winnerId: 'online-rival',
+        botId: null,
+      }),
+      buildMatch({
+        gameId: 'match-4',
         mode: null,
         winnerId: null,
         botId: 'custom_bot',
@@ -58,20 +64,24 @@ describe('HistoryView', () => {
     const matchOneRow = rows.find((row) => within(row).queryByText('match-1'));
     const matchTwoRow = rows.find((row) => within(row).queryByText('match-2'));
     const matchThreeRow = rows.find((row) => within(row).queryByText('match-3'));
+    const matchFourRow = rows.find((row) => within(row).queryByText('match-4'));
 
     expect(matchOneRow).toBeTruthy();
     expect(matchTwoRow).toBeTruthy();
     expect(matchThreeRow).toBeTruthy();
+    expect(matchFourRow).toBeTruthy();
 
     expect(within(matchOneRow as HTMLElement).getByText('Victoria')).toBeInTheDocument();
     expect(within(matchOneRow as HTMLElement).getByText('Bot')).toBeInTheDocument();
     expect(within(matchOneRow as HTMLElement).getByText('Intermedio')).toBeInTheDocument();
     expect(within(matchTwoRow as HTMLElement).getByText('Derrota')).toBeInTheDocument();
-    expect(within(matchTwoRow as HTMLElement).getByText('Humano')).toBeInTheDocument();
+    expect(within(matchTwoRow as HTMLElement).getByText('Humano local')).toBeInTheDocument();
     expect(within(matchTwoRow as HTMLElement).getByText('rival')).toBeInTheDocument();
-    expect(within(matchThreeRow as HTMLElement).getByText('custom_bot')).toBeInTheDocument();
-    expect(within(matchThreeRow as HTMLElement).getAllByText('-').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(new Date(matches[0].endedAt).toLocaleString())).toHaveLength(3);
+    expect(within(matchThreeRow as HTMLElement).getByText('Online')).toBeInTheDocument();
+    expect(within(matchThreeRow as HTMLElement).getByText('online-rival')).toBeInTheDocument();
+    expect(within(matchFourRow as HTMLElement).getByText('custom_bot')).toBeInTheDocument();
+    expect(within(matchFourRow as HTMLElement).getAllByText('-').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(new Date(matches[0].endedAt).toLocaleString())).toHaveLength(4);
   });
 
   test('opens the final board preview when a match includes finalBoard', () => {
@@ -139,7 +149,7 @@ describe('HistoryView', () => {
       buildMatch({
         gameId: 'match-human-win',
         result: 'win',
-        mode: 'human_vs_human',
+        mode: 'local_human_vs_human',
         botId: null,
         winnerId: 'adri',
         endedAt: '2026-01-01T09:00:00.000Z',
@@ -152,7 +162,7 @@ describe('HistoryView', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /solo victorias/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /modo/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /solo bot/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^bot$/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /fecha/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: /mas antiguas primero/i }));
@@ -176,11 +186,66 @@ describe('HistoryView', () => {
     expect(screen.getByText('match-human-win')).toBeInTheDocument();
   });
 
-  test('supports dynamic bot and winner filters, including matches without bot or winner', () => {
+  test('notifies parent components when filters change', () => {
+    const onFiltersChange = vi.fn();
+
+    render(<HistoryView playerStats={PLAYER_STATS} matches={[buildMatch()]} onFiltersChange={onFiltersChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /resultado/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /solo victorias/i }));
+
+    expect(onFiltersChange).toHaveBeenCalledWith({
+      result: 'win',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    });
+  });
+
+  test('distinguishes local human games from online and legacy online games', () => {
+    const matches = [
+      buildMatch({
+        gameId: 'match-local-human',
+        mode: 'local_human_vs_human',
+        botId: null,
+      }),
+      buildMatch({
+        gameId: 'match-online',
+        mode: 'online',
+        botId: null,
+      }),
+      buildMatch({
+        gameId: 'match-online-legacy',
+        mode: 'human_vs_human',
+        botId: null,
+      }),
+    ];
+
+    render(<HistoryView playerStats={PLAYER_STATS} matches={matches} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /modo/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^humano local$/i }));
+
+    expect(screen.getByText(/mostrando 1 de 3 partidas/i)).toBeInTheDocument();
+    expect(screen.getByText('match-local-human')).toBeInTheDocument();
+    expect(screen.queryByText('match-online')).not.toBeInTheDocument();
+    expect(screen.queryByText('match-online-legacy')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /modo/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^online$/i }));
+
+    expect(screen.getByText(/mostrando 2 de 3 partidas/i)).toBeInTheDocument();
+    expect(screen.queryByText('match-local-human')).not.toBeInTheDocument();
+    expect(screen.getByText('match-online')).toBeInTheDocument();
+    expect(screen.getByText('match-online-legacy')).toBeInTheDocument();
+  });
+
+  test('supports dynamic bot filters and simple winner perspective filters', () => {
     const matches = [
       buildMatch({
         gameId: 'match-no-bot-no-winner',
-        mode: 'human_vs_human',
+        mode: 'local_human_vs_human',
         botId: null,
         winnerId: null,
       }),
@@ -191,6 +256,7 @@ describe('HistoryView', () => {
       }),
       buildMatch({
         gameId: 'match-random-rival',
+        result: 'loss',
         botId: 'random_bot',
         winnerId: 'rival',
       }),
@@ -207,7 +273,9 @@ describe('HistoryView', () => {
     expect(screen.queryByText('match-random-rival')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ganador\. filtro actual/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /^sin ganador$/i }));
+    expect(screen.queryByRole('menuitem', { name: /^sin ganador$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^adri$/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: /^tu$/i }));
 
     expect(screen.getByText('match-no-bot-no-winner')).toBeInTheDocument();
     expect(screen.queryByText('match-greedy-adri')).not.toBeInTheDocument();
@@ -223,10 +291,20 @@ describe('HistoryView', () => {
     expect(screen.queryByText('match-random-rival')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ganador\. filtro actual/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /^adri$/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^tu$/i }));
 
     expect(screen.getByText('match-greedy-adri')).toBeInTheDocument();
     expect(screen.queryByText('match-random-rival')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /limpiar filtros/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /ganador\. filtro actual/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^rival$/i }));
+
+    expect(screen.getByText(/mostrando 1 de 3 partidas/i)).toBeInTheDocument();
+    expect(screen.getByText('match-random-rival')).toBeInTheDocument();
+    expect(screen.queryByText('match-greedy-adri')).not.toBeInTheDocument();
+    expect(screen.queryByText('match-no-bot-no-winner')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /limpiar filtros/i }));
 

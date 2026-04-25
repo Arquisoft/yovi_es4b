@@ -84,6 +84,60 @@ endif::arc42help[]
 | The game continues to run with a minimal decrease in latency.
 |===
 
+=== Load Testing Evidence
+
+We complemented the qualitative scenarios above with an executable load test based on `Gatling 4.21.5`.
+The executed simulation was `io.gatling.example.YoviSimulation`, and the exercised scenario was `register-login-play-resign-stats`.
+
+The most relevant part of the final Gatling console output is reproduced below, preserving the endpoint names and summary emitted by the tool:
+
+[source,text]
+----
+========================================================================================================================
+2026-04-20 20:59:30 GMT                                                                              64s elapsed
+---- Requests -----------------------------------------------------------------------|---Total---|-----OK----|----KO----
+> Global                                                                             |       720 |       720 |         0
+> register                                                                           |       120 |       120 |         0
+> login                                                                              |       120 |       120 |         0
+> create_game                                                                        |       120 |       120 |         0
+> resign_game                                                                        |       120 |       120 |         0
+> stats_me                                                                           |       120 |       120 |         0
+> stats_history                                                                      |       120 |       120 |         0
+
+---- register-login-play-resign-stats ----------------------------------------------------------------------------------
+[###############################################################################################################]   100%
+          waiting:         0 / active:         0  / done:       120
+========================================================================================================================
+
+---- Global Information -------------------------------------------------------------|---Total---|-----OK----|----KO----
+> request count                                                                      |       720 |       720 |         -
+> min response time (ms)                                                             |        90 |        90 |         -
+> max response time (ms)                                                             |       224 |       224 |         -
+> mean response time (ms)                                                            |       125 |       125 |         -
+> response time std deviation (ms)                                                   |        40 |        40 |         -
+> response time 50th percentile (ms)                                                 |        98 |        98 |         -
+> response time 75th percentile (ms)                                                 |       177 |       177 |         -
+> response time 95th percentile (ms)                                                 |       184 |       184 |         -
+> response time 99th percentile (ms)                                                 |       198 |       198 |         -
+> mean throughput (rps)                                                              |     11.08 |     11.08 |         -
+---- Response Time Distribution ----------------------------------------------------------------------------------------
+> OK: t < 800 ms                                                                                            720   (100%)
+> OK: 800 ms <= t < 1200 ms                                                                                   0     (0%)
+> OK: t >= 1200 ms                                                                                            0     (0%)
+> KO                                                                                                          0     (0%)
+========================================================================================================================
+----
+
+Interpretation::
++
+For the tested end-to-end flow, all `720` requests finished successfully, the mean response time remained at `125 ms`, and the complete run stayed below the project target of one second per request.
+The per-endpoint counts also show that the whole functional path was exercised uniformly: `120` executions each for `register`, `login`, `create_game`, `resign_game`, `stats_me` and `stats_history`.
+
+Limitations::
++
+This measurement is not a production benchmark.
+It was captured in a local deployment and focuses on a representative business flow, not on extreme concurrency, prolonged execution or large-scale online matchmaking saturation.
+
 
 ifdef::arc42help[]
 [role="arc42help"]

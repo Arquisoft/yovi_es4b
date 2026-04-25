@@ -50,7 +50,7 @@ describe('statsApi', () => {
           {
             gameId: 'g-1',
             result: 'loss',
-            mode: 'human_vs_human',
+            mode: 'online',
             winnerId: 'rival',
             botId: null,
             endedAt: '2026-03-01T10:00:00.000Z',
@@ -85,7 +85,7 @@ describe('statsApi', () => {
       {
         gameId: 'g-1',
         result: 'loss',
-        mode: 'human_vs_human',
+        mode: 'online',
         winnerId: 'rival',
         botId: null,
         endedAt: '2026-03-01T10:00:00.000Z',
@@ -106,6 +106,43 @@ describe('statsApi', () => {
         finalBoard: null,
       },
     ]);
+  });
+
+  test('fetchMatchHistory serializes history filters as query parameters', async () => {
+    fetchMock.mockResolvedValue(responseJson({ items: [] }));
+
+    await fetchMatchHistory('adri', {
+      limit: 5,
+      result: 'win',
+      mode: 'human_vs_bot',
+      bot: 'bot:greedy_bot',
+      winner: 'you',
+      dateSort: 'oldest_first',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/stats/v1/me/history?limit=5&result=win&mode=human_vs_bot&botId=greedy_bot&winner=you&sort=oldest_first',
+      {
+        headers: {
+          'x-user-id': 'adri',
+        },
+      },
+    );
+  });
+
+  test('fetchMatchHistory serializes empty bot and rival winner filters', async () => {
+    fetchMock.mockResolvedValue(responseJson({ items: [] }));
+
+    await fetchMatchHistory('adri', {
+      bot: 'without_bot',
+      winner: 'rival',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/stats/v1/me/history?limit=20&hasBot=false&winner=rival', {
+      headers: {
+        'x-user-id': 'adri',
+      },
+    });
   });
 
   test('uses backend error message when the stats request fails', async () => {

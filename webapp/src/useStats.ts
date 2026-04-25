@@ -1,10 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchMatchHistory, fetchPlayerStats } from './statsApi';
-import { EMPTY_PLAYER_STATS, type MatchHistoryItem, type PlayerStatsSummary } from './stats/types';
+import {
+  DEFAULT_HISTORY_FILTERS,
+  EMPTY_PLAYER_STATS,
+  type HistoryFilters,
+  type MatchHistoryItem,
+  type PlayerStatsSummary,
+} from './stats/types';
+
+function hasActiveHistoryFilters(filters: HistoryFilters) {
+  return (
+    filters.result !== DEFAULT_HISTORY_FILTERS.result ||
+    filters.mode !== DEFAULT_HISTORY_FILTERS.mode ||
+    filters.bot !== DEFAULT_HISTORY_FILTERS.bot ||
+    filters.winner !== DEFAULT_HISTORY_FILTERS.winner ||
+    filters.dateSort !== DEFAULT_HISTORY_FILTERS.dateSort
+  );
+}
 
 export function useStats(userId?: string) {
   const [playerStats, setPlayerStats] = useState<PlayerStatsSummary>(EMPTY_PLAYER_STATS);
   const [matches, setMatches] = useState<MatchHistoryItem[]>([]);
+  const [historyFilters, setHistoryFilters] = useState<HistoryFilters>(DEFAULT_HISTORY_FILTERS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
@@ -35,7 +52,9 @@ export function useStats(userId?: string) {
     try {
       const [nextPlayerStats, nextMatches] = await Promise.all([
         fetchPlayerStats(safeUserId),
-        fetchMatchHistory(safeUserId),
+        hasActiveHistoryFilters(historyFilters)
+          ? fetchMatchHistory(safeUserId, historyFilters)
+          : fetchMatchHistory(safeUserId),
       ]);
 
       if (!mountedRef.current || requestIdRef.current !== requestId) return;
@@ -53,7 +72,7 @@ export function useStats(userId?: string) {
         setLoading(false);
       }
     }
-  }, [safeUserId]);
+  }, [historyFilters, safeUserId]);
 
   useEffect(() => {
     void refreshStats();
@@ -64,6 +83,8 @@ export function useStats(userId?: string) {
     matches,
     loading,
     error,
+    historyFilters,
+    setHistoryFilters,
     refreshStats,
   };
 }

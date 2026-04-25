@@ -55,6 +55,14 @@ vi.mock('../useStats', () => ({
     matches: [],
     loading: false,
     error: statsState.error,
+    historyFilters: {
+      result: 'all',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    },
+    setHistoryFilters: vi.fn(),
     refreshStats: vi.fn(),
   }),
 }));
