@@ -3,6 +3,7 @@ const { once } = require('node:events');
 const test = require('node:test');
 
 const {
+  buildHistoryQuery,
   buildStatsIncrement,
   connectToMongo,
   createApp,
@@ -19,6 +20,26 @@ const {
 function createInMemoryCollections() {
   const statsByUser = new Map();
   const matchesByGameAndUser = new Map();
+
+  function matchesFilterValue(value, condition) {
+    if (!condition || typeof condition !== 'object' || Array.isArray(condition)) {
+      return (value ?? null) === condition;
+    }
+
+    if ('$type' in condition && condition.$type === 'string' && typeof value !== 'string') {
+      return false;
+    }
+
+    if ('$ne' in condition && (value ?? null) === condition.$ne) {
+      return false;
+    }
+
+    if ('$in' in condition && Array.isArray(condition.$in)) {
+      return condition.$in.includes(value);
+    }
+
+    return true;
+  }
 
   const playerStatsCollection = {
     async findOne(filter) {
@@ -71,13 +92,17 @@ function createInMemoryCollections() {
 
     find(filter) {
       let rows = [...matchesByGameAndUser.values()]
-        .filter((item) => item.userId === filter.userId)
+        .filter((item) => Object.entries(filter).every(([field, condition]) => (
+          matchesFilterValue(item[field], condition)
+        )))
         .map((item) => structuredClone(item));
 
       return {
         sort(sortSpec) {
           if (sortSpec.endedAt === -1) {
             rows.sort((a, b) => new Date(b.endedAt) - new Date(a.endedAt));
+          } else if (sortSpec.endedAt === 1) {
+            rows.sort((a, b) => new Date(a.endedAt) - new Date(b.endedAt));
           }
           return this;
         },
@@ -123,7 +148,7 @@ function finishedMatchPayload(gameId = 'game-1') {
   return {
     gameId,
     endedAt: '2026-03-03T10:00:00.000Z',
-    mode: 'human_vs_human',
+    mode: 'local_human_vs_human',
     botId: null,
     winnerId: 'alice',
     players: [
@@ -139,12 +164,111 @@ function finishedMatchPayload(gameId = 'game-1') {
   };
 }
 
+function finishedMatchPayloadForAlice({
+  gameId,
+  endedAt,
+  result = 'win',
+  mode = 'local_human_vs_human',
+  botId = null,
+  winnerId = 'alice',
+} = {}) {
+  const opponentResult = result === 'win' ? 'loss' : 'win';
+  const opponentId = botId ? `bot:${botId}` : 'bob';
+
+  return {
+    ...finishedMatchPayload(gameId),
+    endedAt,
+    mode,
+    botId,
+    winnerId,
+    players: [
+      { userId: 'alice', result },
+      { userId: opponentId, result: opponentResult },
+    ],
+  };
+}
+
 // parseLimit handles defaults and max cap.
 test('parseLimit handles defaults and max cap', () => {
   assert.equal(parseLimit('invalid'), 20);
   assert.equal(parseLimit('0'), 20);
   assert.equal(parseLimit('15'), 15);
   assert.equal(parseLimit('300', 20, 100), 100);
+});
+
+test('buildHistoryQuery validates and maps query parameters to a Mongo filter', () => {
+  assert.deepEqual(
+    buildHistoryQuery({
+      userId: 'alice',
+      rawQuery: {
+        result: 'win',
+        mode: 'online',
+        winnerId: 'alice',
+        sort: 'oldest_first',
+      },
+    }),
+    {
+      filter: {
+        userId: 'alice',
+        result: 'win',
+        mode: { $in: ['online', 'human_vs_human'] },
+        winnerId: 'alice',
+      },
+      sort: { endedAt: 1 },
+    },
+  );
+
+  assert.deepEqual(
+    buildHistoryQuery({
+      userId: 'alice',
+      rawQuery: { hasBot: 'false', hasWinner: 'true' },
+    }),
+    {
+      filter: {
+        userId: 'alice',
+        botId: null,
+        winnerId: { $type: 'string', $ne: '' },
+      },
+      sort: { endedAt: -1 },
+    },
+  );
+
+  assert.deepEqual(
+    buildHistoryQuery({
+      userId: 'alice',
+      rawQuery: { winner: 'rival' },
+    }),
+    {
+      filter: {
+        userId: 'alice',
+        result: 'loss',
+      },
+      sort: { endedAt: -1 },
+    },
+  );
+
+  assert.deepEqual(
+    buildHistoryQuery({
+      userId: 'alice',
+      rawQuery: { result: 'win', winner: 'rival' },
+    }),
+    {
+      filter: {
+        userId: 'alice',
+        result: { $in: [] },
+      },
+      sort: { endedAt: -1 },
+    },
+  );
+
+  assert.equal(
+    buildHistoryQuery({ userId: 'alice', rawQuery: { result: 'draw' } }).error,
+    'result must be one of: win, loss',
+  );
+  assert.equal(
+    buildHistoryQuery({ userId: 'alice', rawQuery: { botId: 'greedy_bot', hasBot: 'true' } }).error,
+    'botId and hasBot cannot be used together',
+  );
 });
 
 // readUserIdFromHeader trims values and rejects missing header.
@@ -293,7 +417,7 @@ test('connectToMongo builds collections and indexes with injected client', async
 
   assert.equal(result.mongoClient, fakeClient);
   assert.equal(fakeClient.connected, true);
-  assert.equal(createIndexCalls.length, 3);
+  assert.equal(createIndexCalls.length, 7);
 });
 
 // start returns app and server when connect succeeds.
@@ -391,6 +515,143 @@ test('stores a finished match and exposes stats/history', async () => {
     assert.equal(history.body.items[0].result, 'win');
     assert.equal(history.body.items[0].winnerId, 'alice');
     assert.equal(history.body.items[0].botId, null);
+  });
+});
+
+test('filters and sorts history in the stats query', async () => {
+  const collections = createInMemoryCollections();
+  const app = createApp({ internalToken: 'test-token', ...collections });
+
+  const matches = [
+    finishedMatchPayloadForAlice({
+      gameId: 'alice-greedy-win',
+      endedAt: '2026-03-05T10:00:00.000Z',
+      result: 'win',
+      mode: 'human_vs_bot',
+      botId: 'greedy_bot',
+      winnerId: 'alice',
+    }),
+    finishedMatchPayloadForAlice({
+      gameId: 'alice-random-win',
+      endedAt: '2026-03-02T10:00:00.000Z',
+      result: 'win',
+      mode: 'human_vs_bot',
+      botId: 'random_bot',
+      winnerId: 'alice',
+    }),
+    finishedMatchPayloadForAlice({
+      gameId: 'alice-online-win',
+      endedAt: '2026-03-04T10:00:00.000Z',
+      result: 'win',
+      mode: 'online',
+      botId: null,
+      winnerId: 'alice',
+    }),
+    finishedMatchPayloadForAlice({
+      gameId: 'alice-online-legacy-win',
+      endedAt: '2026-03-03T10:00:00.000Z',
+      result: 'win',
+      mode: 'human_vs_human',
+      botId: null,
+      winnerId: 'alice',
+    }),
+    finishedMatchPayloadForAlice({
+      gameId: 'alice-human-loss',
+      endedAt: '2026-03-01T10:00:00.000Z',
+      result: 'loss',
+      mode: 'local_human_vs_human',
+      botId: null,
+      winnerId: 'bob',
+    }),
+  ];
+
+  await withServer(app, async (baseUrl) => {
+    for (const match of matches) {
+      await requestJson(baseUrl, '/internal/v1/matches/finished', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-service-token': 'test-token',
+        },
+        body: JSON.stringify(match),
+      });
+    }
+
+    const exactBotHistory = await requestJson(
+      baseUrl,
+      '/v1/me/history?result=win&mode=human_vs_bot&botId=greedy_bot&winner=you&sort=oldest_first',
+      { headers: { 'x-user-id': 'alice' } },
+    );
+
+    assert.equal(exactBotHistory.status, 200);
+    assert.deepEqual(
+      exactBotHistory.body.items.map((item) => item.gameId),
+      ['alice-greedy-win'],
+    );
+
+    const rivalWinnerHistory = await requestJson(baseUrl, '/v1/me/history?winner=rival', {
+      headers: { 'x-user-id': 'alice' },
+    });
+
+    assert.equal(rivalWinnerHistory.status, 200);
+    assert.deepEqual(
+      rivalWinnerHistory.body.items.map((item) => item.gameId),
+      ['alice-human-loss'],
+    );
+
+    const noBotHistory = await requestJson(baseUrl, '/v1/me/history?hasBot=false', {
+      headers: { 'x-user-id': 'alice' },
+    });
+
+    assert.equal(noBotHistory.status, 200);
+    assert.deepEqual(
+      noBotHistory.body.items.map((item) => item.gameId),
+      ['alice-online-win', 'alice-online-legacy-win', 'alice-human-loss'],
+    );
+
+    const onlineHistory = await requestJson(baseUrl, '/v1/me/history?mode=online', {
+      headers: { 'x-user-id': 'alice' },
+    });
+
+    assert.equal(onlineHistory.status, 200);
+    assert.deepEqual(
+      onlineHistory.body.items.map((item) => item.gameId),
+      ['alice-online-win', 'alice-online-legacy-win'],
+    );
+
+    const localHumanHistory = await requestJson(baseUrl, '/v1/me/history?mode=local_human_vs_human', {
+      headers: { 'x-user-id': 'alice' },
+    });
+
+    assert.equal(localHumanHistory.status, 200);
+    assert.deepEqual(
+      localHumanHistory.body.items.map((item) => item.gameId),
+      ['alice-human-loss'],
+    );
+
+    const botHistoryOldestFirst = await requestJson(baseUrl, '/v1/me/history?hasBot=true&sort=oldest_first', {
+      headers: { 'x-user-id': 'alice' },
+    });
+
+    assert.equal(botHistoryOldestFirst.status, 200);
+    assert.deepEqual(
+      botHistoryOldestFirst.body.items.map((item) => item.gameId),
+      ['alice-random-win', 'alice-greedy-win'],
+    );
+  });
+});
+
+test('rejects invalid history filters', async () => {
+  const collections = createInMemoryCollections();
+  const app = createApp({ internalToken: 'test-token', ...collections });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await requestJson(baseUrl, '/v1/me/history?result=draw', {
+      headers: { 'x-user-id': 'alice' },
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.message, 'result must be one of: win, loss');
   });
 });
 

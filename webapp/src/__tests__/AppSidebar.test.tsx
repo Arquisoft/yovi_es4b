@@ -5,14 +5,32 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import App from '../App';
 
-const { setModeSpy, setBotDifficultySpy, logoutSpy, refreshStatsSpy, authSessionState } = vi.hoisted(() => ({
+const {
+  setModeSpy,
+  setBotDifficultySpy,
+  logoutSpy,
+  refreshStatsSpy,
+  setHistoryFiltersSpy,
+  authSessionState,
+  statsHistoryFiltersState,
+} = vi.hoisted(() => ({
   setModeSpy: vi.fn(),
   setBotDifficultySpy: vi.fn(),
   logoutSpy: vi.fn(),
   refreshStatsSpy: vi.fn().mockResolvedValue(undefined),
+  setHistoryFiltersSpy: vi.fn(),
   authSessionState: {
     initialAuthenticated: true,
     initialGuest: false,
+  },
+  statsHistoryFiltersState: {
+    value: {
+      result: 'all',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    },
   },
 }));
 
@@ -116,6 +134,11 @@ vi.mock('../useStats', () => ({
     matches: [],
     loading: false,
     error: null,
+    historyFilters: statsHistoryFiltersState.value,
+    setHistoryFilters: (nextFilters: typeof statsHistoryFiltersState.value) => {
+      setHistoryFiltersSpy(nextFilters);
+      statsHistoryFiltersState.value = nextFilters;
+    },
     refreshStats: refreshStatsSpy,
   }),
 }));
@@ -124,10 +147,18 @@ describe('App sidebar actions', () => {
   beforeEach(() => {
     authSessionState.initialAuthenticated = true;
     authSessionState.initialGuest = false;
+    statsHistoryFiltersState.value = {
+      result: 'all',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    };
     setModeSpy.mockClear();
     setBotDifficultySpy.mockClear();
     logoutSpy.mockClear();
     refreshStatsSpy.mockClear();
+    setHistoryFiltersSpy.mockClear();
   });
 
   afterEach(() => {
@@ -156,6 +187,38 @@ describe('App sidebar actions', () => {
     await user.click(screen.getByRole('button', { name: /estadisticas/i }));
 
     expect(refreshStatsSpy).toHaveBeenCalledTimes(1);
+    expect(setHistoryFiltersSpy).toHaveBeenCalledWith({
+      result: 'all',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    });
+    expect(screen.getByText(/historial completo/i)).toBeInTheDocument();
+  });
+
+  test('opening "Estadisticas" resets previous history filters', async () => {
+    statsHistoryFiltersState.value = {
+      result: 'win',
+      mode: 'human_vs_bot',
+      bot: 'bot:greedy_bot',
+      winner: 'all',
+      dateSort: 'oldest_first',
+    };
+
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /estadisticas/i }));
+
+    expect(setHistoryFiltersSpy).toHaveBeenCalledWith({
+      result: 'all',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    });
+    expect(refreshStatsSpy).not.toHaveBeenCalled();
     expect(screen.getByText(/historial completo/i)).toBeInTheDocument();
   });
 
