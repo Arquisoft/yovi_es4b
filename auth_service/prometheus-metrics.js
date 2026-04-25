@@ -172,8 +172,7 @@ function appendCounter(lines, name, help, samples) {
 }
 
 function appendMetric(lines, name, help, type, samples) {
-  lines.push(`# HELP ${name} ${help}`);
-  lines.push(`# TYPE ${name} ${type}`);
+  lines.push(`# HELP ${name} ${help}`, `# TYPE ${name} ${type}`);
 
   for (const sample of samples) {
     lines.push(`${name}${formatLabels(sample.labels)} ${sample.value}`);
@@ -195,9 +194,9 @@ function formatLabels(labels) {
 
 function escapeLabelValue(value) {
   return String(value)
-    .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
-    .replace(/"/g, '\\"');
+    .replaceAll('\\', String.raw`\\`)
+    .replaceAll('\n', String.raw`\n`)
+    .replaceAll('"', String.raw`\"`);
 }
 
 module.exports = {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import {
   Box,
@@ -22,44 +22,38 @@ import {
 import TriangularBoard from '../components/board/TriangularBoard';
 import { findWinningConnectionCellKeysFromBoard, toBoardCellsFromYen } from '../gameyUi';
 import { uiColors, uiSx } from '../theme';
-import { botHistoryLabels, type MatchHistoryItem, type PlayerStatsSummary } from '../stats/types';
+import {
+  DEFAULT_HISTORY_FILTERS,
+  botHistoryLabels,
+  type BotFilter,
+  type DateSort,
+  type HistoryFilters,
+  type MatchHistoryItem,
+  type ModeFilter,
+  type PlayerStatsSummary,
+  type ResultFilter,
+  type WinnerFilter,
+} from '../stats/types';
 
 type Props = {
   playerStats: PlayerStatsSummary;
   matches: MatchHistoryItem[];
+  filters?: HistoryFilters;
+  onFiltersChange?: (filters: HistoryFilters) => void;
 };
 
-type ResultFilter = 'all' | 'win' | 'loss';
-type ModeFilter = 'all' | 'human_vs_bot' | 'human_vs_human';
-type BotFilter = 'all' | 'with_bot' | 'without_bot' | `bot:${string}`;
-type WinnerFilter = 'all' | 'without_winner' | `winner:${string}`;
-type DateSort = 'recent_first' | 'oldest_first';
 type FilterMenuKey = 'result' | 'mode' | 'bot' | 'winner' | 'date';
-
-type HistoryFilters = {
-  result: ResultFilter;
-  mode: ModeFilter;
-  bot: BotFilter;
-  winner: WinnerFilter;
-  dateSort: DateSort;
-};
 
 type FilterOption<T extends string> = {
   value: T;
   label: string;
 };
 
-const DEFAULT_HISTORY_FILTERS: HistoryFilters = {
-  result: 'all',
-  mode: 'all',
-  bot: 'all',
-  winner: 'all',
-  dateSort: 'recent_first',
-};
-
 function modeLabel(mode: MatchHistoryItem['mode']) {
   if (mode === 'human_vs_bot') return 'Bot';
-  if (mode === 'human_vs_human') return 'Humano';
+  if (mode === 'local_human_vs_human') return 'Humano local';
+  if (mode === 'human_vs_human') return 'Online';
+  if (mode === 'online') return 'Online';
   return '-';
 }
 
@@ -96,25 +90,6 @@ function buildBotFilterOptions(matches: MatchHistoryItem[]): FilterOption<BotFil
   ];
 }
 
-function buildWinnerFilterOptions(matches: MatchHistoryItem[]): FilterOption<WinnerFilter>[] {
-  const uniqueWinnerIds = Array.from(
-    new Set(
-      matches
-        .map((match) => match.winnerId)
-        .filter((winnerId): winnerId is string => typeof winnerId === 'string' && winnerId.trim().length > 0),
-    ),
-  );
-
-  return [
-    { value: 'all', label: 'Todos' },
-    { value: 'without_winner', label: 'Sin ganador' },
-    ...uniqueWinnerIds.map((winnerId) => ({
-      value: `winner:${winnerId}` as const,
-      label: winnerId,
-    })),
-  ];
-}
-
 function getSelectedOptionLabel<T extends string>(
   options: ReadonlyArray<FilterOption<T>>,
   value: T,
@@ -128,7 +103,9 @@ function matchesResultFilter(match: MatchHistoryItem, resultFilter: ResultFilter
 }
 
 function matchesModeFilter(match: MatchHistoryItem, modeFilter: ModeFilter) {
-  return modeFilter === 'all' || match.mode === modeFilter;
+  if (modeFilter === 'all') return true;
+  if (modeFilter === 'online') return match.mode === 'online' || match.mode === 'human_vs_human';
+  return match.mode === modeFilter;
 }
 
 function matchesBotFilter(match: MatchHistoryItem, botFilter: BotFilter) {
@@ -140,8 +117,7 @@ function matchesBotFilter(match: MatchHistoryItem, botFilter: BotFilter) {
 
 function matchesWinnerFilter(match: MatchHistoryItem, winnerFilter: WinnerFilter) {
   if (winnerFilter === 'all') return true;
-  if (winnerFilter === 'without_winner') return match.winnerId === null;
-  return match.winnerId === winnerFilter.slice(7);
+  return winnerFilter === 'you' ? match.result === 'win' : match.result === 'loss';
 }
 
 function buildHeaderButtonSx(active: boolean) {
@@ -211,13 +187,24 @@ function buildHeaderFilterCaretSx(expanded: boolean) {
   } as const;
 }
 
-const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
+const HistoryView: React.FC<Props> = ({
+  playerStats,
+  matches,
+  filters: controlledFilters,
+  onFiltersChange,
+}) => {
   const [selectedMatch, setSelectedMatch] = useState<MatchHistoryItem | null>(null);
-  const [filters, setFilters] = useState<HistoryFilters>(DEFAULT_HISTORY_FILTERS);
+  const [localFilters, setLocalFilters] = useState<HistoryFilters>(DEFAULT_HISTORY_FILTERS);
   const [openMenuKey, setOpenMenuKey] = useState<FilterMenuKey | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
-  const [page, setPage] = useState(0);
+  const [pageState, setPageState] = useState({ key: '', page: 0 });
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const filters = controlledFilters ?? localFilters;
+  const historyPageKey = useMemo(
+    () => matches.map((match) => `${match.gameId}:${match.endedAt}`).join('|'),
+    [matches],
+  );
+  const page = pageState.key === historyPageKey ? pageState.page : 0;
   const selectedFinalBoard = selectedMatch?.finalBoard ?? null;
   const winRate = playerStats.totalGames > 0 ? Math.round((playerStats.victories / playerStats.totalGames) * 100) : 0;
   const updatedAtText = playerStats.updatedAt
@@ -230,8 +217,14 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
   ];
   const modeFilterOptions: ReadonlyArray<FilterOption<ModeFilter>> = [
     { value: 'all', label: 'Todos' },
-    { value: 'human_vs_bot', label: 'Solo bot' },
-    { value: 'human_vs_human', label: 'Solo humano' },
+    { value: 'human_vs_bot', label: 'Bot' },
+    { value: 'local_human_vs_human', label: 'Humano local' },
+    { value: 'online', label: 'Online' },
+  ];
+  const winnerFilterOptions: ReadonlyArray<FilterOption<WinnerFilter>> = [
+    { value: 'all', label: 'Todos' },
+    { value: 'you', label: 'Tu' },
+    { value: 'rival', label: 'Rival' },
   ];
   const dateSortOptions: ReadonlyArray<FilterOption<DateSort>> = [
     { value: 'recent_first', label: 'Mas recientes primero' },
@@ -249,9 +242,9 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
   );
 
   const botFilterOptions = useMemo(() => buildBotFilterOptions(matches), [matches]);
-  const winnerFilterOptions = useMemo(() => buildWinnerFilterOptions(matches), [matches]);
 
   const filteredMatches = useMemo(() => {
+    // The stats request uses these filters too; this keeps visible rows consistent while it refreshes.
     const nextMatches = matches.filter((match) => {
       return (
         matchesResultFilter(match, filters.result) &&
@@ -267,14 +260,15 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
     });
   }, [filters.bot, filters.dateSort, filters.mode, filters.result, filters.winner, matches]);
 
-  const paginatedMatches = useMemo(() => {
-    const start = page * rowsPerPage;
-    const end = start + rowsPerPage;
-    return filteredMatches.slice(start, end);
-  }, [filteredMatches, page, rowsPerPage]);
-
   const maxPage = filteredMatches.length > 0 ? Math.ceil(filteredMatches.length / rowsPerPage) - 1 : 0;
   const safePage = Math.min(page, maxPage);
+
+  const paginatedMatches = useMemo(() => {
+    const start = safePage * rowsPerPage;
+    const end = start + rowsPerPage;
+    return filteredMatches.slice(start, end);
+  }, [filteredMatches, rowsPerPage, safePage]);
+
   const hasActiveFilters =
     filters.result !== DEFAULT_HISTORY_FILTERS.result ||
     filters.mode !== DEFAULT_HISTORY_FILTERS.mode ||
@@ -291,16 +285,6 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
   const botFilterLabel = getSelectedOptionLabel(botFilterOptions, filters.bot);
   const winnerFilterLabel = getSelectedOptionLabel(winnerFilterOptions, filters.winner);
   const dateSortLabel = getSelectedOptionLabel(dateSortOptions, filters.dateSort);
-
-  useEffect(() => {
-    if (safePage !== page) {
-      setPage(safePage);
-    }
-  }, [page, safePage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters.bot, filters.dateSort, filters.mode, filters.result, filters.winner, matches]);
 
   const historyBoardStageSx = {
     ...uiSx.gameBoardStage,
@@ -363,8 +347,21 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
     setMenuAnchorEl(null);
   }
 
+  function updateFilters(nextFilters: HistoryFilters) {
+    if (!controlledFilters) {
+      setLocalFilters(nextFilters);
+    }
+
+    setPageState({ key: historyPageKey, page: 0 });
+    onFiltersChange?.(nextFilters);
+  }
+
+  function setPage(nextPage: number) {
+    setPageState({ key: historyPageKey, page: nextPage });
+  }
+
   function resetFilters() {
-    setFilters(DEFAULT_HISTORY_FILTERS);
+    updateFilters(DEFAULT_HISTORY_FILTERS);
     closeFilterMenu();
   }
 
@@ -571,7 +568,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(event) => {
             setRowsPerPage(Number.parseInt(event.target.value, 10));
-            setPage(0);
+            setPageState({ key: historyPageKey, page: 0 });
           }}
           rowsPerPageOptions={[5, 10, 20]}
           labelRowsPerPage="Filas por pagina"
@@ -591,7 +588,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
               key={option.value}
               selected={filters.result === option.value}
               onClick={() => {
-                setFilters((currentFilters) => ({ ...currentFilters, result: option.value }));
+                updateFilters({ ...filters, result: option.value });
                 closeFilterMenu();
               }}
             >
@@ -605,7 +602,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
               key={option.value}
               selected={filters.mode === option.value}
               onClick={() => {
-                setFilters((currentFilters) => ({ ...currentFilters, mode: option.value }));
+                updateFilters({ ...filters, mode: option.value });
                 closeFilterMenu();
               }}
             >
@@ -619,7 +616,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
               key={option.value}
               selected={filters.bot === option.value}
               onClick={() => {
-                setFilters((currentFilters) => ({ ...currentFilters, bot: option.value }));
+                updateFilters({ ...filters, bot: option.value });
                 closeFilterMenu();
               }}
             >
@@ -633,7 +630,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
               key={option.value}
               selected={filters.winner === option.value}
               onClick={() => {
-                setFilters((currentFilters) => ({ ...currentFilters, winner: option.value }));
+                updateFilters({ ...filters, winner: option.value });
                 closeFilterMenu();
               }}
             >
@@ -647,7 +644,7 @@ const HistoryView: React.FC<Props> = ({ playerStats, matches }) => {
               key={option.value}
               selected={filters.dateSort === option.value}
               onClick={() => {
-                setFilters((currentFilters) => ({ ...currentFilters, dateSort: option.value }));
+                updateFilters({ ...filters, dateSort: option.value });
                 closeFilterMenu();
               }}
             >

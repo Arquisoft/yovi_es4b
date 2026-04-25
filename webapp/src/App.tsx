@@ -12,6 +12,7 @@ import DashboardView from './views/DashboardView';
 import HistoryView from './views/HistoryView';
 import HelpView from './views/HelpView';
 import { uiSx } from './theme';
+import { DEFAULT_HISTORY_FILTERS } from './stats/types';
 
 function App() {
   const auth = useAuth();
@@ -85,8 +86,18 @@ function App() {
       return;
     }
 
+    const hasActiveHistoryFilters =
+      stats.historyFilters.result !== DEFAULT_HISTORY_FILTERS.result ||
+      stats.historyFilters.mode !== DEFAULT_HISTORY_FILTERS.mode ||
+      stats.historyFilters.bot !== DEFAULT_HISTORY_FILTERS.bot ||
+      stats.historyFilters.winner !== DEFAULT_HISTORY_FILTERS.winner ||
+      stats.historyFilters.dateSort !== DEFAULT_HISTORY_FILTERS.dateSort;
+
+    stats.setHistoryFilters(DEFAULT_HISTORY_FILTERS);
     setView('history');
-    void refreshStats();
+    if (!hasActiveHistoryFilters) {
+      void refreshStats();
+    }
   }
 
   function handleOpenHelp() {
@@ -231,7 +242,12 @@ function App() {
             )}
 
             {view === 'history' && auth.isAuthenticated && (
-              <HistoryView playerStats={stats.playerStats} matches={stats.matches} />
+              <HistoryView
+                playerStats={stats.playerStats}
+                matches={stats.matches}
+                filters={stats.historyFilters}
+                onFiltersChange={stats.setHistoryFilters}
+              />
             )}
 
             {view === 'help' && <HelpView />}

@@ -10,7 +10,9 @@ type Props = {
 
 function modeLabel(mode: MatchHistoryItem['mode']) {
   if (mode === 'human_vs_bot') return 'Bot';
-  if (mode === 'human_vs_human') return 'Humano';
+  if (mode === 'local_human_vs_human') return 'Humano local';
+  if (mode === 'human_vs_human') return 'Online';
+  if (mode === 'online') return 'Online';
   return '-';
 }
 

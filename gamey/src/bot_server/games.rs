@@ -570,9 +570,13 @@ fn normalize_identifier(value: Option<String>) -> Option<String> {
 }
 
 fn mode_name(session: &GameSession) -> String {
+    if session.player_tokens.is_some() {
+        return "online".to_string();
+    }
+
     match &session.bot_id {
         Some(_) => "human_vs_bot".to_string(),
-        None => "human_vs_human".to_string(),
+        None => "local_human_vs_human".to_string(),
     }
 }
 
@@ -1254,6 +1258,35 @@ mod tests {
     fn test_validate_coordinates_out_of_range() {
         let coords = Coordinates::new(3, 0, 0);
         assert!(validate_coordinates(&coords, 3).is_err());
+    }
+
+    #[test]
+    fn test_mode_name_distinguishes_local_bot_and_online_stats_modes() {
+        let now = Instant::now();
+        let mut session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: now,
+            turn_started_at: None,
+            player_tokens: None,
+            last_seen_at_by_player_id: None,
+            player0_user_id: Some("fernando".to_string()),
+            player1_user_id: None,
+            stats_reported: false,
+            completion_reason: None,
+        };
+
+        assert_eq!(mode_name(&session), "local_human_vs_human");
+
+        session.bot_id = Some("greedy_bot".to_string());
+        assert_eq!(mode_name(&session), "human_vs_bot");
+
+        session.bot_id = None;
+        session.player_tokens = Some(HashMap::from([
+            (0, "player-0-token".to_string()),
+            (1, "player-1-token".to_string()),
+        ]));
+        assert_eq!(mode_name(&session), "online");
     }
 
     #[test]

@@ -7,7 +7,7 @@ const GUEST_USERNAME = 'Usuario anonimo';
 
 function generateSecureRandomHex(byteLength = 16): string {
   if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') {
-    throw new Error('Secure crypto API is required to create guest sessions');
+    throw new TypeError('Secure crypto API is required to create guest sessions');
   }
 
   const randomBytes = new Uint8Array(byteLength);

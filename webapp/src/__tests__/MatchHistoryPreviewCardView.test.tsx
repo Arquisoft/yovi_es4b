@@ -26,8 +26,8 @@ describe('MatchHistoryPreviewCardView', () => {
   test('renders only the first three matches with mapped labels', () => {
     const matches = [
       buildMatch({ gameId: 'match-1', result: 'win', mode: 'human_vs_bot', botId: 'greedy_bot' }),
-      buildMatch({ gameId: 'match-2', result: 'loss', mode: 'human_vs_human', botId: null, winnerId: 'rival' }),
-      buildMatch({ gameId: 'match-3', result: 'win', mode: null, botId: 'custom_bot', winnerId: null }),
+      buildMatch({ gameId: 'match-2', result: 'loss', mode: 'local_human_vs_human', botId: null, winnerId: 'rival' }),
+      buildMatch({ gameId: 'match-3', result: 'win', mode: 'online', botId: null, winnerId: 'online-rival' }),
       buildMatch({ gameId: 'match-4' }),
     ];
 
@@ -39,10 +39,11 @@ describe('MatchHistoryPreviewCardView', () => {
     expect(screen.queryByText('match-4')).not.toBeInTheDocument();
     expect(screen.getAllByText(/victoria|derrota/i)).toHaveLength(3);
     expect(screen.getAllByText('Bot').length).toBeGreaterThan(1);
-    expect(screen.getByText('Humano')).toBeInTheDocument();
+    expect(screen.getByText('Humano local')).toBeInTheDocument();
+    expect(screen.getByText('Online')).toBeInTheDocument();
     expect(screen.getAllByText('-').length).toBeGreaterThan(0);
     expect(screen.getByText('Intermedio')).toBeInTheDocument();
-    expect(screen.getByText('custom_bot')).toBeInTheDocument();
+    expect(screen.getByText('online-rival')).toBeInTheDocument();
     expect(screen.getAllByText(new Date(matches[0].endedAt).toLocaleString())).toHaveLength(3);
   });
 

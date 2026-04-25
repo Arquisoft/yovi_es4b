@@ -32,7 +32,7 @@ export function mapDifficultyToBotId(difficulty: BotDifficulty): string {
 export type MatchHistoryItem = {
   gameId: string;
   result: 'win' | 'loss';
-  mode: 'human_vs_bot' | 'human_vs_human' | null;
+  mode: 'human_vs_bot' | 'local_human_vs_human' | 'human_vs_human' | 'online' | null;
   winnerId: string | null;
   botId: string | null;
   endedAt: string;
@@ -44,6 +44,28 @@ export type FinalBoardSnapshot = {
   turn: number;
   players: string[];
   layout: string;
+};
+
+export type ResultFilter = 'all' | 'win' | 'loss';
+export type ModeFilter = 'all' | 'human_vs_bot' | 'local_human_vs_human' | 'online';
+export type BotFilter = 'all' | 'with_bot' | 'without_bot' | `bot:${string}`;
+export type WinnerFilter = 'all' | 'you' | 'rival';
+export type DateSort = 'recent_first' | 'oldest_first';
+
+export type HistoryFilters = {
+  result: ResultFilter;
+  mode: ModeFilter;
+  bot: BotFilter;
+  winner: WinnerFilter;
+  dateSort: DateSort;
+};
+
+export const DEFAULT_HISTORY_FILTERS: HistoryFilters = {
+  result: 'all',
+  mode: 'all',
+  bot: 'all',
+  winner: 'all',
+  dateSort: 'recent_first',
 };
 
 export const botHistoryLabels: Record<string, string> = {

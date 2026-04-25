@@ -1,0 +1,458 @@
+== Microservicios
+
+=== Vision conjunta
+
+Los microservicios del proyecto no son todos del mismo tipo.
+
+Hay una division bastante clara:
+
+- `gateway`: fachada publica
+- `auth_service`: identidad
+- `gamey`: dominio principal y tiempo real simplificado
+- `stats`: lectura historica y persistencia de resultados
+
+Esta separacion tiene sentido porque corta el sistema por responsabilidad y no por capas artificiales.
+
+=== Gateway
+
+==== Rol arquitectonico
+
+El `gateway` es el unico punto de entrada publico del sistema.
+
+Explicado de forma sencilla:
+
+- el navegador no conoce la topologia interna
+- sabe hablar con un solo servidor
+- ese servidor decide a quien reenviar cada peticion
+
+Esto simplifica mucho la explicacion externa del sistema.
+
+==== Que expone
+
+Rutas principales:
+
+- `/` hacia la webapp
+- `/auth/*` hacia `auth_service`
+- `/api/*` hacia `gamey`
+- `/stats/*` hacia `stats`
+- `/external/*` como API publica agregada
+- `/health` y `/metrics` para operacion
+
+==== Como trabaja internamente
+
+Internamente es un servicio fino:
+
+- Express recibe la peticion
+- `http-proxy-middleware` la reenvia al destino correcto
+- si un servicio aguas abajo no responde, el gateway transforma el fallo en un `502`
+
+Eso es importante para presentarlo:
+
+- centraliza el acceso
+- no centraliza la logica de negocio
+
+==== API externa agregada
+
+Ademas del proxy normal, el gateway tiene un bloque especial bajo `/external`.
+
+Ese bloque no solo reenvia, sino que:
+
+- publica documentacion Swagger
+- expone un catalogo publico de bots
+- ofrece endpoints unificados para usuarios y partidas
+- verifica JWT en ciertos endpoints agregados
+
+Esto le da un segundo papel:
+
+- `proxy transparente` para la SPA
+- `fachada API` para consumidores externos
+
+==== HTTPS y redireccion
+
+El gateway puede trabajar:
+
+- en HTTP plano
+- en HTTPS si se le montan certificado y clave
+- con redireccion opcional de HTTP a HTTPS
+
+Eso lo convierte en el borde publico del despliegue.
+
+==== Observabilidad
+
+Expone metricas Prometheus sobre:
+
+- numero de peticiones
+- tiempos agregados de respuesta
+- uptime
+- memoria del proceso
+
+=== Auth Service
+
+==== Rol arquitectonico
+
+`auth_service` resuelve todo lo relacionado con identidad, pero solo eso.
+
+No sabe nada del tablero, del matchmaking ni del historial de partidas.
+
+==== Endpoints y comportamiento
+
+Expone tres rutas clave:
+
+- `POST /register`
+- `POST /login`
+- `GET /verify`
+
+Flujo interno:
+
+1. valida entrada
+2. consulta Mongo
+3. en registro, crea hash con `bcrypt`
+4. en login, compara hash
+5. si todo va bien, firma un JWT
+
+==== Modelo de datos
+
+En Mongo guarda usuarios con:
+
+- `username`
+- `passwordHash`
+- `createdAt`
+
+Detalle importante:
+
+- el username se normaliza a minusculas
+- la contrasena nunca se guarda en claro
+
+==== Seguridad
+
+Fortalezas reales:
+
+- usa `bcrypt` para hashing
+- usa JWT para sesion
+- tiene endpoint de verificacion de token
+- no comparte la base de datos de auth con otros dominios
+
+Matiz importante para explicar:
+
+- el servicio si es el responsable autentico de credenciales
+- pero la SPA no basa toda la aplicacion en reenviar el JWT a todos los servicios en todo momento
+
+Ese matiz aparece mejor en la seccion de datos e identidades.
+
+==== Modelo de ejecucion
+
+Como servicio Node.js:
+
+- no lanza hilos manuales
+- funciona sobre el bucle de eventos
+- maneja peticiones HTTP y acceso a Mongo de forma asincrona
+
+=== Gamey
+
+==== Rol arquitectonico
+
+`gamey` es el corazon de Yovi.
+
+Es a la vez:
+
+- motor del juego
+- API de partidas
+- ejecutor de bots
+- gestor de matchmaking
+- supervisor de partidas online
+- emisor de eventos finales hacia `stats`
+
+Si tuvieras que justificar por que este servicio esta separado, la respuesta es:
+
+`porque concentra la logica de dominio que cambia el estado real del juego y necesita control fino de concurrencia y consistencia`
+
+==== Subbloques internos
+
+Dentro de `gamey` se distinguen muy bien varios bloques:
+
+- `core`: reglas del Game Y
+- `bot`: bots y registro de estrategias
+- `bot_server/mod.rs`: router HTTP Axum
+- `bot_server/state.rs`: estado compartido de la aplicacion
+- `bot_server/games.rs`: endpoints y supervision de partidas
+- `bot_server/matchmaking.rs`: cola, tickets y worker de emparejamiento
+- `bot_server/choose.rs`: endpoint para pedir jugadas a bots
+- `bot_server/metrics.rs`: metricas Prometheus
+
+==== El motor del juego
+
+El motor no trabaja con componentes visuales, sino con un modelo abstracto.
+
+Ideas clave para explicar:
+
+- el tablero triangular se representa con coordenadas barycentricas `x, y, z`
+- una celda valida cumple `x + y + z = N - 1`
+- cada jugador va colocando fichas por turnos
+- gana quien conecta los tres lados del triangulo con una sola componente conectada
+
+La deteccion de victoria esta optimizada con una idea muy buena para presentar:
+
+- cada grupo conectado de fichas de un jugador se trata como un conjunto
+- ese conjunto recuerda si toca el lado A, B o C
+- cuando dos grupos vecinos se unen, se combinan esas marcas
+- si un conjunto acaba tocando los tres lados, hay victoria
+
+En otras palabras:
+
+- no hace falta recalcular todo el tablero desde cero en cada movimiento
+- el motor mantiene informacion estructural sobre componentes conectadas
+
+==== Bots
+
+Hay cuatro niveles de bot registrados por nombre:
+
+- `random_bot`
+- `biased_random_bot`
+- `greedy_bot`
+- `minimax_bot`
+
+La dificultad que ve el usuario en frontend se traduce a esos identificadores.
+
+Conceptualmente:
+
+- `random` elige una jugada valida al azar
+- `biased_random` mete sesgo posicional
+- `greedy` puntua estados y escoge una opcion localmente buena
+- `minimax` mira mas alla y es la estrategia mas competitiva
+
+El registro de bots permite:
+
+- pedir un bot por nombre
+- cambiar bot sin tocar el resto del flujo
+- exponer un catalogo claro hacia fuera
+
+==== Estado compartido
+
+`AppState` es la pieza central de concurrencia dentro de `gamey`.
+
+Guarda:
+
+- registro de bots
+- mapa de partidas activas
+- indice de partida activa por usuario
+- estado del matchmaking
+- metricas
+- contadores atomicos para generar ids y tokens
+
+Detalles arquitectonicos importantes:
+
+- el estado compartido usa `Arc`, por lo que varias partes del servidor pueden referenciarlo sin copiarlo entero
+- los mapas mutables importantes van dentro de `RwLock`
+- los identificadores se generan con contadores atomicos
+
+Eso te permite explicar muy bien como se combina concurrencia con seguridad:
+
+- varias tareas comparten el mismo estado
+- se sincroniza acceso a escritura
+- no hay una base externa para el estado vivo
+
+==== Modos de juego
+
+Hay tres formas reales de jugar que conviene diferenciar:
+
+1. `human_vs_bot`
++
+La partida vive en `gamey`. Tras la jugada humana, `gamey` puede resolver en la misma peticion la respuesta del bot.
+
+2. `human_vs_human` local
++
+No usa matchmaking ni tokens. Sigue siendo una partida en `gamey`, pero pensada para alternar jugadores sin coordinacion remota especial.
+
+3. `human_vs_human` online con matchmaking
++
+Aqui aparece la parte mas rica del servicio: tickets, tokens por jugador, supervisores y polling.
+
+==== Creacion de partidas
+
+Cuando se crea una partida:
+
+- se valida el tamano de tablero
+- se resuelve el bot si procede
+- se leen identidades desde cabeceras
+- se comprueba si esos usuarios ya tienen otra partida activa
+- se crea una `GameSession`
+- se guarda en memoria bajo un `game_id`
+
+Importante:
+
+- no se escribe nada en base de datos al crear
+- el estado vivo reside en memoria del proceso
+
+==== Endpoints principales
+
+Rutas relevantes:
+
+- `POST /v1/games`
+- `GET /v1/games/{id}`
+- `POST /v1/games/{id}/moves`
+- `POST /v1/games/{id}/resign`
+- `POST /v1/games/{id}/pass`
+- `POST /v1/matchmaking/enqueue`
+- `GET /v1/matchmaking/tickets/{id}`
+- `POST /v1/matchmaking/tickets/{id}/cancel`
+- `POST /v1/ybot/choose/{bot_id}`
+
+==== Validacion y autoridad
+
+`gamey` es quien decide si una accion es valida.
+
+Ejemplos de decisiones que toma:
+
+- si la coordenada esta dentro del tablero
+- si la celda esta libre
+- de quien es el turno
+- si el token del jugador online corresponde al turno actual
+- si la partida ya esta terminada
+
+La SPA puede mostrar ayudas, temporizadores y botones, pero la autoridad final es `gamey`.
+
+==== Matchmaking
+
+El matchmaking mantiene dos estructuras:
+
+- una cola FIFO de espera
+- un mapa de tickets con estado `waiting`, `matched` o `cancelled`
+
+Cada ticket recuerda:
+
+- tamano del tablero
+- identidad del usuario o invitado
+- momento de entrada
+
+Un worker asincrono corre periodicamente y:
+
+- mira si hay dos tickets compatibles
+- evita emparejar la misma identidad consigo misma
+- crea la partida online
+- genera un token por jugador
+- transforma ambos tickets a `matched`
+
+==== Supervision online
+
+Ademas del worker de matchmaking, `gamey` lanza otro bucle de fondo que revisa partidas online cada segundo.
+
+Ese monitor aplica dos reglas:
+
+- si un jugador lleva mas de 60 segundos sin dar senales, pierde por abandono
+- si un turno supera 60 segundos, se fuerza un `pass`
+
+Esto es una de las ideas mas potentes del proyecto porque muestra backend activo, no solo un CRUD.
+
+==== Integracion con stats
+
+Cuando una partida termina:
+
+- `gamey` detecta ganador y motivo
+- construye un resumen con modo, bot, ganador, tablero final y lista de jugadores
+- lo envia por HTTP a `stats`
+
+Muy importante:
+
+- el envio de estadisticas no bloquea la respuesta de juego de forma dura
+- si `stats` falla, el jugador igualmente recibe el estado final de la partida
+
+Eso es una decision de resiliencia.
+
+=== Stats
+
+==== Rol arquitectonico
+
+`stats` separa el mundo del `estado vivo` del mundo de la `memoria historica`.
+
+No participa en la jugada actual.
+
+Solo trabaja con partidas terminadas y consultas posteriores.
+
+==== Endpoints
+
+Publicos de lectura:
+
+- `GET /v1/me`
+- `GET /v1/me/history`
+
+Interno de escritura:
+
+- `POST /internal/v1/matches/finished`
+
+==== Modelo de persistencia
+
+Usa dos colecciones principales:
+
+- `player_stats`
+- `player_matches`
+
+La idea es separar:
+
+- agregados rapidos por jugador
+- historial detallado por partida
+
+==== Como procesa un fin de partida
+
+Cuando `gamey` llama al endpoint interno:
+
+1. `stats` valida el payload
+2. recorre la lista de jugadores
+3. inserta la partida de cada jugador si no existia
+4. incrementa contadores agregados
+
+Este punto es importante:
+
+- la escritura esta pensada para ser idempotente
+- usa `upsert`
+- hay indices unicos para evitar duplicados
+
+Eso significa que si por alguna razon se intenta reportar dos veces la misma partida, no se deberian inflar las estadisticas.
+
+==== Que guarda de cada partida
+
+Guarda cosas muy utiles para el historial:
+
+- `gameId`
+- `userId`
+- `result`
+- `mode`
+- `botId`
+- `reason`
+- `winnerId`
+- `finalBoard`
+- `endedAt`
+
+Gracias a `finalBoard`, el frontend puede enseñar una previsualizacion del estado final sin volver a consultar a `gamey`.
+
+==== Seguridad interna
+
+El endpoint de escritura interna pide `x-service-token`.
+
+Eso evita que un cliente cualquiera escriba resultados arbitrarios en historial solo con llamar al endpoint.
+
+==== Modelo de ejecucion
+
+Igual que `auth_service`, es un servicio Node.js orientado a I/O:
+
+- Express para HTTP
+- driver oficial de Mongo
+- metricas de proceso y peticiones
+
+=== Lo que esta bien separado y lo que no
+
+==== Separaciones bien resueltas
+
+- credenciales y cuentas viven fuera del motor de juego
+- historial y estadisticas viven fuera del motor de juego
+- el gateway evita exponer topologia interna
+- `gamey` concentra reglas y coordinacion online
+
+==== Acoplamientos que existen
+
+Hay tambien algunos acoplamientos reales, utiles de reconocer:
+
+- `gamey` depende de `stats` para persistir resultados finales, aunque degrade con elegancia si falla
+- la SPA conoce contratos concretos de `gamey` y `stats`
+- el online depende de que el estado de `gamey` siga vivo en memoria
+
+Saber reconocer estas dependencias te hace sonar mucho mas solido en una presentacion.
