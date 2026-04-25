@@ -60,96 +60,42 @@ For multiple environments or alternative deployments please copy and adapt this 
 ****
 endif::arc42help[]
 
-The system is deployed as a distributed, container-based architecture.
-It consists of independent services communicating over HTTP and running within isolated container environments.
+The system is deployed using Docker containers orchestrated via Docker Compose, suitable for development and demonstration environments. The infrastructure consists of multiple microservices running in isolated containers, communicating over a Docker internal network.
 
-The deployment view describes the technical infrastructure required to execute the system and the mapping of software building blocks to infrastructure elements.
-
-The following diagram shows the high-level deployment structure in a local environment using containerization.
+The deployment supports a local environment where all services run on a single host machine.
 
 image::07_diagram_1.png[]
 
 Motivation::
 
-The deployment structure is based on containerized services to ensure:
+The containerized deployment ensures:
 
- - Clear separation between frontend, backend, and game engine.
-
- - Independent deployment and scalability of each service.
-
- - Reproducible development environments.
-
- - Isolation of runtime dependencies.
-
-A database component has been introduced to persist user data, enabling real user registration and long-term storage.
-
+- Isolation of services to prevent dependency conflicts.
+- Easy scalability and portability across environments.
+- Simplified development setup with Docker Compose.
+- Observability through integrated monitoring tools.
 
 Quality and/or Performance Features::
 
-- Scalability: Services can be scaled independently in future production environments.
-
-- Isolation: Each component runs in its own container.
-
-- Loose Coupling: Communication occurs via well-defined HTTP APIs.
-
-- Persistence: User data is stored in a dedicated database component.
-
-- Portability: The system can run on any infrastructure supporting containerization.
-
-- Maintainability: Clear separation of concerns reduces system complexity.
-
-- Observability: Prometheus and Grafana are deployed alongside the services, so runtime behavior can be inspected during demos and tests without extra manual setup.
+- **Scalability**: Each service can be scaled independently by adjusting container instances.
+- **Reliability**: Containerization provides consistent runtime environments.
+- **Security**: Services communicate over an internal network, with the gateway as the single entry point.
+- **Observability**: Prometheus collects metrics, and Grafana provides dashboards for monitoring.
+- **Performance**: Lightweight containers minimize resource overhead in development.
 
 Mapping of Building Blocks to Infrastructure::
 
-| Building Block         | Infrastructure Element                       |
-| ---------------------- | -------------------------------------------- |
-| React SPA (Webapp)     | Webapp Container                             |
-| Authentication Logic   | Auth Service Container                       |
-| Auth Persistence Layer | Mongo Auth Container                         |
-| Game Core & Bots       | Gamey Container                              |
-| Statistics Persistence | Stats Service + Mongo Stats Containers       |
-| Metrics Collection     | Prometheus Container                         |
-| Dashboard Visualization| Grafana Container                            |
-| Client Interface       | Web Browser                                  |
-| Communication          | Docker Internal Network (HTTP + DB protocol) |
-
-=== Monitoring and Observability
-
-The Docker Compose deployment includes a built-in observability stack that is available during development, load testing and classroom demos.
-
-[options="header"]
-|===
-| Tool | Purpose | Default URL | Configuration
-
-| `Prometheus`
-| Collects time-series metrics by scraping the services' `/metrics` endpoints.
-| `http://localhost:9090`
-| `monitoring/prometheus/prometheus.yml`
-
-| `Grafana`
-| Displays dashboards over the Prometheus data source.
-| `http://localhost:9091`
-| `monitoring/grafana/provisioning/`
-|===
-
-Prometheus scrapes the internal Docker targets `gateway:8080`, `auth:3500`, `stats:3001` and `gamey:4000` every `15s`.
-Grafana is provisioned with the `Prometheus` data source and the dashboard `Yovi Observability`, so the monitoring UI is ready as soon as the stack starts.
-
-The dashboard concentrates on the signals that are most useful for this project:
-
-* request rate and average latency per service
-* `5xx` error rate and scrape health
-* resident memory of the Node.js services
-* game-specific metrics such as active games, finished games still in memory, matchmaking queue size and recent gameplay activity
-
-The most relevant exported metrics are:
-
-* `yovi_http_requests_total`, `yovi_http_request_duration_seconds_sum`, `yovi_http_request_duration_seconds_count` and `yovi_process_uptime_seconds` for generic HTTP traffic and latency
-* `yovi_process_resident_memory_bytes` and `yovi_process_heap_used_bytes` for Node.js process memory
-* `yovi_gamey_ongoing_games`, `yovi_gamey_finished_games_in_memory`, `yovi_gamey_matchmaking_queue_size`, `yovi_gamey_matchmaking_tickets`, `yovi_gamey_games_created_total`, `yovi_gamey_moves_played_total`, `yovi_gamey_resignations_total` and `yovi_gamey_turn_passes_total` for the live state of `gamey`
-
-
+| Building Block          | Infrastructure Element          |
+|-------------------------|---------------------------------|
+| Webapp (React SPA)      | Webapp Container               |
+| Gateway Service         | Gateway Container              |
+| Auth Service            | Auth Service Container         |
+| Gamey (Rust Game Engine)| Gamey Container                |
+| Stats Service           | Stats Service Container        |
+| User Data Persistence   | Mongo Auth DB Container        |
+| Stats Data Persistence  | Mongo Stats DB Container       |
+| Metrics Collection      | Prometheus Container           |
+| Dashboard Visualization | Grafana Container              |
 
 === Infrastructure Level 2
 
@@ -162,71 +108,37 @@ Please copy the structure from level 1 for each selected element.
 ****
 endif::arc42help[]
 
-This level provides a more detailed view of selected infrastructure elements.
+==== Webapp Container
 
-==== _<Webapp Container>_
+The Webapp container runs a Node.js-based React application served by Nginx.
 
 image::07_diagram_2.png[]
 
-The Webapp container:
+- **Nginx**: Handles static file serving and routing.
+- **React App**: Client-side application for user interaction.
 
- - Hosts a Single Page Application built with React.
+==== Auth Service Container
 
- - Handles all user interactions.
-
- - Communicates with backend services via HTTP.
-
- - Does not maintain persistent state.
-
- - Acts as the primary system entry point.
-
-==== _<Auth Service Container>_
+The Auth Service container runs a Node.js application with MongoDB for persistence.
 
 image::07_diagram_3.png[]
 
-The Auth Service container:
+- **Node.js App**: Implements authentication logic and REST API.
+- **MongoDB**: Persists user credentials and profiles.
 
- - Exposes REST endpoints (`/register`, `/login`, `/verify`).
+==== Gamey Container
 
- - Implements authentication and token verification logic.
-
- - Contains a persistence layer responsible for storing password hashes and identities.
-
- - Connects to the `mongo-auth` database container.
-
- - Ensures separation between API layer, auth logic, and data access.
-
-
-
-==== _<Gamey Container>_
+The Gamey container runs a Rust application for game logic.
 
 image::07_diagram_4.png[]
 
-The Gamey container:
+- **Rust Game Engine**: Core game logic, matchmaking, and bot players.
 
- - Hosts the Rust-based game engine.
+==== Monitoring Stack
 
- - Encapsulates all core game logic.
+Prometheus and Grafana run in separate containers for observability.
 
- - Provides bot functionality.
+image::07_diagram_5.png[]
 
- - Exposes a Web API for interaction with the frontend.
-
- - Does not directly depend on the user database.
-
-Gamey remains logically independent from authentication persistence.
-
-==== _<Mongo Auth Container>_
-
-
-The Mongo Auth container:
-
- - Stores user authentication data persistently.
-
- - Is accessed exclusively by the Auth Service.
-
- - Is not directly exposed to the frontend or Gamey.
-
- - Ensures data durability and separation of concerns.
-
-Mongo Stats is a separate database container used by the `stats` service.
+- **Prometheus**: Time-series database for metrics.
+- **Grafana**: Visualization tool for dashboards.
