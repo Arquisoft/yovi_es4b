@@ -27,8 +27,8 @@ jobs:
     - run: npm --prefix gateway run test:coverage
     - run: npm --prefix stats run test:coverage
     - run: npm --prefix auth_service run test:coverage
-    - run: npm --prefix webapp run test:e2e:run -- --dry-run
-    - run: npm --prefix gateway run test:e2e -- --dry-run
+    - run: npm --prefix webapp run test:e2e:run
+    - run: npm --prefix gateway run test:e2e
     - name: Install cargo-llvm-cov
       run: cargo install cargo-llvm-cov --locked
     - name: Generate gamey code coverage
