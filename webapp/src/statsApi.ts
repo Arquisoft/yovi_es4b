@@ -1,4 +1,10 @@
-import type { FinalBoardSnapshot, MatchHistoryItem, PlayerStatsSummary } from './stats/types';
+import {
+  DEFAULT_HISTORY_FILTERS,
+  type FinalBoardSnapshot,
+  type HistoryFilters,
+  type MatchHistoryItem,
+  type PlayerStatsSummary,
+} from './stats/types';
 
 const STATS_API_URL = import.meta.env.VITE_STATS_API_URL ?? '/stats';
 
@@ -16,7 +22,7 @@ type StatsHistoryResponse = {
 type StatsHistoryItemResponse = {
   gameId?: string;
   result?: 'win' | 'loss';
-  mode?: 'human_vs_bot' | 'human_vs_human' | null;
+  mode?: 'human_vs_bot' | 'local_human_vs_human' | 'human_vs_human' | 'online' | null;
   winnerId?: string | null;
   botId?: string | null;
   endedAt?: string;
@@ -26,6 +32,10 @@ type StatsHistoryItemResponse = {
     players?: unknown;
     layout?: string;
   } | null;
+};
+
+export type MatchHistoryRequestOptions = Partial<HistoryFilters> & {
+  limit?: number;
 };
 
 function isStringArray(value: unknown): value is string[] {
@@ -64,6 +74,43 @@ function buildHeaders(userId: string): HeadersInit {
   };
 }
 
+function normalizeHistoryOptions(limitOrOptions: number | MatchHistoryRequestOptions): MatchHistoryRequestOptions {
+  if (typeof limitOrOptions === 'number') {
+    return { limit: limitOrOptions };
+  }
+
+  return limitOrOptions;
+}
+
+function appendHistoryFilters(searchParams: URLSearchParams, filters: MatchHistoryRequestOptions) {
+  const limit = Number(filters.limit ?? 20);
+  searchParams.set('limit', Number.isInteger(limit) && limit > 0 ? String(limit) : '20');
+
+  if (filters.result && filters.result !== DEFAULT_HISTORY_FILTERS.result) {
+    searchParams.set('result', filters.result);
+  }
+
+  if (filters.mode && filters.mode !== DEFAULT_HISTORY_FILTERS.mode) {
+    searchParams.set('mode', filters.mode);
+  }
+
+  if (filters.bot === 'with_bot') {
+    searchParams.set('hasBot', 'true');
+  } else if (filters.bot === 'without_bot') {
+    searchParams.set('hasBot', 'false');
+  } else if (filters.bot?.startsWith('bot:')) {
+    searchParams.set('botId', filters.bot.slice(4));
+  }
+
+  if (filters.winner === 'you' || filters.winner === 'rival') {
+    searchParams.set('winner', filters.winner);
+  }
+
+  if (filters.dateSort && filters.dateSort !== DEFAULT_HISTORY_FILTERS.dateSort) {
+    searchParams.set('sort', filters.dateSort);
+  }
+}
+
 async function requestJson<T>(path: string, userId: string): Promise<T> {
   const response = await fetch(`${STATS_API_URL}${path}`, {
     headers: buildHeaders(userId),
@@ -93,8 +140,13 @@ export async function fetchPlayerStats(userId: string): Promise<PlayerStatsSumma
   };
 }
 
-export async function fetchMatchHistory(userId: string, limit = 20): Promise<MatchHistoryItem[]> {
-  const payload = await requestJson<StatsHistoryResponse>(`/v1/me/history?limit=${limit}`, userId);
+export async function fetchMatchHistory(
+  userId: string,
+  limitOrOptions: number | MatchHistoryRequestOptions = 20,
+): Promise<MatchHistoryItem[]> {
+  const searchParams = new URLSearchParams();
+  appendHistoryFilters(searchParams, normalizeHistoryOptions(limitOrOptions));
+  const payload = await requestJson<StatsHistoryResponse>(`/v1/me/history?${searchParams.toString()}`, userId);
 
   return (payload.items ?? []).map((item, index) => ({
     gameId: item.gameId ?? `match-${index}`,

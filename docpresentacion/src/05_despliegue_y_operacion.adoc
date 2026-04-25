@@ -1,0 +1,232 @@
+== Despliegue, Operacion y Observabilidad
+
+=== Despliegue base con Docker Compose
+
+La forma natural de ejecutar el sistema es con `docker-compose`.
+
+Contenedores principales:
+
+- `webapp`
+- `gateway`
+- `auth`
+- `gamey`
+- `stats`
+- `mongo-auth`
+- `mongo-stats`
+- `prometheus`
+- `grafana`
+
+Todos comparten una red Docker interna.
+
+=== Que expone cada contenedor
+
+==== Webapp
+
+- se construye con Node
+- se sirve en produccion con `nginx`
+- publica solo contenido estatico
+
+En el contenedor:
+
+- `nginx` sirve `index.html`
+- usa `try_files` para devolver la SPA tambien en rutas internas del cliente
+
+Esto es importante si te preguntan como se sirve la parte frontend en Docker:
+
+`se compila a estaticos y luego nginx los sirve`
+
+==== Gateway
+
+Es el verdadero borde publico.
+
+Puertos:
+
+- HTTP en `8080` por defecto
+- HTTPS configurable, normalmente `443` en host y `8443` interno
+
+Solo el gateway deberia exponerse como entrada web publica del sistema completo.
+
+==== Auth
+
+Expone `3500`.
+
+Depende de `mongo-auth`.
+
+==== Stats
+
+Expone `3001`.
+
+Depende de `mongo-stats`.
+
+==== Gamey
+
+Expone `4000`.
+
+No usa base de datos propia para partidas vivas.
+
+==== Prometheus y Grafana
+
+- Prometheus en `9090`
+- Grafana en `9091`
+
+=== Flujo de red
+
+En despliegue normal:
+
+1. el navegador entra por `gateway`
+2. el `gateway` reenvia al servicio correcto
+3. los servicios se hablan entre ellos por HTTP dentro de Docker
+4. `auth` y `stats` hablan con sus Mongo por driver de base de datos
+
+=== Variables de entorno importantes
+
+==== Gateway
+
+- `WEBAPP_SERVICE_URL`
+- `GAMEY_SERVICE_URL`
+- `AUTH_SERVICE_URL`
+- `STATS_SERVICE_URL`
+- `HTTPS_CERT_PATH`
+- `HTTPS_KEY_PATH`
+- `HTTP_REDIRECT_ENABLED`
+
+==== Auth
+
+- `MONGO_AUTH_DB`
+- `JWT_SECRET`
+- `JWT_EXPIRES`
+- `PORT`
+
+==== Stats
+
+- `MONGO_URL`
+- `MONGO_DB_NAME`
+- `STATS_INTERNAL_TOKEN`
+
+==== Gamey
+
+- `STATS_SERVICE_URL`
+- `STATS_INTERNAL_TOKEN`
+
+Esto es clave para explicar la integracion:
+
+- `gamey` no descubre `stats` magicamente
+- conoce su URL interna por configuracion
+- y usa un token compartido para el endpoint interno
+
+=== Monitorizacion
+
+=== Prometheus
+
+Prometheus hace scraping de:
+
+- `gateway:8080/metrics`
+- `auth:3500/metrics`
+- `stats:3001/metrics`
+- `gamey:4000/metrics`
+
+Intervalo base:
+
+- cada `15 segundos`
+
+==== Que metricas salen
+
+Todos los servicios exponen metricas HTTP agregadas:
+
+- numero de peticiones
+- suma de duraciones
+- contador para agregacion de latencia
+- uptime
+
+Los servicios Node exponen ademas:
+
+- memoria residente
+- heap usado
+
+`gamey` expone tambien metricas de dominio:
+
+- partidas en curso
+- partidas terminadas que siguen en memoria
+- tamano de cola de matchmaking
+- tickets por estado
+- partidas creadas
+- movimientos jugados
+- rendiciones
+- turnos cedidos
+- intentos y fallos de reporte a `stats`
+
+=== Grafana
+
+Grafana esta ya provisionado con:
+
+- datasource Prometheus
+- dashboard `Yovi Observability`
+
+No hace falta configurarlo a mano cada vez.
+
+=== Lo que te deja contar esto en una presentacion
+
+Puedes decir algo muy razonable:
+
+`no solo hemos separado servicios; tambien hemos instrumentado la arquitectura para poder observar trafico, latencias, cola de matchmaking y comportamiento del motor`
+
+=== Operacion local sin Docker
+
+Tambien se puede levantar cada pieza por separado:
+
+- `auth_service` con `npm start`
+- `gamey` con `cargo run -- --mode server --port 4000`
+- `webapp` con `npm run dev`
+- `gateway` con `npm start`
+
+Esto es util para desarrollo, pero la vision integrada del proyecto esta mucho mejor representada por Docker Compose.
+
+=== Estrategia de pruebas
+
+El repositorio deja ver varias capas de prueba:
+
+- tests unitarios y de servicio en `auth_service`
+- tests de servicio en `stats`
+- tests del gateway
+- tests de Rust sobre motor y API en `gamey`
+- tests unitarios y de integracion de React en `webapp`
+- pruebas E2E en frontend con Playwright/Cucumber
+
+Arquitectonicamente esto dice algo positivo:
+
+- no se prueba solo la UI
+- no se prueba solo el motor
+- hay cobertura repartida por capas
+
+=== Decisiones de operacion que se entienden bien
+
+==== Por que el gateway es la unica entrada publica
+
+Porque evita:
+
+- exponer varios puertos de negocio al usuario final
+- obligar al frontend a conocer topologia interna
+- mezclar HTTP y HTTPS de forma inconsistente
+
+==== Por que `webapp` no publica un puerto propio en Compose
+
+Porque en el despliegue integrado la web debe servirse a traves del gateway.
+
+==== Por que hay dos Mongo
+
+Porque el dominio de autenticacion y el de estadisticas no tienen por que compartir ni datos ni ciclo de vida.
+
+=== Lo que aun no es despliegue "cloud-ready"
+
+Es una arquitectura distribuida, pero no una plataforma de alta disponibilidad completa.
+
+Limites actuales:
+
+- `gamey` mantiene estado vivo solo en memoria
+- no hay cola externa ni cache distribuida
+- no hay coordinacion multi-instancia de matchmaking
+- no hay estrategia de replicas para sesiones activas
+
+Es perfectamente valido decirlo asi:
+
+`la arquitectura esta muy bien orientada a desarrollo y demostracion funcional de microservicios, pero para escalar horizontalmente el online habria que externalizar el estado vivo o introducir afinidad de sesion`

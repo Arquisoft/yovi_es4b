@@ -4,13 +4,10 @@ endif::imagesdir[]
 
 [[section-context-and-scope]]
 == Context and Scope
-This section describes the system boundary: the communication partners (users and external systems),
-the domain-level inputs and outputs, and the technical channels used for interaction. It separates
-business context (who interacts with the system and what domain information is exchanged) from
-technical context (protocols, ports, and runtime deployment aspects).
 
-Motivation: clear context and scope prevent misunderstandings about responsibilities, interfaces,
-and deployment requirements.
+This section defines the system boundary of Yovi.
+It shows who interacts with the platform, which technical channels are used, and how the main services collaborate at runtime inside the Docker Compose environment.
+
 === Business Context
 
 [plantuml, target=business-context-diagram, format=png]
@@ -23,182 +20,135 @@ actor Bot
 
 package "Docker Compose Environment" {
     node "Gateway (nginx)" as Gateway
-    node "webapp\n(React + Vite + TS)" as WebApp
+    node "Webapp\n(React + Vite + TypeScript)" as WebApp
     node "Auth Service\n(Node.js + Express)\nport: 3500" as Auth
-    node "stats\n(Node.js + Express)\nport: 3001" as Stats
-    node "gamey\n(Rust Engine + Bot Service)" as Gamey
-    database "Base de Datos de Usuarios \n(Autenticación - MongoDB)" as UserDB
-    database "Base de Datos de Partidas" as GameDB
+    node "Stats Service\n(Node.js + Express)\nport: 3001" as Stats
+    node "Gamey Service\n(Rust engine + bot service)\nport: 4000" as Gamey
+    database "User Authentication DB\n(MongoDB)" as UserDB
+    database "Game Statistics DB\n(MongoDB)" as GameDB
 }
 
-' Relaciones de actores
-Player --> Gateway : Access via web-browser\nPlay games\nView stats
-Gateway --> WebApp : FrontEnd
-Bot --> Gamey : Play games
-Bot --> Stats : View user stats
+Player --> Gateway : Open web application\nplay games\nview history and stats
+Gateway --> WebApp : Serve SPA
+Gateway --> Auth : Authentication flow
+Gateway --> Gamey : Game and matchmaking requests
+Gateway --> Stats : Player stats and history requests
 
- ' Internal services interactions
-Gateway --> Auth : Authentication (JWT)\n
-Gateway --> Gamey : Request games\nCheck game status
-Gateway --> Stats : Request user stats\nand match history
-Auth --> UserDB : User authentication (password hashes)
+Bot --> Gamey : Request gameplay actions
+Bot --> Stats : Read statistics
+
+Auth --> UserDB : Store users and password hashes
 Gamey --> Stats : Report finished matches
-Stats --> GameDB : Save games\nQuery statistics
+Stats --> GameDB : Persist history and aggregates
 @enduml
 ----
 
-=== Elements Description
-* **Player**: The end-user who interacts with the system through a web browser to play games and view statistics.
-* **Bot**: An automated agent that interacts directly with Gamey for gameplay and with Stats for user statistics queries.
-* **WebApp**: The front-end application built with React and Vite, serving the user interface and handling user interactions.
-* **AuthService**: Dedicated authentication microservice (Node.js + Express) that handles registration, login, stores password hashes in MongoDB and emits/verifies JWTs.
-* **StatsService**: Service responsible for player statistics and match history read/query operations.
-* **Gamey**: The game engine and bot service implemented in Rust, responsible for game logic and interactions with bots.
-* **UserDB**: The database used to persist user password for authentication.
-* **Game**: The database used to persist game statistics.
+=== Business Context Elements
 
-
-
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-Specification of *all* communication partners (users, IT-systems, ...) with explanations of domain specific inputs and outputs or interfaces.
-
-.Motivation
-All stakeholders should understand which data are exchanged with the environment of the system.
-
-.Form
-All kinds of diagrams that show the system as a black box and specify the domain interfaces to communication partners.
-
-The title of the table is the name of your system, the three columns contain the name of the communication partner, the inputs, and the outputs.
-
-****
-endif::arc42help[]
-
+* `Player`: main human user of the platform through a browser.
+* `Bot`: automated consumer of the gameplay and stats APIs.
+* `Gateway`: single public entry point of the system.
+* `Webapp`: SPA that renders login, dashboard, gameplay, history and help.
+* `Auth Service`: registration, login, token verification and account persistence.
+* `Gamey Service`: game rules, bot execution, online matchmaking and active session state.
+* `Stats Service`: match history and player statistics persistence/query layer.
+* `User Authentication DB`: MongoDB database used only by `auth_service`.
+* `Game Statistics DB`: MongoDB database used only by `stats`.
 
 === Technical Context
+
 [plantuml, target=technical-context-diagram, format=png]
 ----
 @startuml
-title Technical Context - Deployment & Interfaces
+title Technical Context - Deployment and Interfaces
 
 actor "Player (Browser)" as Browser
 actor "External Bot" as ExternalBot
 
 package "Docker Compose Environment" {
-
-    node "Gateway\n(nginx)\nports: 80/443" as Gateway
-    node "WebApp\n(React + Vite + TypeScript)\nports: 80 (prod) / 5173 (dev)" as WebApp
+    node "Gateway\n(nginx)\nhost ports: 8080 / 443" as Gateway
+    node "Webapp\n(React + Vite + TypeScript)\ninternal port: 80" as WebApp
     node "Auth\n(Node.js + Express)\nport: 3500" as Auth
     node "Stats\n(Node.js + Express)\nport: 3001" as Stats
-    node "Gamey\n(Rust engine + Bot service)\nport: 4000" as Gamey
-
-    database "User Authentication DB\n(MongoDB)\nstores password hashes\nport: 27017" as UserDB
-    database "Game Stats DB\n(MongoDB)\nport: 27017" as GameDB
-
-    node "Prometheus\nSystem Monitoring\nport: 9090" as Prometheus
-    node "Grafana\nDashboards\nhost port: 9091" as Grafana
+    node "Gamey\n(Rust engine + bot service)\nport: 4000" as Gamey
+    database "Mongo Auth\nport: 27017" as UserDB
+    database "Mongo Stats\nhost port: 28018\ncontainer port: 27017" as GameDB
+    node "Prometheus\nport: 9090" as Prometheus
+    node "Grafana\nhost port: 9091" as Grafana
 }
 
-' --- External interactions ---
-Browser --> Gateway : HTTPS (443) / HTTP (80)
-Browser --> WebApp : HTTP (dev 5173)
+Browser --> Gateway : HTTP/HTTPS
+ExternalBot --> Gamey : HTTP JSON
+ExternalBot --> Stats : HTTP JSON
 
-ExternalBot --> Gamey : HTTPS JSON (4000) - game API
-ExternalBot --> Stats : HTTPS JSON (3001) - stats API
+Gateway --> WebApp : HTTP
+Gateway --> Auth : HTTP JSON
+Gateway --> Stats : HTTP JSON
+Gateway --> Gamey : HTTP JSON
 
-' --- Internal service communication ---
-Gateway --> WebApp : HTTP (internal)
-Gateway --> Auth : HTTP JSON (REST) - auth endpoints (JWT)
-Gateway --> Stats : HTTP JSON (REST) - user stats and history
-Gateway --> Gamey : HTTP JSON (REST)
-Auth --> UserDB : TCP (DB driver) - auth data
-Gamey --> Stats : HTTP /internal/v1/matches/finished + x-service-token
-Stats --> GameDB : TCP (DB driver) - stats data
+Auth --> UserDB : Mongo driver
+Stats --> GameDB : Mongo driver
+Gamey --> Stats : POST /internal/v1/matches/finished
 
-' --- Monitoring ---
-Gateway --> Prometheus : HTTP /metrics
-Auth --> Prometheus : HTTP /metrics
-Stats --> Prometheus : HTTP /metrics
-Gamey --> Prometheus : HTTP /metrics
-Prometheus --> Grafana : HTTP (data source)
-
-note left of UserDB
-DB runs in a container with a mounted persistent volume.
-end note
-
-note bottom of Gateway
-Internal Docker network; only expose the Gateway in production.
-end note
-
+Gateway --> Prometheus : /metrics
+Auth --> Prometheus : /metrics
+Stats --> Prometheus : /metrics
+Gamey --> Prometheus : /metrics
+Prometheus --> Grafana : Prometheus data source
 @enduml
 ----
 
-==== Elements Description
+=== Technical Interfaces
 
-
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-Technical interfaces (channels and transmission media) linking the system to its environment. In addition a mapping of domain specific input/output to the channels, i.e. an explanation which I/O uses which channel.
-
-.Motivation
-Many stakeholders make architectural decision based on the technical interfaces between the system and its context. Especially infrastructure or hardware designers decide these technical interfaces.
-
-.Form
-E.g. UML deployment diagram describing channels to neighboring systems,
-together with a mapping table showing the relationships between channels and input/output.
-
-****
-endif::arc42help[]
-
+[options="header"]
 |===
-| Participants        | Input/Output                                            | Channel/Protocol
+| Participant | Input / Output | Channel / Protocol
 
-| Player (Browser)
-| Web navigation, gameplay actions, requests to the frontend
-| HTTPS (via Reverse Proxy) / HTTP (dev 5173)
+| `Player (Browser)`
+| Open the SPA, authenticate, create games, play turns and inspect history.
+| HTTP/HTTPS through the gateway
 
-| External Bot
-| Game actions and statistics queries (separate calls)
-| HTTPS JSON (Gamey API and Stats API)
+| `External Bot`
+| Query gameplay and statistics APIs outside the browser flow.
+| HTTP JSON
 
-| Reverse Proxy (nginx)
-| Incoming HTTP/HTTPS traffic, routing to internal services
-| HTTPS externally / HTTP internally
+| `Gateway`
+| Public entry point that serves `/`, `/auth/*`, `/api/*`, `/stats/*` and `/external/*`.
+| HTTP/HTTPS externally, HTTP internally
 
-| WebApp (React + Vite + TypeScript)
-| User interactions, REST API calls to Auth, Gamey, and Stats
-| HTTP (internal REST)
+| `Webapp`
+| Render the SPA and call backend APIs through the gateway.
+| HTTP inside Docker
 
-| AuthService (Node.js + Express)
-| Login, registration, JWT issuance/verification; stores password hashes in MongoDB
-| HTTP (REST) for auth endpoints (`/register`, `/login`, `/verify`) / TCP (MongoDB driver)
+| `Auth Service`
+| Registration, login, JWT verification and user persistence.
+| HTTP REST plus MongoDB driver
 
-| Gamey (Rust Engine + Bot Service)
-| Game logic, bot API, and match result reporting to Stats
-| HTTP (internal REST)
+| `Gamey Service`
+| Game creation, bot execution, matchmaking, online turns and internal reporting to stats.
+| HTTP REST
 
-| StatsService (Node.js + Express)
-| User stats/history queries and persistence of finished match outcomes
-| HTTP (REST) for `/v1/me`, `/v1/me/history`, `/internal/v1/matches/finished` / TCP (MongoDB driver)
+| `Stats Service`
+| Player aggregates, match history and internal finished-match ingestion.
+| HTTP REST plus MongoDB driver
 
-| Databases (Mongo)
-| One database for auth identities and another for game statistics/history
-| TCP (MongoDB wire protocol)
+| `Databases`
+| Persistent storage for auth identities and statistics/history.
+| MongoDB wire protocol
 
+| `Prometheus`
+| Scrape `/metrics` from runtime services.
+| HTTP
 
-| Prometheus
-| Metrics scraping from Gateway, Auth, Stats, and Gamey
-| HTTP (/metrics)
-
-| Grafana
-| Dashboard visualization, queries to Prometheus
-| HTTP (host port 9091 → container port 3000)
-
+| `Grafana`
+| Visualize dashboards over Prometheus data.
+| HTTP
 |===
 
+==== Observability Context
+
+The technical context also includes an embedded observability stack for local execution and demos.
+`Prometheus` is available at `http://localhost:9090` and scrapes `gateway`, `auth`, `stats` and `gamey` every `15s` through their `/metrics` endpoints, as configured in `monitoring/prometheus/prometheus.yml`.
+`Grafana` is available at `http://localhost:9091`, uses that Prometheus instance as its default data source and provisions the dashboard `Yovi Observability`.
+
+This monitoring path matters architecturally because it gives direct visibility into both cross-service HTTP behavior and game-specific runtime data such as matchmaking queue size, active games and finished games still kept in memory by `gamey`.

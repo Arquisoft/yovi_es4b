@@ -13,7 +13,7 @@ vi.mock('../statsApi', () => ({
 }));
 
 function StatsProbe({ userId }: { userId?: string }) {
-  const { playerStats, matches, loading, error, refreshStats } = useStats(userId);
+  const { playerStats, matches, loading, error, historyFilters, setHistoryFilters, refreshStats } = useStats(userId);
 
   return (
     <div>
@@ -24,6 +24,13 @@ function StatsProbe({ userId }: { userId?: string }) {
       <div data-testid="defeats">{playerStats.defeats}</div>
       <div data-testid="updated-at">{playerStats.updatedAt ?? ''}</div>
       <div data-testid="match-count">{matches.length}</div>
+      <div data-testid="result-filter">{historyFilters.result}</div>
+      <button
+        type="button"
+        onClick={() => setHistoryFilters({ ...historyFilters, result: 'win' })}
+      >
+        only wins
+      </button>
       <button type="button" onClick={() => void refreshStats()}>refresh stats</button>
     </div>
   );
@@ -93,6 +100,48 @@ describe('useStats', () => {
     expect(screen.getByTestId('defeats')).toHaveTextContent('3');
     expect(screen.getByTestId('updated-at')).toHaveTextContent('2026-03-01T10:00:00.000Z');
     expect(screen.getByTestId('match-count')).toHaveTextContent('1');
+  });
+
+  test('reloads history with Mongo-backed filters when filters change', async () => {
+    fetchPlayerStats.mockResolvedValue({
+      totalGames: 8,
+      victories: 5,
+      defeats: 3,
+      updatedAt: '2026-03-01T10:00:00.000Z',
+    });
+    fetchMatchHistory
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          gameId: 'game-win',
+          result: 'win',
+          mode: 'human_vs_bot',
+          winnerId: 'adri',
+          botId: 'greedy_bot',
+          endedAt: '2026-03-01T10:05:00.000Z',
+        },
+      ]);
+
+    render(<StatsProbe userId="adri" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /only wins/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('result-filter')).toHaveTextContent('win');
+      expect(screen.getByTestId('match-count')).toHaveTextContent('1');
+    });
+
+    expect(fetchMatchHistory).toHaveBeenLastCalledWith('adri', {
+      result: 'win',
+      mode: 'all',
+      bot: 'all',
+      winner: 'all',
+      dateSort: 'recent_first',
+    });
   });
 
   test('resets values and exposes a readable error when the request fails', async () => {
