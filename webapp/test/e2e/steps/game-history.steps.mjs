@@ -1,5 +1,5 @@
 import { Given, Then, When } from '@cucumber/cucumber'
-import assert from 'assert'
+import assert from 'node:assert'
 
 function buildEmptyLayout(size) {
   return Array.from({ length: size }, (_value, index) => '.'.repeat(index + 1)).join('/')
@@ -296,6 +296,9 @@ When('I open the stats view', async function () {
 })
 
 Then('I should see the latest match in history', async function () {
+  const page = this.page
+  if (!page) throw new Error('Page not initialized')
+
   const expectedGameId = this.currentGameId
   assert.ok(expectedGameId, 'No current game id was captured for the scenario')
 
@@ -313,10 +316,17 @@ Then('I should see the latest match in history', async function () {
   const historyHits = Number(this.gameHistoryState?.statsHistoryHits ?? 0)
   assert.ok(historyHits > 0, 'Expected at least one stats history API request during the scenario')
 
+  const row = page.locator('tr', { hasText: expectedGameId })
+  await row.first().waitFor({ timeout: 10000 })
+  assert.ok((await row.count()) > 0, `Expected to find a history row for game "${expectedGameId}"`)
+
   this.expectedStoredGames = expectedStoredGames
 })
 
 Then('the latest match should have result {string}', async function (expectedResult) {
+  const page = this.page
+  if (!page) throw new Error('Page not initialized')
+
   const latestStoredMatch = this.gameHistoryState?.historyItems?.[0]
   assert.ok(latestStoredMatch, 'Expected latest match to exist in mocked history state')
 
@@ -324,10 +334,16 @@ Then('the latest match should have result {string}', async function (expectedRes
 
   if (expectedText.includes('derrota')) {
     assert.equal(latestStoredMatch.result, 'loss')
+    const row = page.locator('tr', { hasText: String(this.currentGameId) })
+    await row.first().waitFor({ timeout: 10000 })
+    assert.ok((await row.first().textContent())?.toLowerCase().includes('derrota'))
     return
   }
 
   if (expectedText.includes('victoria')) {
     assert.equal(latestStoredMatch.result, 'win')
+    const row = page.locator('tr', { hasText: String(this.currentGameId) })
+    await row.first().waitFor({ timeout: 10000 })
+    assert.ok((await row.first().textContent())?.toLowerCase().includes('victoria'))
   }
 })

@@ -5,14 +5,17 @@
   "main": "gateway-service.js",
   "scripts": {
     "start": "node gateway-service.js",
-    "test": "node --test",
+    "test": "node --test gateway-service.test.js gateway-service-routes.test.js external-play.integration.test.js",
     "test:routes": "node --test gateway-service-routes.test.js",
-    "test:e2e": "node --test e2e/external-play.e2e.test.js",
-    "test:e2e:real": "node --test e2e/gateway-api.e2e.test.js",
-    "test:coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
+    "test:integration:external": "node --test external-play.integration.test.js",
+    "test:e2e": "cucumber-js --import test/e2e/support/setup.mjs --import test/e2e/steps/**/*.mjs test/e2e/features --format progress",
+    "test:coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info gateway-service.test.js gateway-service-routes.test.js external-play.integration.test.js"
   },
   "dependencies": {
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.8.1"
   }
 }

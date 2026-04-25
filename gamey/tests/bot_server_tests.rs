@@ -186,7 +186,7 @@ async fn test_choose_endpoint_with_invalid_api_version() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK); // Axum returns 200 with error JSON
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let error_response: ErrorResponse = serde_json::from_slice(&body).unwrap();
@@ -213,7 +213,7 @@ async fn test_choose_endpoint_with_unknown_bot() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let error_response: ErrorResponse = serde_json::from_slice(&body).unwrap();
@@ -314,7 +314,7 @@ async fn test_choose_with_empty_bot_registry() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let error_response: ErrorResponse = serde_json::from_slice(&body).unwrap();
@@ -414,7 +414,7 @@ async fn test_matchmaking_enqueue_rejects_duplicate_waiting_ticket_for_same_iden
         .await
         .unwrap();
 
-    assert_eq!(second_response.status(), StatusCode::OK);
+    assert_eq!(second_response.status(), StatusCode::BAD_REQUEST);
 
     let body = second_response
         .into_body()

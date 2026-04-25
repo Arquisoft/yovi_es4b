@@ -30,6 +30,27 @@ cargo run
 cargo test
 ```
 
+Run API integration tests explicitly:
+
+```sh
+cargo test --test games_api_tests
+```
+
+### API error contract
+
+The bot server returns HTTP status codes for API validation and game rule errors.
+
+- `400 Bad Request` for invalid inputs (invalid board size, malformed coordinates, missing game, etc.)
+- `409 Conflict` when trying to play on an occupied cell
+
+Occupied-cell responses include an explanatory message, for example:
+
+```json
+{
+	"message": "Could not apply move: Player 1 tries to place a stone on an occupied position: 2 0 0"
+}
+```
+
 ## Benchmarks
 
 Run the benchmarks using Criterion:

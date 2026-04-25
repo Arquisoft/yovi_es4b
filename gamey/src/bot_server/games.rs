@@ -138,7 +138,7 @@ pub async fn create_game(
     Path(params): Path<ApiVersionParams>,
     headers: HeaderMap,
     Json(request): Json<CreateGameRequest>,
-) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
+) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     if request.size == 0 {
@@ -197,7 +197,7 @@ pub async fn get_game(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
     headers: HeaderMap,
-) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
+) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     let games = state.games();
@@ -225,7 +225,7 @@ pub async fn play_move(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
     Json(request): Json<MoveRequest>,
-) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
+) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     let bots = state.bots();
@@ -269,10 +269,14 @@ pub async fn play_move(
                 coords: request.coords,
             })
             .map_err(|e| {
-                error_response(
+                let mut response = error_response(
                     &format!("Could not apply move: {}", e),
                     Some(params.api_version.clone()),
-                )
+                );
+                if matches!(e, crate::GameYError::Occupied { .. }) {
+                    response.status = axum::http::StatusCode::CONFLICT;
+                }
+                response
             })?;
 
         if let Some(bot_id) = &session.bot_id
@@ -353,7 +357,7 @@ pub async fn resign_game(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
     headers: HeaderMap,
-) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
+) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     let games = state.games();
@@ -427,7 +431,7 @@ pub async fn pass_turn(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
     headers: HeaderMap,
-) -> Result<Json<GameStateResponse>, Json<ErrorResponse>> {
+) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     let bots = state.bots();
@@ -857,7 +861,7 @@ pub(super) async fn ensure_user_id_is_available_for_new_game(
     state: &AppState,
     user_id: Option<&str>,
     api_version: &str,
-) -> Result<(), Json<ErrorResponse>> {
+) -> Result<(), ErrorResponse> {
     let Some(normalized_user_id) = normalize_user_id_for_tracking(user_id) else {
         return Ok(());
     };
@@ -984,24 +988,24 @@ fn default_board_size() -> u32 {
 fn require_game_session_mut<'a>(
     games: &'a mut HashMap<String, GameSession>,
     params: &GameParams,
-) -> Result<&'a mut GameSession, Json<ErrorResponse>> {
+) -> Result<&'a mut GameSession, ErrorResponse> {
     games
         .get_mut(&params.game_id)
         .ok_or_else(|| game_not_found_error(&params.api_version, &params.game_id))
 }
 
-fn game_not_found_error(api_version: &str, game_id: &str) -> Json<ErrorResponse> {
+fn game_not_found_error(api_version: &str, game_id: &str) -> ErrorResponse {
     error_response(
         &format!("Game not found: {}", game_id),
         Some(api_version.to_string()),
     )
 }
 
-fn game_finished_error(api_version: &str) -> Json<ErrorResponse> {
+fn game_finished_error(api_version: &str) -> ErrorResponse {
     error_response("Game is already finished", Some(api_version.to_string()))
 }
 
-fn ensure_game_not_finished(game: &GameY, api_version: &str) -> Result<(), Json<ErrorResponse>> {
+fn ensure_game_not_finished(game: &GameY, api_version: &str) -> Result<(), ErrorResponse> {
     if game.check_game_over() {
         Err(game_finished_error(api_version))
     } else {
@@ -1012,7 +1016,7 @@ fn ensure_game_not_finished(game: &GameY, api_version: &str) -> Result<(), Json<
 fn current_player_or_finished(
     game: &GameY,
     api_version: &str,
-) -> Result<PlayerId, Json<ErrorResponse>> {
+) -> Result<PlayerId, ErrorResponse> {
     game.next_player()
         .ok_or_else(|| game_finished_error(api_version))
 }
@@ -1022,7 +1026,7 @@ fn validate_player_token_for_turn(
     current_player: PlayerId,
     provided_token: Option<&str>,
     api_version: &str,
-) -> Result<(), Json<ErrorResponse>> {
+) -> Result<(), ErrorResponse> {
     let Some(tokens) = &session.player_tokens else {
         return Ok(());
     };
@@ -1054,7 +1058,7 @@ fn resolve_player_from_header_token(
     session: &GameSession,
     headers: &HeaderMap,
     api_version: &str,
-) -> Result<PlayerId, Json<ErrorResponse>> {
+) -> Result<PlayerId, ErrorResponse> {
     let tokens = session.player_tokens.as_ref().ok_or_else(|| {
         error_response(
             "This game does not use player tokens",
@@ -1093,7 +1097,7 @@ fn bot_not_found_error(
     api_version: &str,
     bot_id: &str,
     available_bots: &str,
-) -> Json<ErrorResponse> {
+) -> ErrorResponse {
     error_response(
         &format!(
             "Bot not found: {}, available bots: [{}]",
@@ -1108,7 +1112,7 @@ fn resolve_bot_id(
     mode: GameMode,
     requested_bot_id: Option<String>,
     api_version: &str,
-) -> Result<Option<String>, Json<ErrorResponse>> {
+) -> Result<Option<String>, ErrorResponse> {
     match mode {
         GameMode::HumanVsHuman => {
             if requested_bot_id.is_some() {
@@ -1222,8 +1226,8 @@ fn calculate_turn_timeout_remaining_ms(session: &GameSession, now: Instant) -> O
     Some(remaining.as_millis().min(u128::from(u64::MAX)) as u64)
 }
 
-fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorResponse> {
-    Json(ErrorResponse::error(message, api_version, None))
+fn error_response(message: &str, api_version: Option<String>) -> ErrorResponse {
+    ErrorResponse::error(message, api_version, None)
 }
 
 #[cfg(test)]

@@ -12,7 +12,7 @@ import {
 } from '../gameyApi';
 
 const fetchMock = vi.fn();
-global.fetch = fetchMock as typeof fetch;
+globalThis.fetch = fetchMock as typeof fetch;
 
 function okResponse(body: string, overrides: Partial<Response> = {}): Response {
   return {
@@ -226,5 +226,19 @@ describe('gameyApi', () => {
 
     fetchMock.mockResolvedValueOnce(okResponse(JSON.stringify({ message: 'Game not ready' })));
     await expect(getGame('game-1')).rejects.toThrow('Game not ready');
+  });
+
+  test('playMove surfaces 409 occupied-cell errors with explanatory message', async () => {
+    fetchMock.mockResolvedValue(
+      failResponse(
+        JSON.stringify({
+          message: 'Could not apply move: Player 1 tries to place a stone on an occupied position: 2 0 0',
+        }),
+        { status: 409, statusText: 'Conflict' },
+      ),
+    );
+
+    await expect(playMove('game-1', { coords: { x: 2, y: 0, z: 0 } }, 'adri')).rejects
+      .toThrow('Could not apply move: Player 1 tries to place a stone on an occupied position: 2 0 0');
   });
 });

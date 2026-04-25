@@ -185,11 +185,14 @@ function buildYenPosition() {
 }
 
 test('GET /external/v1/play uses default bot and returns coords', async () => {
-  const mockGamey = await startMockGameyService()
-  const gatewayPort = await getFreePort()
-  const gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+  let mockGamey
+  let gateway
 
   try {
+    mockGamey = await startMockGameyService()
+    const gatewayPort = await getFreePort()
+    gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+
     const query = new URLSearchParams({
       position: JSON.stringify(buildYenPosition()),
     })
@@ -207,17 +210,20 @@ test('GET /external/v1/play uses default bot and returns coords', async () => {
     assert.equal(mockGamey.calls[0].url, '/v1/ybot/choose/random_bot')
     assert.deepEqual(mockGamey.calls[0].body, buildYenPosition())
   } finally {
-    await gateway.stop()
-    await mockGamey.close()
+    if (gateway) await gateway.stop()
+    if (mockGamey) await mockGamey.close()
   }
 })
 
 test('GET /external/v1/play forwards explicit bot_id to gamey', async () => {
-  const mockGamey = await startMockGameyService()
-  const gatewayPort = await getFreePort()
-  const gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+  let mockGamey
+  let gateway
 
   try {
+    mockGamey = await startMockGameyService()
+    const gatewayPort = await getFreePort()
+    gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+
     const query = new URLSearchParams({
       position: JSON.stringify(buildYenPosition()),
       bot_id: 'greedy_bot',
@@ -235,17 +241,75 @@ test('GET /external/v1/play forwards explicit bot_id to gamey', async () => {
     assert.equal(mockGamey.calls[0].url, '/v1/ybot/choose/greedy_bot')
     assert.deepEqual(mockGamey.calls[0].body, buildYenPosition())
   } finally {
-    await gateway.stop()
-    await mockGamey.close()
+    if (gateway) await gateway.stop()
+    if (mockGamey) await mockGamey.close()
+  }
+})
+
+test('GET /external/v1/play maps strategy to bot id before calling gamey', async () => {
+  let mockGamey
+  let gateway
+
+  try {
+    mockGamey = await startMockGameyService()
+    const gatewayPort = await getFreePort()
+    gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+
+    const query = new URLSearchParams({
+      position: JSON.stringify(buildYenPosition()),
+      strategy: 'greedy',
+    })
+
+    const response = await fetch(`http://127.0.0.1:${gatewayPort}/external/v1/play?${query.toString()}`)
+    const body = await response.json()
+
+    assert.equal(response.status, 200)
+    assert.deepEqual(body, {
+      coords: { x: 1, y: 1, z: 0 },
+    })
+
+    assert.equal(mockGamey.calls.length, 1)
+    assert.equal(mockGamey.calls[0].url, '/v1/ybot/choose/greedy_bot')
+    assert.deepEqual(mockGamey.calls[0].body, buildYenPosition())
+  } finally {
+    if (gateway) await gateway.stop()
+    if (mockGamey) await mockGamey.close()
+  }
+})
+
+test('GET /external/v1/play returns 400 when position contains invalid JSON', async () => {
+  let mockGamey
+  let gateway
+
+  try {
+    mockGamey = await startMockGameyService()
+    const gatewayPort = await getFreePort()
+    gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+
+    const response = await fetch(`http://127.0.0.1:${gatewayPort}/external/v1/play?position=%7Binvalid`)
+    const body = await response.json()
+
+    assert.equal(response.status, 400)
+    assert.deepEqual(body, {
+      message: 'position must be valid JSON object in YEN format',
+    })
+
+    assert.equal(mockGamey.calls.length, 0)
+  } finally {
+    if (gateway) await gateway.stop()
+    if (mockGamey) await mockGamey.close()
   }
 })
 
 test('GET /external/v1/play returns 400 when position is missing', async () => {
-  const mockGamey = await startMockGameyService()
-  const gatewayPort = await getFreePort()
-  const gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+  let mockGamey
+  let gateway
 
   try {
+    mockGamey = await startMockGameyService()
+    const gatewayPort = await getFreePort()
+    gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: mockGamey.baseUrl })
+
     const response = await fetch(`http://127.0.0.1:${gatewayPort}/external/v1/play`)
     const body = await response.json()
 
@@ -256,7 +320,30 @@ test('GET /external/v1/play returns 400 when position is missing', async () => {
 
     assert.equal(mockGamey.calls.length, 0)
   } finally {
-    await gateway.stop()
-    await mockGamey.close()
+    if (gateway) await gateway.stop()
+    if (mockGamey) await mockGamey.close()
+  }
+})
+
+test('GET /external/v1/play returns 502 when gamey service is unavailable', async () => {
+  let gateway
+
+  try {
+    const gatewayPort = await getFreePort()
+    gateway = await startGatewayProcess({ port: gatewayPort, gameyUrl: 'http://127.0.0.1:1' })
+
+    const query = new URLSearchParams({
+      position: JSON.stringify(buildYenPosition()),
+    })
+
+    const response = await fetch(`http://127.0.0.1:${gatewayPort}/external/v1/play?${query.toString()}`)
+    const body = await response.json()
+
+    assert.equal(response.status, 502)
+    assert.deepEqual(body, {
+      message: 'Bad Gateway: gamey service unavailable',
+    })
+  } finally {
+    if (gateway) await gateway.stop()
   }
 })

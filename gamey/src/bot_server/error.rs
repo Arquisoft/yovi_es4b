@@ -13,6 +13,9 @@ pub struct ErrorResponse {
     pub bot_id: Option<String>,
     /// A human-readable error message describing what went wrong.
     pub message: String,
+    /// The HTTP status code to return.
+    #[serde(skip)]
+    pub status: StatusCode,
 }
 
 impl ErrorResponse {
@@ -27,13 +30,14 @@ impl ErrorResponse {
             bot_id,
             api_version,
             message: message.to_string(),
+            status: StatusCode::BAD_REQUEST,
         }
     }
 }
 
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> axum::response::Response {
-        (StatusCode::BAD_REQUEST, Json(self)).into_response()
+        (self.status, Json(self)).into_response()
     }
 }
 

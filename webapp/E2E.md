@@ -39,10 +39,13 @@ Quick commands:
     ```
 
 Files of interest:
-- `features/register.feature` - example Gherkin feature
+- `test/e2e/features/register.feature` - registration flow
+- `test/e2e/features/login.feature` - login success and invalid credentials flow
+- `test/e2e/features/game-history.feature` - match history lifecycle and active match resume
 - `test/e2e/steps` - step definitions
 - `test/e2e/support` - Cucumber World and Playwright hooks
 
 Notes:
 - For CI, ensure Playwright browsers are installed (e.g. `npx playwright install --with-deps`).
 - `npm run start:all` starts Vite (`webapp`), `gateway`, and `auth_service` concurrently.
+- Gateway has its own E2E Cucumber suite under `gateway/test/e2e` that validates external API behavior, including occupied-cell conflict (`409`).

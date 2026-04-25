@@ -574,6 +574,32 @@ test('gateway forwards upstream 4xx errors from gamey', async () => {
   });
 });
 
+test('gateway forwards 409 occupied-cell errors from gamey with explanatory message', async () => {
+  await withJsonServer(async (_req, res) => {
+    jsonResponse(res, 409, {
+      message: 'Could not apply move: Player 1 tries to place a stone on an occupied position: 2 0 0',
+    });
+  }, async (gameyUrl) => {
+    const { app } = createApp({
+      proxyFactory: noopProxyFactory,
+      env: { GAMEY_SERVICE_URL: gameyUrl },
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/external/v1/games/game-occupied/moves`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coords: { x: 2, y: 0, z: 0 } }),
+      });
+      const body = await response.json();
+
+      assert.equal(response.status, 409);
+      assert.match(body.message, /could not apply move/i);
+      assert.match(body.message, /occupied/i);
+    });
+  });
+});
+
 test('gateway forwards upstream 500 errors from gamey', async () => {
   await withJsonServer(async (_req, res) => {
     jsonResponse(res, 500, { message: 'Internal server error' });

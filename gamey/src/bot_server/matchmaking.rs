@@ -77,7 +77,7 @@ pub async fn enqueue(
     Path(params): Path<ApiVersionParams>,
     headers: HeaderMap,
     Json(request): Json<EnqueueRequest>,
-) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
+) -> Result<Json<TicketResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     if request.size == 0 {
@@ -141,7 +141,7 @@ pub async fn enqueue(
 pub async fn get_ticket(
     State(state): State<AppState>,
     Path(params): Path<TicketParams>,
-) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
+) -> Result<Json<TicketResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     let matchmaking = state.matchmaking();
@@ -196,7 +196,7 @@ pub async fn get_ticket(
 pub async fn cancel_ticket(
     State(state): State<AppState>,
     Path(params): Path<TicketParams>,
-) -> Result<Json<TicketResponse>, Json<ErrorResponse>> {
+) -> Result<Json<TicketResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
     let matchmaking = state.matchmaking();
@@ -379,8 +379,8 @@ fn read_header_string(headers: &HeaderMap, name: &str) -> Option<String> {
         .map(ToString::to_string)
 }
 
-fn error_response(message: &str, api_version: Option<String>) -> Json<ErrorResponse> {
-    Json(ErrorResponse::error(message, api_version, None))
+fn error_response(message: &str, api_version: Option<String>) -> ErrorResponse {
+    ErrorResponse::error(message, api_version, None)
 }
 
 #[cfg(test)]

@@ -20,13 +20,15 @@ jobs:
       with:
         node-version: 22
     - run: npm --prefix webapp ci
-    - run: npm --prefix gateway install
+    - run: npm --prefix gateway ci
     - run: npm --prefix stats install
     - run: npm --prefix auth_service ci
     - run: npm --prefix webapp run test:coverage
     - run: npm --prefix gateway run test:coverage
     - run: npm --prefix stats run test:coverage
     - run: npm --prefix auth_service run test:coverage
+    - run: npm --prefix webapp run test:e2e:run -- --dry-run
+    - run: npm --prefix gateway run test:e2e -- --dry-run
     - name: Install cargo-llvm-cov
       run: cargo install cargo-llvm-cov --locked
     - name: Generate gamey code coverage
