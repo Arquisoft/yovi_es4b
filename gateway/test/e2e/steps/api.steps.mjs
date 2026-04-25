@@ -2,6 +2,7 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
 function uniqueUsername() {
+  //NOSONAR
   return `e2e_user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -116,6 +117,7 @@ When('I login with that username and password {string}', async function (passwor
 
 Given('a logged in user', async function () {
   this.username = uniqueUsername();
+  //NOSONAR
   const password = process.env.E2E_TEST_PASSWORD
     ?? `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-Pw1!`;
   const res = await fetch(`${this.GATEWAY_URL}/external/v1/users/register`, {
