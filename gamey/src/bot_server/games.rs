@@ -6,7 +6,7 @@ use super::{
 use crate::{Coordinates, GameAction, GameStatus, GameY, Movement, PlayerId, YEN};
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, State, Query},
     http::HeaderMap,
 };
 use serde::{Deserialize, Serialize};
@@ -91,6 +91,13 @@ pub struct ApiVersionParams {
 pub struct GameParams {
     api_version: String,
     game_id: String,
+}
+
+/// Query parameters for GET /games endpoint.
+#[derive(Deserialize, Debug)]
+pub struct GetGameQuery {
+    /// Optional action to perform, e.g., "resign" to resign the game via GET.
+    pub action: Option<String>,
 }
 
 pub fn start_inactive_online_game_monitor(state: AppState) {
@@ -196,6 +203,7 @@ pub async fn create_game(
 pub async fn get_game(
     State(state): State<AppState>,
     Path(params): Path<GameParams>,
+    Query(query): Query<GetGameQuery>,
     headers: HeaderMap,
 ) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
@@ -209,6 +217,72 @@ pub async fn get_game(
         record_online_player_presence(session, requesting_player_id);
     }
 
+    // Check if request includes action=resign to handle resignation via GET.
+    if let Some(action) = query.action.as_deref() {
+        if action == "resign" {
+            // Replicate resign_game logic here.
+            let games = state.games();
+            let mut guard = games.write().await;
+
+            let pending_report: Option<FinishedMatchRequest>;
+            let user_ids_to_release_from_active_game_index: Option<Vec<String>>;
+
+            let response = {
+                let session = require_game_session_mut(&mut guard, &params)?;
+                ensure_game_not_finished(&session.game, &params.api_version)?;
+
+                let resigning_player = match &session.player_tokens {
+                    Some(_) => resolve_player_from_header_token(session, &headers, &params.api_version)?,
+                    None => match (&session.bot_id, session.game.next_player()) {
+                        (Some(_), _) => PlayerId::new(0),
+                        (None, Some(player)) => player,
+                        (None, None) => return Err(game_finished_error(&params.api_version)),
+                    },
+                };
+                record_online_player_presence(session, resigning_player);
+                session.completion_reason = Some(GameCompletionReason::Resignation);
+
+                session
+                    .game
+                    .add_move(Movement::Action {
+                        player: resigning_player,
+                        action: GameAction::Resign,
+                    })
+                    .map_err(|e| {
+                        error_response(
+                            &format!("Could not resign game: {}", e),
+                            Some(params.api_version.clone()),
+                        )
+                    })?;
+
+                reset_turn_timer(session);
+
+                pending_report = prepare_stats_report_if_needed(&params.game_id, session);
+                user_ids_to_release_from_active_game_index = build_finished_game_user_id_list(session);
+
+                build_game_state_response(
+                    &params.api_version,
+                    &params.game_id,
+                    session,
+                    Some(resigning_player),
+                )
+            };
+
+            drop(guard);
+            clear_active_game_registration_if_needed(
+                &state,
+                &params.game_id,
+                user_ids_to_release_from_active_game_index,
+            )
+            .await;
+            state.metrics().inc_resignations();
+            report_finished_match_if_needed(&state, pending_report).await;
+
+            return Ok(Json(response));
+        }
+    }
+
+    // Existing GET logic continues here.
     Ok(Json(build_game_state_response(
         &params.api_version,
         &params.game_id,

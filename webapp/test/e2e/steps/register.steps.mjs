@@ -76,5 +76,5 @@ Then('I should see a welcome message containing {string}', async function (expec
   
   const expectedText = (this.uniqueUsername || expected).toLowerCase()
   
-  assert.ok(text && text.toLowerCase().includes(expectedText), `Expected greeting to include "${expectedText}", got: "${text}"`)
+  assert.ok(text?.toLowerCase().includes(expectedText), `Expected greeting to include "${expectedText}", got: "${text}"`)
 })

@@ -41,7 +41,7 @@ cargo test --test games_api_tests
 The bot server returns HTTP status codes for API validation and game rule errors.
 
 - `400 Bad Request` for invalid inputs (invalid board size, malformed coordinates, missing game, etc.)
-- `409 Conflict` when trying to play on an occupied cell
+- `409 Conflict` when trying to play on an occupied cell (In the current state of implementation it shouldn't happen, this is just for future-proofing)
 
 Occupied-cell responses include an explanatory message, for example:
 

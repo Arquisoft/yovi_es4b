@@ -248,11 +248,22 @@ jobs:
             fi
 
             wget -q https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}/docker-compose.yml -O docker-compose.yml
+            mkdir -p gateway/certs
+            if [ ! -s gateway/certs/server.crt ] || [ ! -s gateway/certs/server.key ]; then
+              echo "Missing TLS certificates under gateway/certs. Expected server.crt and server.key"
+              exit 1
+            fi
             cat > .env << 'EOF'
             IMAGE_TAG=${{ env.IMAGE_TAG }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_EXPIRES=${{ secrets.JWT_EXPIRES }}
             MONGO_AUTH_DB=${{ secrets.MONGO_AUTH_DB }}
+            GATEWAY_HTTP_HOST_PORT=80
+            GATEWAY_HTTPS_HOST_PORT=443
+            GATEWAY_PUBLIC_HOSTNAME=${{ secrets.DEPLOY_HOST }}
+            HTTP_REDIRECT_ENABLED=true
+            HTTPS_CERT_PATH=/app/certs/server.crt
+            HTTPS_KEY_PATH=/app/certs/server.key
             EOF
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -271,6 +282,20 @@ jobs:
 
             $COMPOSE_BIN down --remove-orphans || true
             if ! $COMPOSE_BIN up -d --no-build; then
+              $COMPOSE_BIN ps || true
+              $COMPOSE_BIN logs --tail=200 || true
+              exit 1
+            fi
+
+            if ! curl -kfsS https://localhost/health >/dev/null; then
+              echo "HTTPS health check failed"
+              $COMPOSE_BIN ps || true
+              $COMPOSE_BIN logs --tail=200 || true
+              exit 1
+            fi
+
+            if ! curl -fsSI http://localhost/health | grep -qi '^location: https://'; then
+              echo "HTTP to HTTPS redirect check failed"
               $COMPOSE_BIN ps || true
               $COMPOSE_BIN logs --tail=200 || true
               exit 1

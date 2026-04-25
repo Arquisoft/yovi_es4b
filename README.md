@@ -144,52 +144,6 @@ curl -G "http://localhost:8080/external/v1/play" \
   --data-urlencode 'bot_id=random_bot'
 ```
 
-### Game move error semantics (occupied cell)
-
-When a player tries to place a move on an occupied cell, the API now returns:
-
-- HTTP status: `409 Conflict`
-- JSON payload with an explanatory message, for example:
-
-```json
-{
-  "message": "Could not apply move: Player 1 tries to place a stone on an occupied position: 2 0 0"
-}
-```
-
-This status/message is preserved end-to-end (Gamey -> Gateway -> Webapp client).
-
-## Testing strategy
-
-The project validates this behavior through unit, integration, and E2E tests:
-
-- `gamey` integration tests (`cargo test --test games_api_tests`) assert `409` and explanatory message for occupied moves.
-- `gateway` integration tests assert pass-through of upstream `409` + message on `/external/v1/games/:gameId/moves`.
-- `gateway` E2E Cucumber scenarios cover occupied square flows for both own and opponent pieces.
-- `webapp` API client tests validate that `playMove` surfaces the `409` message without losing details.
-
-Useful local commands:
-
-```bash
-# Gamey integration tests
-cd gamey
-cargo test --test games_api_tests
-
-# Gateway unit + integration tests
-cd ../gateway
-npm test
-
-# Gateway E2E (requires full stack running at http://localhost:8080)
-npm run test:e2e
-
-# Webapp unit/API tests
-cd ../webapp
-npm test -- src/__tests__/gameyApi.test.ts --run
-
-# Webapp E2E (starts required services)
-npm run test:e2e
-```
-
 ### HTTPS certificates
 
 The public entry point is the `gateway`. HTTPS is configured there, while internal traffic to `webapp`, `auth`, `gamey`, and `stats` remains inside Docker.
