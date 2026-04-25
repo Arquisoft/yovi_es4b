@@ -4,12 +4,7 @@ This project includes a simple BDD-style E2E setup that uses Playwright for brow
 
 Quick commands:
 
-- Set auth environment variables in your terminal session (required by `auth_service`):
-
-  ```powershell
-  $env:JWT_SECRET="change_this_secret"
-  $env:MONGO_AUTH_DB="mongodb://localhost:27017/auth"
-  ```
+- `npm run test:e2e` already starts `auth_service` with safe test defaults (`JWT_SECRET` and `MONGO_AUTH_DB`) so no manual env setup is needed for the standard local flow.
 
 - Install Playwright browsers (once):
 

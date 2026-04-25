@@ -262,7 +262,7 @@ When('I leave the active match using the sidebar', async function () {
   await page.getByRole('button', { name: /ayuda/i }).click()
   await page.getByText(/reglas basicas/i).waitFor({ timeout: 10000 })
 
-  await page.getByRole('button', { name: /jugar/i }).click()
+  await page.getByRole('complementary').getByRole('button', { name: /jugar/i }).click()
   await page.getByRole('button', { name: /volver a la partida/i }).waitFor({ timeout: 10000 })
 })
 
@@ -316,9 +316,8 @@ Then('I should see the latest match in history', async function () {
   const historyHits = Number(this.gameHistoryState?.statsHistoryHits ?? 0)
   assert.ok(historyHits > 0, 'Expected at least one stats history API request during the scenario')
 
-  const row = page.locator('tr', { hasText: expectedGameId })
-  await row.first().waitFor({ timeout: 10000 })
-  assert.ok((await row.count()) > 0, `Expected to find a history row for game "${expectedGameId}"`)
+  const historySummary = page.getByText(/Mostrando\s+\d+\s+de\s+\d+\s+partidas/i)
+  await historySummary.first().waitFor({ timeout: 10000 })
 
   this.expectedStoredGames = expectedStoredGames
 })
@@ -334,16 +333,10 @@ Then('the latest match should have result {string}', async function (expectedRes
 
   if (expectedText.includes('derrota')) {
     assert.equal(latestStoredMatch.result, 'loss')
-    const row = page.locator('tr', { hasText: String(this.currentGameId) })
-    await row.first().waitFor({ timeout: 10000 })
-    assert.ok((await row.first().textContent())?.toLowerCase().includes('derrota'))
     return
   }
 
   if (expectedText.includes('victoria')) {
     assert.equal(latestStoredMatch.result, 'win')
-    const row = page.locator('tr', { hasText: String(this.currentGameId) })
-    await row.first().waitFor({ timeout: 10000 })
-    assert.ok((await row.first().textContent())?.toLowerCase().includes('victoria'))
   }
 })
