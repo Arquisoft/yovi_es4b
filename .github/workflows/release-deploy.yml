@@ -83,7 +83,7 @@ jobs:
       - name: Install Playwright browsers
         run: |
           cd webapp
-          npm run test:e2e:install-browsers
+          npx playwright install --with-deps
       - name: Run E2E tests (start servers and run cucumber)
         env:
           JWT_SECRET: e2e-test-secret
