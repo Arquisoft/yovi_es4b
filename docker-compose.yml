@@ -72,8 +72,6 @@ services:
     build:
       context: ./webapp
       dockerfile: Dockerfile
-      additional_contexts:
-        gateway_config: ./gateway
     networks:
       - monitor-net
 
