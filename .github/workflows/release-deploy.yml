@@ -249,16 +249,13 @@ jobs:
             ASSETS_BASE="https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}"
             wget -q "${ASSETS_BASE}/docker-compose.yml" -O docker-compose.yml
 
-            mkdir -p monitoring/prometheus
-            if [ -d monitoring/prometheus/prometheus.yml ]; then
-              rm -rf monitoring/prometheus/prometheus.yml
-            fi
-            wget -q "${ASSETS_BASE}/monitoring/prometheus/prometheus.yml" -O monitoring/prometheus/prometheus.yml
+            mkdir -p deploy-assets/monitoring/prometheus
+            wget -q "${ASSETS_BASE}/monitoring/prometheus/prometheus.yml" -O deploy-assets/monitoring/prometheus/prometheus.yml
 
-            mkdir -p monitoring/grafana/provisioning/datasources monitoring/grafana/provisioning/dashboards monitoring/grafana/dashboards
-            wget -q "${ASSETS_BASE}/monitoring/grafana/provisioning/datasources/prometheus.yml" -O monitoring/grafana/provisioning/datasources/prometheus.yml
-            wget -q "${ASSETS_BASE}/monitoring/grafana/provisioning/dashboards/dashboards.yml" -O monitoring/grafana/provisioning/dashboards/dashboards.yml
-            wget -q "${ASSETS_BASE}/monitoring/grafana/dashboards/yovi-observability.json" -O monitoring/grafana/dashboards/yovi-observability.json
+            mkdir -p deploy-assets/monitoring/grafana/provisioning/datasources deploy-assets/monitoring/grafana/provisioning/dashboards deploy-assets/monitoring/grafana/dashboards
+            wget -q "${ASSETS_BASE}/monitoring/grafana/provisioning/datasources/prometheus.yml" -O deploy-assets/monitoring/grafana/provisioning/datasources/prometheus.yml
+            wget -q "${ASSETS_BASE}/monitoring/grafana/provisioning/dashboards/dashboards.yml" -O deploy-assets/monitoring/grafana/provisioning/dashboards/dashboards.yml
+            wget -q "${ASSETS_BASE}/monitoring/grafana/dashboards/yovi-observability.json" -O deploy-assets/monitoring/grafana/dashboards/yovi-observability.json
 
             mkdir -p gateway/certs
             if [ ! -s gateway/certs/server.crt ] || [ ! -s gateway/certs/server.key ]; then
@@ -276,6 +273,9 @@ jobs:
             HTTP_REDIRECT_ENABLED=true
             HTTPS_CERT_PATH=/app/certs/server.crt
             HTTPS_KEY_PATH=/app/certs/server.key
+            PROMETHEUS_CONFIG_PATH=./deploy-assets/monitoring/prometheus/prometheus.yml
+            GRAFANA_PROVISIONING_PATH=./deploy-assets/monitoring/grafana/provisioning
+            GRAFANA_DASHBOARDS_PATH=./deploy-assets/monitoring/grafana/dashboards
             EOF
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 

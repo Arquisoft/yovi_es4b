@@ -113,7 +113,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${PROMETHEUS_CONFIG_PATH:-./monitoring/prometheus/prometheus.yml}:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - gateway
       - auth
@@ -129,8 +129,8 @@ services:
       - "9091:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ${GRAFANA_PROVISIONING_PATH:-./monitoring/grafana/provisioning}:/etc/grafana/provisioning:ro
+      - ${GRAFANA_DASHBOARDS_PATH:-./monitoring/grafana/dashboards}:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
