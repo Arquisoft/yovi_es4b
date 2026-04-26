@@ -299,17 +299,40 @@ jobs:
               exit 1
             fi
 
-            if ! curl -kfsS https://localhost/health >/dev/null; then
-              echo "HTTPS health check failed"
+            if ! $COMPOSE_BIN exec -T gateway sh -lc 'test -r "$HTTPS_CERT_PATH" && test -r "$HTTPS_KEY_PATH"'; then
+              echo "Gateway TLS certificate files are not readable inside the container"
               $COMPOSE_BIN ps || true
-              $COMPOSE_BIN logs --tail=200 || true
+              $COMPOSE_BIN logs --tail=200 gateway || true
               exit 1
             fi
 
-            if ! curl -fsSI http://localhost/health | grep -qi '^location: https://'; then
+            HTTPS_READY=false
+            for i in $(seq 1 24); do
+              if curl -kfsS https://localhost/health >/dev/null; then
+                HTTPS_READY=true
+                break
+              fi
+              sleep 5
+            done
+            if [ "$HTTPS_READY" != "true" ]; then
+              echo "HTTPS health check failed"
+              $COMPOSE_BIN ps || true
+              $COMPOSE_BIN logs --tail=200 gateway || true
+              exit 1
+            fi
+
+            REDIRECT_READY=false
+            for i in $(seq 1 12); do
+              if curl -fsSI http://localhost/health | grep -qi '^location: https://'; then
+                REDIRECT_READY=true
+                break
+              fi
+              sleep 5
+            done
+            if [ "$REDIRECT_READY" != "true" ]; then
               echo "HTTP to HTTPS redirect check failed"
               $COMPOSE_BIN ps || true
-              $COMPOSE_BIN logs --tail=200 || true
+              $COMPOSE_BIN logs --tail=200 gateway || true
               exit 1
             fi
 
