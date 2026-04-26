@@ -1,0 +1,8 @@
+services:
+  mongo-auth:
+    ports:
+      - "${MONGO_AUTH_HOST_PORT:-27017}:27017"
+
+  mongo-stats:
+    ports:
+      - "${MONGO_STATS_HOST_PORT:-28018}:27017"

@@ -3,8 +3,6 @@ services:
     image: mongo:6.0
     container_name: mongo-auth
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     volumes:
       - mongo-auth-data:/data/db
     networks:
@@ -14,8 +12,6 @@ services:
     image: mongo:6.0
     container_name: mongo-stats
     restart: unless-stopped
-    ports:
-      - "28018:27017"
     volumes:
       - mongo-stats-data:/data/db
     networks:

@@ -60,7 +60,7 @@ jobs:
       mongo-auth:
         image: mongo:6.0
         ports:
-          - 27017:27017
+          - 27018:27017
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -87,7 +87,7 @@ jobs:
       - name: Run E2E tests (start servers and run cucumber)
         env:
           JWT_SECRET: e2e-test-secret
-          MONGO_AUTH_DB: mongodb://localhost:27017/auth
+          MONGO_AUTH_DB: mongodb://localhost:27018/auth
         run: |
           cd webapp
           npm run test:e2e
@@ -95,7 +95,6 @@ jobs:
         env:
           JWT_SECRET: e2e-test-secret
           JWT_EXPIRES: 1h
-          MONGO_AUTH_DB: mongodb://localhost:27017/auth
         run: |
           docker compose up -d --build
           for i in {1..60}; do

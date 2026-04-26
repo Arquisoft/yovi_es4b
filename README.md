@@ -240,6 +240,22 @@ docker compose -f docker-compose.yml -f docker-compose.load-tests.yml run --rm g
 The simulation accepts `-Dyovi.baseUrl`, `-Dyovi.usersPerSec` and `-Dyovi.durationSeconds`.
 Generated Gatling reports are written under `load-tests/target/gatling/`.
 
+### Database ports
+
+The Docker deployment does not expose MongoDB ports on the host by default. Services use the internal Docker network names (`mongo-auth:27017` and `mongo-stats:27017`), which avoids collisions with a local MongoDB instance.
+
+Expose them only for debugging:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.db-ports.yml up -d --build
+```
+
+If `27017` is already busy, choose another host port:
+
+```powershell
+$env:MONGO_AUTH_HOST_PORT="27018"; docker compose -f docker-compose.yml -f docker-compose.db-ports.yml up -d --build
+```
+
 ### Without Docker
 
 To run the project locally without Docker, you will need to run each component in a separate terminal.
