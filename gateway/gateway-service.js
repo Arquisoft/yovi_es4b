@@ -237,10 +237,11 @@ function isOriginAllowedByHostname(origin, hostnames) {
     return false;
   }
 
-  return hostnames
+  const allowedHostnames = hostnames
     .map(normalizeHostname)
-    .filter(Boolean)
-    .some((hostname) => originUrl.hostname === hostname);
+    .filter(Boolean);
+
+  return allowedHostnames.includes(originUrl.hostname);
 }
 
 function isInternalApiOriginAllowed(origin, env = process.env) {
@@ -260,7 +261,7 @@ function isInternalApiOriginAllowed(origin, env = process.env) {
 }
 
 function handleCorsError(error, _req, res, next) {
-  if (!error || error.message !== 'Not allowed by CORS for internal API') {
+  if (error?.message !== 'Not allowed by CORS for internal API') {
     return next(error);
   }
 
