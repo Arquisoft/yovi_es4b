@@ -5,13 +5,14 @@
   "main": "gateway-service.js",
   "scripts": {
     "start": "node gateway-service.js",
-    "test": "node --test gateway-service.test.js gateway-service-routes.test.js external-play.integration.test.js",
-    "test:routes": "node --test gateway-service-routes.test.js",
-    "test:integration:external": "node --test external-play.integration.test.js",
-    "test:e2e": "cucumber-js --import test/e2e/support/setup.mjs --import test/e2e/steps/**/*.mjs test/e2e/features --format progress",
-    "test:coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info gateway-service.test.js gateway-service-routes.test.js external-play.integration.test.js"
+    "test": "node --test tests/services/gateway-service.test.js tests/services/gateway-service-routes.test.js tests/integration/external-play.integration.test.js",
+    "test:routes": "node --test tests/services/gateway-service-routes.test.js",
+    "test:integration:external": "node --test tests/integration/external-play.integration.test.js",
+    "test:e2e": "cucumber-js --import tests/e2e/support/setup.mjs --import tests/e2e/steps/**/*.mjs tests/e2e/features --format progress",
+    "test:coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info tests/services/gateway-service.test.js tests/services/gateway-service-routes.test.js tests/integration/external-play.integration.test.js"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5"
   },

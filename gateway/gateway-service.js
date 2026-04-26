@@ -3,6 +3,7 @@ const http = require('node:http');
 const https = require('node:https');
 
 const express = require('express');
+const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const externalApiSpec = require('./external-api-spec.json');
@@ -763,6 +764,91 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
     });
   }));
 
+  router.post('/v1/games', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+    const opponentUserId = normalizeOptionalString(req.body?.opponent_user_id);
+    const payload = {
+      ...req.body,
+    };
+
+    delete payload.opponent_user_id;
+
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/games`,
+      buildJsonInit('POST', payload, buildForwardHeaders(req, user, {
+        ...(opponentUserId ? { 'x-opponent-user-id': opponentUserId } : {}),
+        'Content-Type': 'application/json',
+      })),
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.get('/v1/games/:gameId', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}`,
+      {
+        method: 'GET',
+        headers: buildForwardHeaders(req, user),
+      },
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.post('/v1/games/:gameId/moves', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/moves`,
+      buildJsonInit('POST', req.body, buildForwardHeaders(req, user, {
+        'Content-Type': 'application/json',
+      })),
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.post('/v1/games/:gameId/pass', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/pass`,
+      {
+        method: 'POST',
+        headers: buildForwardHeaders(req, user),
+      },
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.post('/v1/games/:gameId/resign', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/resign`,
+      {
+        method: 'POST',
+        headers: buildForwardHeaders(req, user),
+      },
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
   router.use((error, _req, res, _next) => {
     if (res.headersSent) {
       return;
@@ -805,10 +891,24 @@ function createApp({
   app.use('/external', createExternalApiRouter({ env, fetchImpl, spec }));
 
   const serviceUrls = buildServiceUrls(env);
+  const publicHostname = env.GATEWAY_PUBLIC_HOSTNAME || 'localhost';
+
+  // Stricter CORS for the internal API
+  app.use('/api', cors({
+    origin: (origin, callback) => {
+      if (!origin || origin.includes(publicHostname)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS for internal API'));
+      }
+    }
+  }));
+
 
   for (const route of proxyRoutes) {
     if (route.mountPath === '/api') {
-      // Internal authenticated proxy for webapp and E2E tests
+      // Internal authenticated proxy for webapp and E2E tests.
+      // This is the FIX for "Invalid player_token" as it forwards x-user-id.
       app.use(route.mountPath, async (req, res, next) => {
         try {
           const user = await getOptionalUser(req, serviceUrls, fetchImpl);
@@ -816,7 +916,10 @@ function createApp({
             req.headers['x-user-id'] = user.id;
           }
         } catch (error) {
-          // Ignore auth errors for the raw proxy, let internal services decide
+          if (!(error instanceof HttpResponseError) && !(error instanceof UpstreamConnectionError)) {
+            return next(error);
+          }
+          // Ignore auth errors for raw proxy, internal services handle it.
         }
         next();
       }, buildProxy(route, proxyFactory));

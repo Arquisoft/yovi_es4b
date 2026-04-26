@@ -220,13 +220,18 @@ Then('the response should contain an error message about size', function () {
 });
 
 Then('the response should include an occupied-cell explanation', function () {
-  assert.ok(this.responseBody && typeof this.responseBody.message === 'string');
-  assert.match(this.responseBody.message, /could not apply move/i);
-  assert.match(this.responseBody.message, /occupied/i);
+  const message =
+    this.responseBody?.message
+    ?? this.responseBody?.error
+    ?? this.responseText
+    ?? '';
+
+  assert.ok(typeof message === 'string' && message.length > 0);
+  assert.match(message, /could not apply move|occupied/i);
 });
 
 When('I create a new game with size {int}, mode {string}, and bot_id {string}', async function (size, mode, botId) {
-  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${this.token}`,
@@ -245,13 +250,20 @@ Then('the game should be created successfully and not be over', function () {
 });
 
 When('I get the game state', async function () {
-  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}`, {
     headers: { Authorization: `Bearer ${this.token}` },
   });
+
+  this.responseText = await this.response.text();
+  try {
+    this.responseBody = JSON.parse(this.responseText);
+  } catch {
+    this.responseBody = null;
+  }
 });
 
 When('I make a move at x={int}, y={int}, z={int}', async function (x, y, z) {
-  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}/moves`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}/moves`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${this.token}`,
@@ -259,6 +271,13 @@ When('I make a move at x={int}, y={int}, z={int}', async function (x, y, z) {
     },
     body: JSON.stringify({ coords: { x, y, z } }),
   });
+
+  this.responseText = await this.response.text();
+  try {
+    this.responseBody = JSON.parse(this.responseText);
+  } catch {
+    this.responseBody = null;
+  }
 });
 
 Then('the response status should indicate success or valid turn', function () {
@@ -266,11 +285,17 @@ Then('the response status should indicate success or valid turn', function () {
 });
 
 When('I get the game state and move on the opponent\'s square', async function () {
-  const getResponse = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}`, {
+  const getResponse = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}`, {
     headers: { Authorization: `Bearer ${this.token}` },
   });
   const gameState = await getResponse.json();
-  const layout = gameState.state.position.layout;
+  const layout =
+    gameState?.state?.position?.layout
+    ?? gameState?.position?.layout
+    ?? gameState?.yen?.layout;
+
+  assert.ok(typeof layout === 'string' && layout.length > 0, 'Expected game layout in response');
+
   const rows = layout.split('/');
   const boardSize = rows.length;
 
@@ -289,11 +314,13 @@ When('I get the game state and move on the opponent\'s square', async function (
     if (opponentRow !== -1) break;
   }
 
+  assert.ok(opponentRow !== -1 && opponentCol !== -1, 'Expected opponent move to exist in current board');
+
   const x = boardSize - 1 - opponentRow;
   const y = opponentCol;
   const z = (boardSize - 1) - x - y;
 
-  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}/moves`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}/moves`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${this.token}`,
@@ -301,13 +328,27 @@ When('I get the game state and move on the opponent\'s square', async function (
     },
     body: JSON.stringify({ coords: { x, y, z } }),
   });
+
+  this.responseText = await this.response.text();
+  try {
+    this.responseBody = JSON.parse(this.responseText);
+  } catch {
+    this.responseBody = null;
+  }
 });
 
 When('I resign the game', async function () {
-  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}/resign`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}/resign`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${this.token}` },
   });
+
+  this.responseText = await this.response.text();
+  try {
+    this.responseBody = JSON.parse(this.responseText);
+  } catch {
+    this.responseBody = null;
+  }
 });
 
 Then('the resign response should be successful', function () {

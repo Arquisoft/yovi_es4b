@@ -5,7 +5,7 @@ const { spawn } = require('node:child_process')
 const { once } = require('node:events')
 const test = require('node:test')
 
-const GATEWAY_DIR = __dirname
+const GATEWAY_DIR = path.resolve(__dirname, '..', '..')
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
