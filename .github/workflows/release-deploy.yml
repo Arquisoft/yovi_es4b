@@ -246,7 +246,20 @@ jobs:
               COMPOSE_BIN="docker-compose"
             fi
 
-            wget -q https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}/docker-compose.yml -O docker-compose.yml
+            ASSETS_BASE="https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.IMAGE_TAG }}"
+            wget -q "${ASSETS_BASE}/docker-compose.yml" -O docker-compose.yml
+
+            mkdir -p monitoring/prometheus
+            if [ -d monitoring/prometheus/prometheus.yml ]; then
+              rm -rf monitoring/prometheus/prometheus.yml
+            fi
+            wget -q "${ASSETS_BASE}/monitoring/prometheus/prometheus.yml" -O monitoring/prometheus/prometheus.yml
+
+            mkdir -p monitoring/grafana/provisioning/datasources monitoring/grafana/provisioning/dashboards monitoring/grafana/dashboards
+            wget -q "${ASSETS_BASE}/monitoring/grafana/provisioning/datasources/prometheus.yml" -O monitoring/grafana/provisioning/datasources/prometheus.yml
+            wget -q "${ASSETS_BASE}/monitoring/grafana/provisioning/dashboards/dashboards.yml" -O monitoring/grafana/provisioning/dashboards/dashboards.yml
+            wget -q "${ASSETS_BASE}/monitoring/grafana/dashboards/yovi-observability.json" -O monitoring/grafana/dashboards/yovi-observability.json
+
             mkdir -p gateway/certs
             if [ ! -s gateway/certs/server.crt ] || [ ! -s gateway/certs/server.key ]; then
               echo "Missing TLS certificates under gateway/certs. Expected server.crt and server.key"
