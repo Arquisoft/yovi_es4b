@@ -1,7 +1,7 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-const crypto = require('node:crypto');
+import crypto from 'node:crypto';
 
 function uniqueUsername() {
   return `e2e_user_${Date.now()}_${crypto.randomUUID()}`;
