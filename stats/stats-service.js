@@ -61,66 +61,108 @@ function readBooleanQueryString(query, name) {
   return { error: `${name} must be one of: true, false` };
 }
 
-function buildHistoryQuery({ userId, rawQuery = {} }) {
-  const filter = { userId };
-
+function readHistoryQueryParams(rawQuery) {
   const result = readEnumQueryString(rawQuery, 'result', ['win', 'loss']);
   if (result.error) return { error: result.error };
-  if (result.value) filter.result = result.value;
 
   const winner = readEnumQueryString(rawQuery, 'winner', ['you', 'rival']);
   if (winner.error) return { error: winner.error };
-  if (winner.value) {
-    const winnerResult = winner.value === 'you' ? 'win' : 'loss';
-    filter.result = filter.result && filter.result !== winnerResult ? { $in: [] } : winnerResult;
-  }
 
   const mode = readEnumQueryString(rawQuery, 'mode', HISTORY_MODE_VALUES);
   if (mode.error) return { error: mode.error };
-  if (mode.value === 'online') {
-    filter.mode = { $in: ['online', 'human_vs_human'] };
-  } else if (mode.value) {
-    filter.mode = mode.value;
-  }
 
   const botId = readOptionalQueryString(rawQuery, 'botId');
   if (botId.error) return { error: botId.error };
 
   const hasBot = readBooleanQueryString(rawQuery, 'hasBot');
   if (hasBot.error) return { error: hasBot.error };
-  if (botId.value && hasBot.value !== null) {
-    return { error: 'botId and hasBot cannot be used together' };
-  }
-  if (botId.value) {
-    filter.botId = botId.value;
-  } else if (hasBot.value === true) {
-    filter.botId = { $type: 'string', $ne: '' };
-  } else if (hasBot.value === false) {
-    filter.botId = null;
-  }
 
   const winnerId = readOptionalQueryString(rawQuery, 'winnerId');
   if (winnerId.error) return { error: winnerId.error };
 
   const hasWinner = readBooleanQueryString(rawQuery, 'hasWinner');
   if (hasWinner.error) return { error: hasWinner.error };
-  if (winnerId.value && hasWinner.value !== null) {
-    return { error: 'winnerId and hasWinner cannot be used together' };
-  }
-  if (winnerId.value) {
-    filter.winnerId = winnerId.value;
-  } else if (hasWinner.value === true) {
-    filter.winnerId = { $type: 'string', $ne: '' };
-  } else if (hasWinner.value === false) {
-    filter.winnerId = null;
-  }
 
   const sortOption = readEnumQueryString(rawQuery, 'sort', ['recent_first', 'oldest_first']);
   if (sortOption.error) return { error: sortOption.error };
 
   return {
+    result: result.value,
+    winner: winner.value,
+    mode: mode.value,
+    botId: botId.value,
+    hasBot: hasBot.value,
+    winnerId: winnerId.value,
+    hasWinner: hasWinner.value,
+    sortOption: sortOption.value,
+  };
+}
+
+function applyWinnerPerspectiveFilter(filter, winner) {
+  if (!winner) {
+    return;
+  }
+
+  const winnerResult = winner === 'you' ? 'win' : 'loss';
+  filter.result = filter.result && filter.result !== winnerResult ? { $in: [] } : winnerResult;
+}
+
+function applyModeFilter(filter, mode) {
+  if (mode === 'online') {
+    filter.mode = { $in: ['online', 'human_vs_human'] };
+  } else if (mode) {
+    filter.mode = mode;
+  }
+}
+
+function resolvePresenceFilter(stringValue, presenceValue, conflictError) {
+  if (stringValue && presenceValue !== null) {
+    return { error: conflictError };
+  }
+
+  if (stringValue) return { value: stringValue };
+  if (presenceValue === true) return { value: { $type: 'string', $ne: '' } };
+  if (presenceValue === false) return { value: null };
+  return {};
+}
+
+function applyPresenceFilter(filter, fieldName, stringValue, presenceValue, conflictError) {
+  const resolvedFilter = resolvePresenceFilter(stringValue, presenceValue, conflictError);
+  if (resolvedFilter.error) return resolvedFilter.error;
+  if ('value' in resolvedFilter) filter[fieldName] = resolvedFilter.value;
+  return null;
+}
+
+function buildHistoryQuery({ userId, rawQuery = {} }) {
+  const queryParams = readHistoryQueryParams(rawQuery);
+  if (queryParams.error) return { error: queryParams.error };
+
+  const filter = { userId };
+  if (queryParams.result) filter.result = queryParams.result;
+  applyWinnerPerspectiveFilter(filter, queryParams.winner);
+  applyModeFilter(filter, queryParams.mode);
+
+  const botError = applyPresenceFilter(
     filter,
-    sort: { endedAt: sortOption.value === 'oldest_first' ? 1 : -1 },
+    'botId',
+    queryParams.botId,
+    queryParams.hasBot,
+    'botId and hasBot cannot be used together',
+  );
+  if (botError) return { error: botError };
+
+  const winnerError = applyPresenceFilter(
+    filter,
+    'winnerId',
+    queryParams.winnerId,
+    queryParams.hasWinner,
+    'winnerId and hasWinner cannot be used together',
+  );
+  if (winnerError) return { error: winnerError };
+
+  return {
+    filter,
+    sort: { endedAt: queryParams.sortOption === 'oldest_first' ? 1 : -1 },
   };
 }
 
