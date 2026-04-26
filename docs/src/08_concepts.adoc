@@ -3,7 +3,6 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-concepts]]
 == Cross-cutting Concepts
 
-
 ifdef::arc42help[]
 [role="arc42help"]
 ****
@@ -18,13 +17,11 @@ They can include many different topics, such as
 * principal, often technical decisions of an overarching (= cross-cutting) nature
 * implementation rules
 
-
 .Motivation
-Concepts form the basis for _conceptual integrity_ (consistency, homogeneity) of the architecture. 
+Concepts form the basis for _conceptual integrity_ (consistency, homogeneity) of the architecture.
 Thus, they are an important contribution to achieve inner qualities of your system.
 
-Some of these concepts cannot be assigned to individual building blocks, e.g. security or safety. 
-
+Some of these concepts cannot be assigned to individual building blocks, e.g. security or safety.
 
 .Form
 The form can be varied:
@@ -50,124 +47,70 @@ on this list.
 
 image::08-concepts-EN.drawio.png["Possible topics for crosscutting concepts"]
 
-
 .Further Information
 
 See https://docs.arc42.org/section-8/[Concepts] in the arc42 documentation.
 ****
 endif::arc42help[]
 
-This section describes the fundamental concepts, architectural principles, and technical decisions that apply across multiple components of the system.
-These concepts ensure architectural consistency, reduce complexity, and support the system’s long-term evolution.
+=== Domain Concepts
 
-=== _<Domain Concepts>_
+The core domain of the Yovi system revolves around multiplayer board games, user authentication, and statistics tracking.
 
+Key domain entities include users, games, players (human or bot), moves, and statistics.
 
+image::08_diagram_1.png[]
 
-The domain of the system is centered around authentication, player profiles, and Game Y execution.
+=== User Experience Concepts
 
-Key domain concepts include:
+The user experience focuses on simplicity, responsiveness, and accessibility for game enthusiasts.
 
- - User: A registered client of the system.
+- **Single Page Application**: Seamless navigation without page reloads.
+- **Real-time Updates**: Immediate feedback on game actions and matchmaking.
+- **Responsive UI**: Adapts to mobile and desktop devices.
+- **Intuitive Navigation**: Clear menus for registration, login, game creation, and stats viewing.
+- **Error Handling**: User-friendly messages for invalid actions or network issues.
 
- - Game: A Game Y match, either active or completed.
+=== Security Concepts
 
- - Player: An entity participating in a game (human or automated).
+Security is paramount to protect user data and ensure fair gameplay.
 
- - Bot: An automated player controlled by the game engine.
+- **Authentication**: JWT tokens for session management.
+- **Password Security**: Hashing with scrypt.
+- **Data Isolation**: Separate databases for auth and stats.
+- **API Security**: Internal communication via secure channels.
+- **Authorization**: Role-based access for admin functions.
 
- - Move / Action: A single action performed during gameplay.
+image::08_diagram_2.png[]
 
- - Game State: The current state of a game.
+=== Architecture and Design Patterns
 
- - User Profile: Persisted information associated with a user.
+The architecture employs microservices with clear patterns for scalability and maintainability.
 
+- **Microservices Pattern**: Independent services for auth, game logic, stats, and gateway.
+- **API Gateway**: Centralized routing and load balancing.
+- **Repository Pattern**: Data access abstraction.
+- **Observer Pattern**: Metrics collection via Prometheus.
+- **Stateless Services**: No session state in services.
 
+image::08_diagram_3.png[]
 
-=== _<User Experience Concepts>_
+=== Development Concepts
 
+Development emphasizes modularity, testing, and continuous integration.
 
+- **Independent Builds**: Each service builds separately.
+- **Automated Testing**: Unit and integration tests.
+- **Version Control**: Git with feature branches.
+- **Containerization**: Docker for consistent environments.
+- **Code Quality**: Linting and code reviews.
 
-The user experience is designed to be intuitive and responsive, focusing on ease of use for players of varying skill levels.
+=== Operational Concepts
 
-Key UX concepts include:
+Operations prioritize ease of deployment and monitoring in development/demo settings.
 
- - Single Page Application (SPA): The webapp provides a seamless, client-side experience without page reloads.
-
- - Responsive Design: The interface adapts to different screen sizes for accessibility on various devices.
-
- - Real-time Feedback: Users receive immediate responses to actions, such as game moves or registration confirmations.
-
- - Progressive Enhancement: Core functionality works without JavaScript, with enhancements for modern browsers.
-
- - Accessibility: Basic support for screen readers and keyboard navigation to ensure inclusivity.
-
-
-
-=== _<Architecture and Design Patterns>_
-
-
-The system follows a service-oriented and layered architecture, applying the following principles:
-
-- Client–Server Architecture
-    The web application acts as a client, while backend services act as servers.
-
-- Separation of Concerns
-    Each component has a clearly defined responsibility:
-
-     - Webapp: User interaction and presentation
-
-    - Auth Service: Registration, login, token verification, and credential persistence
-
-     - Gamey: Game logic and bot execution
-
- - API-first Design
-    All communication between components is performed through HTTP-based APIs.
-
-This approach ensures loose coupling and enables independent evolution of components.
-
-
-=== _<Security Concepts>_
-
-
-
-The system implements the following security concepts:
-
- - User authentication is enforced with JWT-based sessions (`/register`, `/login`, `/verify`).
-
- - Passwords are never stored in plain text; they are hashed with `scrypt`.
-
- - Auth persistence is isolated in MongoDB (`mongo-auth`) and only accessed by `auth_service`.
-
- - Internal service communication is isolated in the Docker network; the public entry point is the gateway.
-
- - Stats internal endpoints are protected with a service token to avoid unauthorized writes.
-
-
-=== _<Development Concepts>_
-
-
-Development follows these principles:
-
- - Each service can be built, tested, and run independently.
-
- - Clear interface contracts define inter-service communication.
-
- - Technology choices are isolated per component.
-
-This enables parallel development and easier maintenance.
-
-=== _<Operational Concepts>_
-
-
-From an operational perspective:
-
- - The system is primarily designed for local and development environments.
-
- - Services are started and stopped as a group.
-
- - Logs are written to standard output.
-
- - Prometheus and Grafana are available in the Docker Compose environment to monitor service metrics and dashboards.
-
-The operational model favors simplicity and transparency over production-level optimization.
+- **Container Orchestration**: Docker Compose for local deployment.
+- **Logging**: Stdout logging for containerized services.
+- **Monitoring**: Prometheus and Grafana for metrics and dashboards.
+- **Backup**: MongoDB dumps for data persistence.
+- **Scaling**: Horizontal scaling via additional containers.
