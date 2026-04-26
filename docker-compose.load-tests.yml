@@ -1,0 +1,21 @@
+services:
+  gatling:
+    image: maven:3-eclipse-temurin-17
+    working_dir: /work
+    volumes:
+      - ./load-tests:/work
+      - gatling-maven-cache:/root/.m2
+    environment:
+      - YOVI_BASE_URL=${GATLING_BASE_URL:-http://gateway:8080}
+    command:
+      - mvn
+      - -B
+      - gatling:test
+      - -Dgatling.simulationClass=YoviSimulation
+    depends_on:
+      - gateway
+    networks:
+      - monitor-net
+
+volumes:
+  gatling-maven-cache:

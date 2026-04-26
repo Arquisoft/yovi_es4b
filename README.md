@@ -22,6 +22,7 @@ The project is divided into these main components, each in its own directory:
 - `auth_service/`: Authentication microservice (register/login/verify) with JWT + MongoDB.
 - `gamey/`: Rust game engine and bot service.
 - `stats/`: Node.js service for match history and player statistics.
+- `load-tests/`: Gatling/Maven load tests and saved execution evidence.
 - `docs/`: Architecture documentation sources following Arc42 template.
 
 Each component includes the scripts/configuration needed to run and test the application.
@@ -194,6 +195,27 @@ The metrics exposed by the services include:
 - Gamey domain gauges and counters for active games, matchmaking, and stats reporting
 
 For a simpler explanation of each metric and each Grafana panel, see [monitoring/README.md](monitoring/README.md).
+
+### Load tests
+
+The repository includes a Gatling load-test project in `load-tests/`.
+It contains the `YoviSimulation` scenario and the saved execution output in `load-tests/results/resultados.txt`.
+
+Run it against the local gateway:
+
+```powershell
+cd load-tests
+mvn gatling:test -Dyovi.baseUrl=http://localhost:8080
+```
+
+Run it in Docker Compose against the internal gateway service:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.load-tests.yml run --rm gatling
+```
+
+The simulation accepts `-Dyovi.baseUrl`, `-Dyovi.usersPerSec` and `-Dyovi.durationSeconds`.
+Generated Gatling reports are written under `load-tests/target/gatling/`.
 
 ### Without Docker
 
