@@ -208,19 +208,9 @@ pub async fn get_game(
 ) -> Result<Json<GameStateResponse>, ErrorResponse> {
     check_api_version(&params.api_version)?;
 
-    let games = state.games();
-    let mut guard = games.write().await;
-    let session = require_game_session_mut(&mut guard, &params)?;
-    let requesting_player_id = find_player_id_from_header_token(session, &headers);
-
-    if let Some(requesting_player_id) = requesting_player_id {
-        record_online_player_presence(session, requesting_player_id);
-    }
-
     // Check if request includes action=resign to handle resignation via GET.
     if let Some(action) = query.action.as_deref() {
         if action == "resign" {
-            // Replicate resign_game logic here.
             let games = state.games();
             let mut guard = games.write().await;
 
@@ -280,6 +270,15 @@ pub async fn get_game(
 
             return Ok(Json(response));
         }
+    }
+
+    let games = state.games();
+    let mut guard = games.write().await;
+    let session = require_game_session_mut(&mut guard, &params)?;
+    let requesting_player_id = find_player_id_from_header_token(session, &headers);
+
+    if let Some(requesting_player_id) = requesting_player_id {
+        record_online_player_presence(session, requesting_player_id);
     }
 
     // Existing GET logic continues here.
@@ -1313,6 +1312,8 @@ mod tests {
     use super::*;
     use crate::YBotRegistry;
     use crate::bot_server::state::AppState;
+    use axum::extract::{Path, Query, State};
+    use axum::http::{HeaderMap, HeaderValue};
     use std::collections::HashMap;
     use std::time::Duration;
 
@@ -1434,5 +1435,347 @@ mod tests {
         let result = ensure_user_id_is_available_for_new_game(&state, Some("Fernando"), "v1").await;
 
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_game_with_resign_action_finishes_game_and_clears_active_index() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-resign-get".to_string();
+        let user_id = "fernando".to_string();
+
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: Instant::now(),
+            turn_started_at: None,
+            player_tokens: None,
+            last_seen_at_by_player_id: None,
+            player0_user_id: Some(user_id.clone()),
+            player1_user_id: None,
+            stats_reported: true,
+            completion_reason: None,
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+        state
+            .active_game_id_by_user_id()
+            .write()
+            .await
+            .insert(user_id.clone(), game_id.clone());
+
+        let response = get_game(
+            State(state.clone()),
+            Path(GameParams {
+                api_version: "v1".to_string(),
+                game_id: game_id.clone(),
+            }),
+            Query(GetGameQuery {
+                action: Some("resign".to_string()),
+            }),
+            HeaderMap::new(),
+        )
+        .await
+        .expect("resign via GET should succeed")
+        .0;
+
+        assert!(response.game_over);
+        assert_eq!(response.completion_reason, Some(GameCompletionReason::Resignation));
+
+        let games = state.games();
+        let games_guard = games.read().await;
+        let stored_session = games_guard
+            .get(&game_id)
+            .expect("game should still exist in memory");
+        assert!(stored_session.game.check_game_over());
+        assert_eq!(
+            stored_session.completion_reason,
+            Some(GameCompletionReason::Resignation)
+        );
+        drop(games_guard);
+
+        let active_game_id_by_user_id = state.active_game_id_by_user_id();
+        let active_game_id_by_user_id_guard = active_game_id_by_user_id.read().await;
+        assert!(!active_game_id_by_user_id_guard.contains_key(&user_id));
+    }
+
+    #[tokio::test]
+    async fn test_resign_game_requires_token_for_matchmaking_games() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-resign-token-required".to_string();
+
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: Instant::now(),
+            turn_started_at: Some(Instant::now()),
+            player_tokens: Some(HashMap::from([
+                (0, "player-0-token".to_string()),
+                (1, "player-1-token".to_string()),
+            ])),
+            last_seen_at_by_player_id: Some(HashMap::new()),
+            player0_user_id: Some("fernando".to_string()),
+            player1_user_id: Some("jose".to_string()),
+            stats_reported: true,
+            completion_reason: None,
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+
+        let result = resign_game(
+            State(state),
+            Path(GameParams {
+                api_version: "v1".to_string(),
+                game_id,
+            }),
+            HeaderMap::new(),
+        )
+        .await;
+
+        let error = result.expect_err("missing token should fail in matchmaking games");
+        assert!(error.message.contains("x-player-token header is required"));
+    }
+
+    #[tokio::test]
+    async fn test_get_game_with_resign_action_in_matchmaking_uses_header_token_player() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-resign-get-matchmaking".to_string();
+
+        let mut game = GameY::new(3);
+        game.add_move(Movement::Placement {
+            player: PlayerId::new(0),
+            coords: Coordinates::new(2, 0, 0),
+        })
+        .expect("first move should be valid");
+
+        let now = Instant::now();
+        let session = GameSession {
+            game,
+            bot_id: None,
+            created_at: now,
+            turn_started_at: Some(now),
+            player_tokens: Some(HashMap::from([
+                (0, "player-0-token".to_string()),
+                (1, "player-1-token".to_string()),
+            ])),
+            last_seen_at_by_player_id: Some(HashMap::from([(0, now), (1, now)])),
+            player0_user_id: Some("fernando".to_string()),
+            player1_user_id: Some("jose".to_string()),
+            stats_reported: true,
+            completion_reason: None,
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+
+        let mut headers = HeaderMap::new();
+        headers.insert("x-player-token", HeaderValue::from_static("player-1-token"));
+
+        let response = get_game(
+            State(state),
+            Path(GameParams {
+                api_version: "v1".to_string(),
+                game_id,
+            }),
+            Query(GetGameQuery {
+                action: Some("resign".to_string()),
+            }),
+            headers,
+        )
+        .await
+        .expect("resign via GET with token should succeed")
+        .0;
+
+        assert!(response.game_over);
+        assert_eq!(response.winner, Some(0));
+        assert_eq!(response.completion_reason, Some(GameCompletionReason::Resignation));
+    }
+
+    #[tokio::test]
+    async fn test_resign_game_human_vs_bot() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-resign-bot".to_string();
+
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: Some("random_bot".to_string()),
+            created_at: Instant::now(),
+            turn_started_at: None,
+            player_tokens: None,
+            last_seen_at_by_player_id: None,
+            player0_user_id: Some("human".to_string()),
+            player1_user_id: None,
+            stats_reported: true,
+            completion_reason: None,
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+
+        let response = resign_game(
+            State(state),
+            Path(GameParams {
+                api_version: "v1".to_string(),
+                game_id,
+            }),
+            HeaderMap::new(),
+        )
+        .await
+        .expect("resign should succeed")
+        .0;
+
+        assert!(response.game_over);
+        assert_eq!(response.winner, Some(1)); // Bot wins
+        assert_eq!(response.completion_reason, Some(GameCompletionReason::Resignation));
+    }
+
+    #[tokio::test]
+    async fn test_resign_game_local_hvh() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-resign-local".to_string();
+
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: Instant::now(),
+            turn_started_at: None,
+            player_tokens: None,
+            last_seen_at_by_player_id: None,
+            player0_user_id: Some("p1".to_string()),
+            player1_user_id: Some("p2".to_string()),
+            stats_reported: true,
+            completion_reason: None,
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+
+        let response = resign_game(
+            State(state),
+            Path(GameParams {
+                api_version: "v1".to_string(),
+                game_id,
+            }),
+            HeaderMap::new(),
+        )
+        .await
+        .expect("resign should succeed")
+        .0;
+
+        assert!(response.game_over);
+        assert_eq!(response.winner, Some(1)); // Current player (0) resigned, 1 wins
+    }
+
+    #[tokio::test]
+    async fn test_resign_already_finished_errors() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-already-finished".to_string();
+
+        let mut game = GameY::new(3);
+        game.add_move(Movement::Action { player: PlayerId::new(0), action: GameAction::Resign }).unwrap();
+
+        let session = GameSession {
+            game,
+            bot_id: None,
+            created_at: Instant::now(),
+            turn_started_at: None,
+            player_tokens: None,
+            last_seen_at_by_player_id: None,
+            player0_user_id: None,
+            player1_user_id: None,
+            stats_reported: true,
+            completion_reason: Some(GameCompletionReason::Resignation),
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+
+        // Test POST /resign
+        let result_post = resign_game(
+            State(state.clone()),
+            Path(GameParams { api_version: "v1".to_string(), game_id: game_id.clone() }),
+            HeaderMap::new(),
+        ).await;
+        assert!(result_post.is_err());
+        assert!(result_post.unwrap_err().message.contains("already finished"));
+
+        // Test GET /games/{id}?action=resign
+        let result_get = get_game(
+            State(state),
+            Path(GameParams { api_version: "v1".to_string(), game_id }),
+            Query(GetGameQuery { action: Some("resign".to_string()) }),
+            HeaderMap::new(),
+        ).await;
+        assert!(result_get.is_err());
+        assert!(result_get.unwrap_err().message.contains("already finished"));
+    }
+
+    #[tokio::test]
+    async fn test_process_online_game_timeouts_resigns_inactive_player() {
+        let state = AppState::new(YBotRegistry::new());
+        let game_id = "game-timeout".to_string();
+        
+        let now = Instant::now();
+        let long_ago = now - Duration::from_secs(100);
+        
+        let mut last_seen = HashMap::new();
+        last_seen.insert(0, long_ago); // Player 0 inactive
+        last_seen.insert(1, now);      // Player 1 active
+
+        let session = GameSession {
+            game: GameY::new(3),
+            bot_id: None,
+            created_at: long_ago,
+            turn_started_at: Some(long_ago),
+            player_tokens: Some(HashMap::from([
+                (0, "token0".to_string()),
+                (1, "token1".to_string()),
+            ])),
+            last_seen_at_by_player_id: Some(last_seen),
+            player0_user_id: Some("user0".to_string()),
+            player1_user_id: Some("user1".to_string()),
+            stats_reported: true,
+            completion_reason: None,
+        };
+
+        state.games().write().await.insert(game_id.clone(), session);
+
+        process_online_game_timeouts(&state).await.expect("timeout processing should succeed");
+
+        let games_lock = state.games();
+        let games = games_lock.read().await;
+        let updated_session = games.get(&game_id).unwrap();
+        assert!(updated_session.game.check_game_over());
+        assert_eq!(updated_session.completion_reason, Some(GameCompletionReason::DisconnectTimeout));
+        
+        // Winner should be player 1 since player 0 resigned due to timeout
+        let winner = match updated_session.game.status() {
+            GameStatus::Finished { winner } => Some(winner.id()),
+            _ => panic!("Game should be finished"),
+        };
+        assert_eq!(winner, Some(1));
+    }
+
+    #[test]
+    fn test_prepare_stats_report_for_resignation() {
+        let mut game = GameY::new(3);
+        game.add_move(Movement::Action {
+            player: PlayerId::new(0),
+            action: GameAction::Resign,
+        })
+        .unwrap();
+
+        let mut session = GameSession {
+            game,
+            bot_id: None,
+            created_at: Instant::now(),
+            turn_started_at: None,
+            player_tokens: None,
+            last_seen_at_by_player_id: None,
+            player0_user_id: Some("user0".to_string()),
+            player1_user_id: Some("user1".to_string()),
+            stats_reported: false,
+            completion_reason: Some(GameCompletionReason::Resignation),
+        };
+
+        let report = prepare_stats_report_if_needed("game-id", &mut session).expect("should prepare report");
+        assert_eq!(report.reason, Some("resignation".to_string()));
+        assert_eq!(report.winner_id, Some("user1".to_string()));
+        assert!(session.stats_reported);
     }
 }
