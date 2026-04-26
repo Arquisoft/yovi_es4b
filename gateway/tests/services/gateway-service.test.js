@@ -16,7 +16,9 @@ const {
   createRedirectApp,
   getRedirectHostname,
   getTlsConfig,
+  isInternalApiOriginAllowed,
   loadTlsOptions,
+  parseAllowedOrigins,
   sanitizeRedirectPath,
   parseBoolean,
   start,
@@ -167,6 +169,59 @@ test('createApp sets expected proxy configuration for each route', () => {
   assert.deepEqual(authProxy.pathRewrite, { '^/auth': '' });
   assert.deepEqual(statsProxy.pathRewrite, { '^/stats': '' });
   assert.equal(webappProxy.pathRewrite, undefined);
+});
+
+test('parseAllowedOrigins normalizes comma-separated CORS origins', () => {
+  assert.deepEqual(parseAllowedOrigins(' https://app.example.com,https://admin.example.com '), [
+    'https://app.example.com',
+    'https://admin.example.com',
+  ]);
+  assert.deepEqual(parseAllowedOrigins(''), []);
+});
+
+test('isInternalApiOriginAllowed accepts configured public hosts and explicit origins', () => {
+  assert.equal(isInternalApiOriginAllowed(undefined, {}), true);
+  assert.equal(
+    isInternalApiOriginAllowed('https://yovies4b.duckdns.org', {
+      GATEWAY_PUBLIC_HOSTNAME: 'yovies4b.duckdns.org',
+    }),
+    true,
+  );
+  assert.equal(
+    isInternalApiOriginAllowed('https://preview.example.com', {
+      GATEWAY_PUBLIC_HOSTNAME: 'yovies4b.duckdns.org',
+      GATEWAY_ALLOWED_ORIGINS: 'https://preview.example.com',
+    }),
+    true,
+  );
+  assert.equal(
+    isInternalApiOriginAllowed('https://evil-yovies4b.duckdns.org', {
+      GATEWAY_PUBLIC_HOSTNAME: 'yovies4b.duckdns.org',
+    }),
+    false,
+  );
+});
+
+test('internal API returns 403 instead of 500 when CORS rejects the origin', async () => {
+  const { app } = createApp({
+    proxyFactory: noopProxyFactory,
+    env: { GATEWAY_PUBLIC_HOSTNAME: 'yovies4b.duckdns.org' },
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/matchmaking/enqueue`, {
+      method: 'POST',
+      headers: {
+        Origin: 'https://wrong.example.com',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ size: 7 }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 403);
+    assert.equal(body.message, 'Not allowed by CORS for internal API');
+  });
 });
 
 // buildProxy returns a 502 response when upstream fails.

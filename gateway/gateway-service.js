@@ -201,6 +201,72 @@ function buildHttpsOrigin(hostname, httpsPort) {
   return `https://${normalizedHostname}${portSuffix}`;
 }
 
+function parseAllowedOrigins(value) {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) {
+    return [];
+  }
+
+  return normalized
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+}
+
+function parseOriginUrl(value) {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHostname(value) {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const asUrl = parseOriginUrl(normalized.includes('://') ? normalized : `https://${normalized}`);
+  return asUrl?.hostname ?? null;
+}
+
+function isOriginAllowedByHostname(origin, hostnames) {
+  const originUrl = parseOriginUrl(origin);
+  if (!originUrl) {
+    return false;
+  }
+
+  return hostnames
+    .map(normalizeHostname)
+    .filter(Boolean)
+    .some((hostname) => originUrl.hostname === hostname);
+}
+
+function isInternalApiOriginAllowed(origin, env = process.env) {
+  if (!origin) {
+    return true;
+  }
+
+  const allowedOrigins = parseAllowedOrigins(env.GATEWAY_ALLOWED_ORIGINS);
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return isOriginAllowedByHostname(origin, [
+    env.GATEWAY_PUBLIC_HOSTNAME,
+    env.GATEWAY_HTTPS_HOST,
+  ]);
+}
+
+function handleCorsError(error, _req, res, next) {
+  if (!error || error.message !== 'Not allowed by CORS for internal API') {
+    return next(error);
+  }
+
+  return res.status(403).json({ message: error.message });
+}
+
 function sanitizeRedirectPath(requestPath = '/') {
   if (typeof requestPath !== 'string' || requestPath.trim().length === 0 || !requestPath.startsWith('/')) {
     return '/';
@@ -963,18 +1029,18 @@ function createApp({
   app.use('/external', createExternalApiRouter({ env, fetchImpl, spec }));
 
   const serviceUrls = buildServiceUrls(env);
-  const publicHostname = env.GATEWAY_PUBLIC_HOSTNAME || 'localhost';
 
   // Stricter CORS for the internal API
   app.use('/api', cors({
     origin: (origin, callback) => {
-      if (!origin || origin.includes(publicHostname)) {
+      if (isInternalApiOriginAllowed(origin, env)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS for internal API'));
       }
     }
   }));
+  app.use('/api', handleCorsError);
 
   app.use('/api', createInternalApiRouter({ serviceUrls, fetchImpl }));
 
@@ -1061,6 +1127,7 @@ module.exports = {
   STRATEGY_TO_BOT_ID,
   applyBotMoveToYen,
   buildDocsHtml,
+  handleCorsError,
   buildProxy,
   buildRedirectDestination,
   buildHttpsOrigin,
@@ -1070,8 +1137,10 @@ module.exports = {
   getRedirectHostname,
   getProxyRoutes,
   getTlsConfig,
+  isInternalApiOriginAllowed,
   isDirectExecution,
   loadTlsOptions,
+  parseAllowedOrigins,
   sanitizeRedirectPath,
   pickPlayBotId,
   parseBoolean,
