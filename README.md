@@ -22,6 +22,7 @@ The project is divided into these main components, each in its own directory:
 - `auth_service/`: Authentication microservice (register/login/verify) with JWT + MongoDB.
 - `gamey/`: Rust game engine and bot service.
 - `stats/`: Node.js service for match history and player statistics.
+- `load-tests/`: Gatling/Maven load tests and saved execution evidence.
 - `docs/`: Architecture documentation sources following Arc42 template.
 
 Each component includes the scripts/configuration needed to run and test the application.
@@ -195,6 +196,27 @@ The metrics exposed by the services include:
 
 For a simpler explanation of each metric and each Grafana panel, see [monitoring/README.md](monitoring/README.md).
 
+### Load tests
+
+The repository includes a Gatling load-test project in `load-tests/`.
+It contains the `YoviSimulation` scenario and the saved execution output in `load-tests/results/resultados.txt`.
+
+Run it against the local gateway:
+
+```powershell
+cd load-tests
+mvn gatling:test -Dyovi.baseUrl=http://localhost:8080
+```
+
+Run it in Docker Compose against the internal gateway service:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.load-tests.yml run --rm gatling
+```
+
+The simulation accepts `-Dyovi.baseUrl`, `-Dyovi.usersPerSec` and `-Dyovi.durationSeconds`.
+Generated Gatling reports are written under `load-tests/target/gatling/`.
+
 ### Without Docker
 
 To run the project locally without Docker, you will need to run each component in a separate terminal.
@@ -227,7 +249,29 @@ $env:JWT_SECRET="change_this_secret"; $env:MONGO_AUTH_DB="mongodb://localhost:27
 
 The auth service will be available at `http://localhost:3500`.
 
-#### 2. Running the GameY Service
+#### 2. Running the Stats Service
+
+Navigate to the `stats` directory:
+
+```bash
+cd stats
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the service:
+
+```bash
+$env:MONGO_URL="mongodb://localhost:27017"; $env:MONGO_DB_NAME="yovi_stats"; $env:STATS_INTERNAL_TOKEN="stats-internal-token"; npm start
+```
+
+The stats service will be available at `http://localhost:3001`.
+
+#### 3. Running the GameY Service
 
 Navigate to the `gamey` directory:
 
@@ -238,10 +282,10 @@ cd gamey
 Run the service on port `4000`:
 
 ```bash
-cargo run -- --mode server --port 4000
+$env:STATS_SERVICE_URL="http://localhost:3001"; $env:STATS_INTERNAL_TOKEN="stats-internal-token"; cargo run -- --mode server --port 4000
 ```
 
-#### 3. Running the Web Application
+#### 4. Running the Web Application
 
 Navigate to the `webapp` directory:
 
@@ -263,7 +307,7 @@ npm run dev
 
 The web application will be available at `http://localhost:5173`.
 
-#### 4. Running the Gateway
+#### 5. Running the Gateway
 
 Navigate to the `gateway` directory:
 
@@ -303,6 +347,11 @@ Run these commands from `webapp/` (or from repo root using `npm --prefix webapp 
 ### Auth Service (`auth_service/package.json`)
 
 - `npm start`: Starts the auth service.
+- `npm test`: Runs the tests for the service.
+
+### Stats Service (`stats/package.json`)
+
+- `npm start`: Starts the stats service.
 - `npm test`: Runs the tests for the service.
 
 ### Gateway (`gateway/package.json`)

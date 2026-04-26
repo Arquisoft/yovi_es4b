@@ -19,7 +19,7 @@ actor Player
 actor Bot
 
 package "Docker Compose Environment" {
-    node "Gateway (nginx)" as Gateway
+    node "Gateway\n(Node.js + Express)" as Gateway
     node "Webapp\n(React + Vite + TypeScript)" as WebApp
     node "Auth Service\n(Node.js + Express)\nport: 3500" as Auth
     node "Stats Service\n(Node.js + Express)\nport: 3001" as Stats
@@ -34,8 +34,7 @@ Gateway --> Auth : Authentication flow
 Gateway --> Gamey : Game and matchmaking requests
 Gateway --> Stats : Player stats and history requests
 
-Bot --> Gamey : Request gameplay actions
-Bot --> Stats : Read statistics
+Bot --> Gateway : External API requests
 
 Auth --> UserDB : Store users and password hashes
 Gamey --> Stats : Report finished matches
@@ -66,7 +65,7 @@ actor "Player (Browser)" as Browser
 actor "External Bot" as ExternalBot
 
 package "Docker Compose Environment" {
-    node "Gateway\n(nginx)\nhost ports: 8080 / 443" as Gateway
+    node "Gateway\n(Node.js + Express)\nhost ports: 8080 / 443" as Gateway
     node "Webapp\n(React + Vite + TypeScript)\ninternal port: 80" as WebApp
     node "Auth\n(Node.js + Express)\nport: 3500" as Auth
     node "Stats\n(Node.js + Express)\nport: 3001" as Stats
@@ -78,8 +77,7 @@ package "Docker Compose Environment" {
 }
 
 Browser --> Gateway : HTTP/HTTPS
-ExternalBot --> Gamey : HTTP JSON
-ExternalBot --> Stats : HTTP JSON
+ExternalBot --> Gateway : HTTP JSON\n/external/*
 
 Gateway --> WebApp : HTTP
 Gateway --> Auth : HTTP JSON
@@ -110,7 +108,7 @@ Prometheus --> Grafana : Prometheus data source
 
 | `External Bot`
 | Query gameplay and statistics APIs outside the browser flow.
-| HTTP JSON
+| HTTP JSON through the gateway external API
 
 | `Gateway`
 | Public entry point that serves `/`, `/auth/*`, `/api/*`, `/stats/*` and `/external/*`.

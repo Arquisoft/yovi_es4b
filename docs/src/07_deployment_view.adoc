@@ -121,6 +121,10 @@ The Docker Compose deployment includes a built-in observability stack that is av
 Prometheus scrapes the internal Docker targets `gateway:8080`, `auth:3500`, `stats:3001` and `gamey:4000` every `15s`.
 Grafana is provisioned with the `Prometheus` data source and the dashboard `Yovi Observability`, so the monitoring UI is ready as soon as the stack starts.
 
+The deployment also provides an optional Gatling runner through `docker-compose.load-tests.yml`.
+It mounts the repository's `load-tests/` directory into a Maven container and runs `YoviSimulation` against the internal `gateway:8080` endpoint by default.
+This keeps the load tests close to the project code while avoiding an always-on load generator in the normal application stack.
+
 The dashboard concentrates on the signals that are most useful for this project:
 
 * request rate and average latency per service
@@ -147,11 +151,12 @@ endif::arc42help[]
 
 ==== Webapp Container
 
-The Webapp container runs a Node.js-based React application served by Nginx.
+The Webapp container serves the production React build as static files through Nginx.
+Node.js is only used during the image build stage to compile the frontend assets.
 
 image::07_diagram_2.png[]
 
-- **Nginx**: Handles static file serving and routing.
+- **Nginx**: Handles static file serving and SPA fallback routing.
 - **React App**: Client-side application for user interaction.
 
 ==== Auth Service Container
@@ -171,7 +176,7 @@ image::07_diagram_4.png[]
 
 - **Rust Game Engine**: Core game logic, matchmaking, and bot players.
 
-==== _<Mongo Auth Container>_
+==== Mongo Auth Container
 
 The Mongo Auth container:
 

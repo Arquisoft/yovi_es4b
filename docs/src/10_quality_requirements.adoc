@@ -87,7 +87,9 @@ endif::arc42help[]
 === Load Testing Evidence
 
 We complemented the qualitative scenarios above with an executable load test based on `Gatling 4.21.5`.
-The executed simulation was `io.gatling.example.YoviSimulation`, and the exercised scenario was `register-login-play-resign-stats`.
+The executed simulation was `YoviSimulation`, and the exercised scenario was `register-login-play-resign-stats`.
+The executable assets are versioned in `load-tests/`: the simulation is in `load-tests/test/YoviSimulation.java`, and the captured console output is stored in `load-tests/results/resultados.txt`.
+The simulation is parameterized through `yovi.baseUrl`, `yovi.usersPerSec` and `yovi.durationSeconds`, so the same test can be run against a local stack, the Docker Compose network or a deployed server.
 
 The most relevant part of the final Gatling console output is reproduced below, preserving the endpoint names and summary emitted by the tool:
 
