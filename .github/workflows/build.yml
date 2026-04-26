@@ -33,16 +33,16 @@ jobs:
     - name: Install Playwright browsers
       run: |
         cd webapp
-        npm run test:e2e:install-browsers
+        npx playwright install --with-deps
 
     # -------------------------------
     # 3) Ejecutar E2E reales
     # -------------------------------
     - name: Run E2E tests (webapp)
-      run: npm --prefix webapp run test:e2e:run
+      run: npm --prefix webapp run test:e2e
 
     - name: Run E2E tests (gateway)
-      run: npm --prefix gateway run test:e2e
+      run: npx --prefix webapp start-server-and-test "npm --prefix webapp run start:all:e2e" http://localhost:8080 "npm --prefix gateway run test:e2e"
     - name: Install cargo-llvm-cov
       run: cargo install cargo-llvm-cov --locked
     - name: Generate gamey code coverage
