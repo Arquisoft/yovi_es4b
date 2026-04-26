@@ -70,8 +70,8 @@ package "Docker Compose Environment" {
     node "Auth\n(Node.js + Express)\nport: 3500" as Auth
     node "Stats\n(Node.js + Express)\nport: 3001" as Stats
     node "Gamey\n(Rust engine + bot service)\nport: 4000" as Gamey
-    database "Mongo Auth\nport: 27017" as UserDB
-    database "Mongo Stats\nhost port: 28018\ncontainer port: 27017" as GameDB
+    database "Mongo Auth\ninternal port: 27017" as UserDB
+    database "Mongo Stats\ninternal port: 27017" as GameDB
     node "Prometheus\nport: 9090" as Prometheus
     node "Grafana\nhost port: 9091" as Grafana
 }
