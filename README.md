@@ -80,6 +80,8 @@ authenticated across the platform.
 
 #### API endpoints
 
+The API is documented on /external/docs#/
+
 | Path           | Method | Description                       | Auth required |
 |---------------|--------|-----------------------------------|---------------|
 | `/register`   | POST   | Create account (username+password)| no            |
@@ -123,6 +125,27 @@ This command will build the Docker images and start the full stack behind the ga
 - External bot OpenAPI contract (through gateway, default local setup): [http://localhost:8080/external/docs/openapi.json](http://localhost:8080/external/docs/openapi.json)
 - Prometheus: [http://localhost:9090](http://localhost:9090)
 - Grafana: [http://localhost:9091](http://localhost:9091)
+
+### External bot play endpoint
+
+The external bot endpoint accepts a GET request with these query parameters:
+
+- `position` (required): JSON-encoded YEN record for the current board position.
+- `bot_id` (optional): explicit bot identifier. If omitted, `random_bot` is used.
+
+Response format:
+
+```json
+{ "coords": { "x": 1, "y": 1, "z": 0 } }
+```
+
+Example request:
+
+```bash
+curl -G "http://localhost:8080/external/v1/play" \
+  --data-urlencode 'position={"size":3,"turn":0,"players":["B","R"],"layout":"./../..."}' \
+  --data-urlencode 'bot_id=random_bot'
+```
 
 ### HTTPS certificates
 

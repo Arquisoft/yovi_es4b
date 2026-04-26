@@ -9,6 +9,8 @@ const { createPrometheusMetrics } = require('./prometheus-metrics');
 const User = require('./models/user');
 
 const app = express();
+app.disable("x-powered-by");
+
 const port = Number(process.env.PORT ?? 3500);
 const metrics = createPrometheusMetrics({ serviceName: 'auth' });
 app.locals.metrics = metrics;

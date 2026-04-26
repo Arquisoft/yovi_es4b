@@ -207,7 +207,7 @@ async fn create_game_rejects_second_active_game_for_same_user() {
     )
     .await;
 
-    assert_eq!(second_status, StatusCode::OK);
+    assert_eq!(second_status, StatusCode::BAD_REQUEST);
     assert!(
         second_body["message"]
             .as_str()
@@ -232,7 +232,7 @@ async fn create_game_rejects_size_zero() {
     )
     .await;
 
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(
         body["message"]
             .as_str()
@@ -258,7 +258,7 @@ async fn create_human_vs_human_rejects_bot_id() {
     )
     .await;
 
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(
         body["message"]
             .as_str()
@@ -304,6 +304,61 @@ async fn play_move_updates_turn_in_human_vs_human_game() {
     assert_eq!(fetched["next_player"], 1);
 }
 
+#[tokio::test]
+async fn play_move_returns_conflict_when_cell_is_already_occupied() {
+    let app = test_app();
+
+    let (_, created) = request_json(
+        &app,
+        Method::POST,
+        "/v1/games",
+        Some(json!({
+            "size": 3,
+            "mode": "human_vs_bot",
+            "bot_id": "random_bot"
+        })),
+    )
+    .await;
+
+    let game_id = created["game_id"].as_str().unwrap();
+
+    let (first_move_status, _) = request_json(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/moves"),
+        Some(json!({
+            "coords": { "x": 2, "y": 0, "z": 0 }
+        })),
+    )
+    .await;
+    assert_eq!(first_move_status, StatusCode::OK);
+
+    let (second_move_status, second_move_body) = request_json(
+        &app,
+        Method::POST,
+        &format!("/v1/games/{game_id}/moves"),
+        Some(json!({
+            "coords": { "x": 2, "y": 0, "z": 0 }
+        })),
+    )
+    .await;
+
+    assert_eq!(second_move_status, StatusCode::CONFLICT);
+    assert!(
+        second_move_body["message"]
+            .as_str()
+            .unwrap()
+            .contains("Could not apply move")
+    );
+    assert!(
+        second_move_body["message"]
+            .as_str()
+            .unwrap()
+            .to_lowercase()
+            .contains("occupied")
+    );
+}
+
 // Test: play move rejects invalid coordinates.
 #[tokio::test]
 async fn play_move_rejects_invalid_coordinates() {
@@ -332,7 +387,7 @@ async fn play_move_rejects_invalid_coordinates() {
     )
     .await;
 
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(
         body["message"]
             .as_str()
@@ -356,7 +411,7 @@ async fn play_move_returns_error_when_game_does_not_exist() {
     )
     .await;
 
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(body["message"].as_str().unwrap().contains("Game not found"));
 }
 

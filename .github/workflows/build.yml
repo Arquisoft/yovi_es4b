@@ -20,13 +20,46 @@ jobs:
       with:
         node-version: 22
     - run: npm --prefix webapp ci
-    - run: npm --prefix gateway install
+    - run: npm --prefix gateway ci
     - run: npm --prefix stats install
     - run: npm --prefix auth_service ci
     - run: npm --prefix webapp run test:coverage
     - run: npm --prefix gateway run test:coverage
     - run: npm --prefix stats run test:coverage
     - run: npm --prefix auth_service run test:coverage
+    - run: npm --prefix webapp run test:e2e:run -- --dry-run
+    - run: npm --prefix gateway run test:e2e -- --dry-run
+
+    - name: Install Playwright browsers
+      run: |
+        cd webapp
+        npx playwright install --with-deps
+    
+    - run: npm install -g wait-on
+
+    - name: Start backend
+      run: |
+        cd $GITHUB_WORKSPACE
+        docker compose up --build -d
+
+    - name: Wait for backend
+      run: npx wait-on http://localhost:8080
+
+
+    # -------------------------------
+    # 3) Ejecutar E2E reales
+    # -------------------------------
+    - name: Run E2E tests (webapp)
+      run: npm --prefix webapp run test:e2e
+
+    - name: Run E2E tests (gateway)
+      run: npm --prefix gateway run test:e2e
+
+    - name: Stop backend
+      if: always()
+      run: docker compose down
+
+
     - name: Install cargo-llvm-cov
       run: cargo install cargo-llvm-cov --locked
     - name: Generate gamey code coverage

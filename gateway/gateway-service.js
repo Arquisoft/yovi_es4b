@@ -3,6 +3,7 @@ const http = require('node:http');
 const https = require('node:https');
 
 const express = require('express');
+const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const externalApiSpec = require('./external-api-spec.json');
@@ -407,6 +408,27 @@ function pickPlayBotId(body) {
   return STRATEGY_TO_BOT_ID[strategy.toLowerCase()] ?? strategy;
 }
 
+function parsePlayPositionQuery(positionQueryValue) {
+  const rawPosition = normalizeOptionalString(positionQueryValue);
+  if (!rawPosition) {
+    throw new Error('position is required');
+  }
+
+  let parsedPosition;
+  try {
+    parsedPosition = JSON.parse(rawPosition);
+  } catch {
+    throw new Error('position must be valid JSON object in YEN format');
+  }
+
+  const validatedPosition = validateYenPosition(parsedPosition);
+
+  return {
+    position: parsedPosition,
+    boardSize: validatedPosition.size,
+  };
+}
+
 function validateYenPlayers(players) {
   if (!Array.isArray(players) || players?.length !== 2 || players?.[0] !== 'B' || players?.[1] !== 'R') {
     throw new Error("position.players must be exactly ['B', 'R']");
@@ -715,24 +737,49 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
     sendPayload(res, history.status, history.payload);
   }));
 
+
+  router.get('/v1/play', asyncRoute(async (req, res) => {
+    let playQuery;
+    try {
+      playQuery = parsePlayPositionQuery(req.query.position);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+
+    const botId = pickPlayBotId(req.query);
+    const playResult = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/ybot/choose/${encodeURIComponent(botId)}`,
+      buildJsonInit('POST', playQuery.position, {
+        'Content-Type': 'application/json',
+      }),
+    );
+
+    const coords = validateCoordinates(playResult.payload?.coords, playQuery.boardSize);
+
+    res.json({
+      coords,
+    });
+  }));
+
   router.post('/v1/games', asyncRoute(async (req, res) => {
     const user = await getOptionalUser(req, serviceUrls, fetchImpl);
     const opponentUserId = normalizeOptionalString(req.body?.opponent_user_id);
-    const requestBody = isObject(req.body)
-      ? {
-          size: req.body.size,
-          mode: req.body.mode,
-          bot_id: req.body.bot_id,
-        }
-      : req.body;
+    const payload = {
+      ...req.body,
+    };
+
+    delete payload.opponent_user_id;
 
     const result = await fetchJson(
       fetchImpl,
       'gamey service',
       `${serviceUrls.gamey}/v1/games`,
-      buildJsonInit('POST', requestBody, buildForwardHeaders(req, user, {
-        'Content-Type': 'application/json',
+      buildJsonInit('POST', payload, buildForwardHeaders(req, user, {
         ...(opponentUserId ? { 'x-opponent-user-id': opponentUserId } : {}),
+        'Content-Type': 'application/json',
       })),
     );
 
@@ -741,6 +788,7 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
 
   router.get('/v1/games/:gameId', asyncRoute(async (req, res) => {
     const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
     const result = await fetchJson(
       fetchImpl,
       'gamey service',
@@ -756,6 +804,7 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
 
   router.post('/v1/games/:gameId/moves', asyncRoute(async (req, res) => {
     const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
     const result = await fetchJson(
       fetchImpl,
       'gamey service',
@@ -768,23 +817,9 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
     sendPayload(res, result.status, result.payload);
   }));
 
-  router.post('/v1/games/:gameId/resign', asyncRoute(async (req, res) => {
-    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
-    const result = await fetchJson(
-      fetchImpl,
-      'gamey service',
-      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/resign`,
-      {
-        method: 'POST',
-        headers: buildForwardHeaders(req, user),
-      },
-    );
-
-    sendPayload(res, result.status, result.payload);
-  }));
-
   router.post('/v1/games/:gameId/pass', asyncRoute(async (req, res) => {
     const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+
     const result = await fetchJson(
       fetchImpl,
       'gamey service',
@@ -798,35 +833,20 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
     sendPayload(res, result.status, result.payload);
   }));
 
-  router.post('/v1/play', asyncRoute(async (req, res) => {
-    if (!isObject(req.body)) {
-      res.status(400).json({ message: 'Body must be a JSON object' });
-      return;
-    }
+  router.post('/v1/games/:gameId/resign', asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
 
-    if (!isObject(req.body.position)) {
-      res.status(400).json({ message: 'position is required' });
-      return;
-    }
-
-    const botId = pickPlayBotId(req.body);
-    const playResult = await fetchJson(
+    const result = await fetchJson(
       fetchImpl,
       'gamey service',
-      `${serviceUrls.gamey}/v1/ybot/choose/${encodeURIComponent(botId)}`,
-      buildJsonInit('POST', req.body.position, {
-        'Content-Type': 'application/json',
-      }),
+      `${serviceUrls.gamey}/v1/games/${encodeURIComponent(req.params.gameId)}/resign`,
+      {
+        method: 'POST',
+        headers: buildForwardHeaders(req, user),
+      },
     );
 
-    const move = applyBotMoveToYen(req.body.position, playResult.payload?.coords);
-
-    res.json({
-      api_version: playResult.payload?.api_version ?? 'v1',
-      bot_id: playResult.payload?.bot_id ?? botId,
-      coords: playResult.payload?.coords,
-      move,
-    });
+    sendPayload(res, result.status, result.payload);
   }));
 
   router.use((error, _req, res, _next) => {
@@ -870,8 +890,42 @@ function createApp({
 
   app.use('/external', createExternalApiRouter({ env, fetchImpl, spec }));
 
+  const serviceUrls = buildServiceUrls(env);
+  const publicHostname = env.GATEWAY_PUBLIC_HOSTNAME || 'localhost';
+
+  // Stricter CORS for the internal API
+  app.use('/api', cors({
+    origin: (origin, callback) => {
+      if (!origin || origin.includes(publicHostname)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS for internal API'));
+      }
+    }
+  }));
+
+
   for (const route of proxyRoutes) {
-    app.use(route.mountPath, buildProxy(route, proxyFactory));
+    if (route.mountPath === '/api') {
+      // Internal authenticated proxy for webapp and E2E tests.
+      // This is the FIX for "Invalid player_token" as it forwards x-user-id.
+      app.use(route.mountPath, async (req, res, next) => {
+        try {
+          const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+          if (user) {
+            req.headers['x-user-id'] = user.id;
+          }
+        } catch (error) {
+          if (!(error instanceof HttpResponseError) && !(error instanceof UpstreamConnectionError)) {
+            return next(error);
+          }
+          // Ignore auth errors for raw proxy, internal services handle it.
+        }
+        next();
+      }, buildProxy(route, proxyFactory));
+    } else {
+      app.use(route.mountPath, buildProxy(route, proxyFactory));
+    }
   }
 
   return { app, proxyRoutes };

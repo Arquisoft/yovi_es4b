@@ -22,10 +22,6 @@
     {
       "name": "Users",
       "description": "External user-facing operations exposed through the gateway."
-    },
-    {
-      "name": "Games",
-      "description": "Game lifecycle management through the gateway."
     }
   ],
   "components": {
@@ -107,102 +103,6 @@
             "R"
           ],
           "layout": "./../..."
-        }
-      },
-      "GameMode": {
-        "type": "string",
-        "enum": [
-          "human_vs_human",
-          "human_vs_bot"
-        ]
-      },
-      "CreateGameRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "size": {
-            "type": "integer",
-            "minimum": 1,
-            "default": 7
-          },
-          "mode": {
-            "$ref": "#/components/schemas/GameMode"
-          },
-          "bot_id": {
-            "type": "string",
-            "description": "Bot identifier used when mode is human_vs_bot."
-          },
-          "opponent_user_id": {
-            "type": "string",
-            "description": "Optional user identifier for the second player in human_vs_human games."
-          }
-        },
-        "example": {
-          "size": 7,
-          "mode": "human_vs_bot",
-          "bot_id": "greedy_bot"
-        }
-      },
-      "MoveRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "coords"
-        ],
-        "properties": {
-          "coords": {
-            "$ref": "#/components/schemas/Coordinates"
-          }
-        }
-      },
-      "GameStateResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "api_version",
-          "game_id",
-          "mode",
-          "bot_id",
-          "yen",
-          "game_over",
-          "next_player",
-          "winner"
-        ],
-        "properties": {
-          "api_version": {
-            "type": "string",
-            "example": "v1"
-          },
-          "game_id": {
-            "type": "string"
-          },
-          "mode": {
-            "$ref": "#/components/schemas/GameMode"
-          },
-          "bot_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "yen": {
-            "$ref": "#/components/schemas/YENPosition"
-          },
-          "game_over": {
-            "type": "boolean"
-          },
-          "next_player": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "winner": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          }
         }
       },
       "CredentialsRequest": {
@@ -400,27 +300,16 @@
         ],
         "properties": {
           "position": {
-            "$ref": "#/components/schemas/YENPosition"
+            "type": "string",
+            "description": "JSON-encoded YEN position. Example: {\"size\":3,\"turn\":0,\"players\":[\"B\",\"R\"],\"layout\":\"./../...\"}"
           },
           "bot_id": {
             "type": "string",
-            "description": "Explicit bot identifier. Takes precedence over strategy."
-          },
-          "strategy": {
-            "type": "string",
-            "description": "Optional strategy alias. Supported values: random, biased_random, greedy, minimax."
+            "description": "Optional bot identifier. Defaults to random_bot when omitted."
           }
         },
         "example": {
-          "position": {
-            "size": 3,
-            "turn": 0,
-            "players": [
-              "B",
-              "R"
-            ],
-            "layout": "./../..."
-          },
+          "position": "{\"size\":3,\"turn\":0,\"players\":[\"B\",\"R\"],\"layout\":\"./../...\"}",
           "bot_id": "random_bot"
         }
       },
@@ -428,23 +317,11 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "api_version",
-          "bot_id",
-          "coords",
-          "move"
+          "coords"
         ],
         "properties": {
-          "api_version": {
-            "type": "string"
-          },
-          "bot_id": {
-            "type": "string"
-          },
           "coords": {
             "$ref": "#/components/schemas/Coordinates"
-          },
-          "move": {
-            "$ref": "#/components/schemas/YENPosition"
           }
         }
       },
@@ -692,187 +569,36 @@
         }
       }
     },
-    "/external/v1/games": {
-      "post": {
-        "tags": [
-          "Games"
-        ],
-        "summary": "Create a new game",
-        "description": "If a Bearer token is supplied, the gateway associates the authenticated user to player 0 before delegating to GameY.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGameRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Game created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameStateResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/external/v1/games/{gameId}": {
-      "get": {
-        "tags": [
-          "Games"
-        ],
-        "summary": "Get the current state of a game",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "gameId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Current game state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameStateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Game not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/external/v1/games/{gameId}/moves": {
-      "post": {
-        "tags": [
-          "Games"
-        ],
-        "summary": "Play a move in an existing game",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "gameId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoveRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated game state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameStateResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Move rejected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/external/v1/games/{gameId}/resign": {
-      "post": {
-        "tags": [
-          "Games"
-        ],
-        "summary": "Resign an existing game",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "gameId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Updated game state after resign",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameStateResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/external/v1/play": {
-      "post": {
+      "get": {
         "tags": [
           "Bots"
         ],
         "summary": "Ask a bot for the next move from a YEN position",
-        "description": "This is the tournament-friendly endpoint. It accepts the current board position in YEN, chooses a move with the requested bot and returns both the chosen coordinates and the resulting position in YEN after applying that move.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BotPlayRequest"
-              }
+        "description": "Tournament endpoint. It accepts the current board position as a JSON-encoded YEN record in the position query parameter and returns the chosen move coordinates.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "position",
+            "required": true,
+            "description": "JSON-encoded YEN position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bot_id",
+            "required": false,
+            "description": "Optional bot identifier. Defaults to random_bot.",
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Chosen move and updated position",
+            "description": "Chosen move coordinates",
             "content": {
               "application/json": {
                 "schema": {
