@@ -79,6 +79,8 @@ authenticated across the platform.
 
 #### API endpoints
 
+The API is documented on /external/docs#/
+
 | Path           | Method | Description                       | Auth required |
 |---------------|--------|-----------------------------------|---------------|
 | `/register`   | POST   | Create account (username+password)| no            |
