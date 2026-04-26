@@ -37,6 +37,7 @@ services:
   gateway:
     container_name: gateway
     image: ghcr.io/arquisoft/yovi_es4b-gateway:${IMAGE_TAG:-latest}
+    user: "${GATEWAY_CONTAINER_USER:-node}"
     build:
       context: ./gateway
       dockerfile: Dockerfile

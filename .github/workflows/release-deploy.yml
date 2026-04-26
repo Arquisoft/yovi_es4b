@@ -273,6 +273,7 @@ jobs:
             HTTP_REDIRECT_ENABLED=true
             HTTPS_CERT_PATH=/app/certs/server.crt
             HTTPS_KEY_PATH=/app/certs/server.key
+            GATEWAY_CONTAINER_USER=0:0
             PROMETHEUS_CONFIG_PATH=./deploy-assets/monitoring/prometheus/prometheus.yml
             GRAFANA_PROVISIONING_PATH=./deploy-assets/monitoring/grafana/provisioning
             GRAFANA_DASHBOARDS_PATH=./deploy-assets/monitoring/grafana/dashboards
