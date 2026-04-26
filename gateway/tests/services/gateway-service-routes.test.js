@@ -822,3 +822,76 @@ test('POST /external/v1/games works without auth token for anonymous play', asyn
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/matchmaking/enqueue
+// ---------------------------------------------------------------------------
+
+test('POST /api/v1/matchmaking/enqueue forwards JSON and session user id to gamey', async () => {
+  await withJsonServer(async (req, res, body) => {
+    assert.equal(req.method, 'POST');
+    assert.equal(req.url, '/v1/matchmaking/enqueue');
+    assert.equal(req.headers['content-type'], 'application/json');
+    assert.equal(req.headers['x-user-id'], 'adri');
+    assert.deepEqual(body, { size: 7 });
+
+    jsonResponse(res, 200, {
+      api_version: 'v1',
+      ticket_id: 'ticket-1',
+      status: 'waiting',
+      poll_after_ms: 1000,
+      position: 1,
+      game_id: null,
+      player_id: null,
+      player_token: null,
+    });
+  }, async (gameyUrl) => {
+    const { app } = createApp({
+      proxyFactory: noopProxyFactory,
+      env: { GAMEY_SERVICE_URL: gameyUrl },
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/matchmaking/enqueue`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': 'adri',
+        },
+        body: JSON.stringify({ size: 7 }),
+      });
+      const body = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.equal(body.ticket_id, 'ticket-1');
+      assert.equal(body.status, 'waiting');
+    });
+  });
+});
+
+test('POST /api/v1/matchmaking/enqueue forwards gamey validation errors', async () => {
+  await withJsonServer(async (_req, res) => {
+    jsonResponse(res, 400, {
+      api_version: 'v1',
+      bot_id: null,
+      message: 'User already has an active matchmaking ticket: ticket-1',
+    });
+  }, async (gameyUrl) => {
+    const { app } = createApp({
+      proxyFactory: noopProxyFactory,
+      env: { GAMEY_SERVICE_URL: gameyUrl },
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/matchmaking/enqueue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ size: 7 }),
+      });
+      const body = await response.json();
+
+      assert.equal(response.status, 400);
+      assert.match(body.message, /active matchmaking ticket/);
+    });
+  });
+});

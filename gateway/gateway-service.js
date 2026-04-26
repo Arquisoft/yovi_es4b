@@ -394,6 +394,17 @@ function buildForwardHeaders(req, user, extraHeaders = {}) {
   return headers;
 }
 
+function buildInternalForwardHeaders(req, user, extraHeaders = {}) {
+  const headers = buildForwardHeaders(req, user, extraHeaders);
+  const forwardedUserId = normalizeOptionalString(req.get('x-user-id'));
+
+  if (!headers['x-user-id'] && forwardedUserId) {
+    headers['x-user-id'] = forwardedUserId;
+  }
+
+  return headers;
+}
+
 function pickPlayBotId(body) {
   const explicitBotId = normalizeOptionalString(body?.bot_id);
   if (explicitBotId) {
@@ -871,6 +882,67 @@ function createExternalApiRouter({ env = process.env, fetchImpl = globalThis.fet
   return router;
 }
 
+function createInternalApiRouter({ serviceUrls, fetchImpl }) {
+  const router = express.Router();
+
+  router.post('/v1/matchmaking/enqueue', express.json(), asyncRoute(async (req, res) => {
+    const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/matchmaking/enqueue`,
+      buildJsonInit('POST', req.body, buildInternalForwardHeaders(req, user, {
+        'Content-Type': 'application/json',
+      })),
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.get('/v1/matchmaking/tickets/:ticketId', asyncRoute(async (req, res) => {
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/matchmaking/tickets/${encodeURIComponent(req.params.ticketId)}`,
+      { method: 'GET' },
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.post('/v1/matchmaking/tickets/:ticketId/cancel', asyncRoute(async (req, res) => {
+    const result = await fetchJson(
+      fetchImpl,
+      'gamey service',
+      `${serviceUrls.gamey}/v1/matchmaking/tickets/${encodeURIComponent(req.params.ticketId)}/cancel`,
+      { method: 'POST' },
+    );
+
+    sendPayload(res, result.status, result.payload);
+  }));
+
+  router.use((error, _req, res, _next) => {
+    if (res.headersSent) {
+      return;
+    }
+
+    if (error instanceof HttpResponseError) {
+      sendPayload(res, error.status, error.payload ?? { message: error.message });
+      return;
+    }
+
+    if (error instanceof UpstreamConnectionError) {
+      res.status(502).json({ message: `Bad Gateway: ${error.serviceName} unavailable` });
+      return;
+    }
+
+    console.error(error);
+    res.status(500).json({ message: error.message || 'Internal server error' });
+  });
+
+  return router;
+}
+
 function createApp({
   env = process.env,
   proxyFactory = createProxyMiddleware,
@@ -904,6 +976,7 @@ function createApp({
     }
   }));
 
+  app.use('/api', createInternalApiRouter({ serviceUrls, fetchImpl }));
 
   for (const route of proxyRoutes) {
     if (route.mountPath === '/api') {
