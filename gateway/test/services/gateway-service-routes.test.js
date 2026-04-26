@@ -10,7 +10,7 @@ const {
   createApp,
   pickPlayBotId,
   applyBotMoveToYen,
-} = require('./gateway-service');
+} = require('../../gateway-service');
 
 // ---------------------------------------------------------------------------
 // Test helpers

@@ -804,8 +804,25 @@ function createApp({
 
   app.use('/external', createExternalApiRouter({ env, fetchImpl, spec }));
 
+  const serviceUrls = buildServiceUrls(env);
+
   for (const route of proxyRoutes) {
-    app.use(route.mountPath, buildProxy(route, proxyFactory));
+    if (route.mountPath === '/api') {
+      // Internal authenticated proxy for webapp and E2E tests
+      app.use(route.mountPath, async (req, res, next) => {
+        try {
+          const user = await getOptionalUser(req, serviceUrls, fetchImpl);
+          if (user) {
+            req.headers['x-user-id'] = user.id;
+          }
+        } catch (error) {
+          // Ignore auth errors for the raw proxy, let internal services decide
+        }
+        next();
+      }, buildProxy(route, proxyFactory));
+    } else {
+      app.use(route.mountPath, buildProxy(route, proxyFactory));
+    }
   }
 
   return { app, proxyRoutes };

@@ -226,7 +226,7 @@ Then('the response should include an occupied-cell explanation', function () {
 });
 
 When('I create a new game with size {int}, mode {string}, and bot_id {string}', async function (size, mode, botId) {
-  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${this.token}`,
@@ -245,13 +245,13 @@ Then('the game should be created successfully and not be over', function () {
 });
 
 When('I get the game state', async function () {
-  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}`, {
     headers: { Authorization: `Bearer ${this.token}` },
   });
 });
 
 When('I make a move at x={int}, y={int}, z={int}', async function (x, y, z) {
-  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}/moves`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}/moves`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${this.token}`,
@@ -266,7 +266,7 @@ Then('the response status should indicate success or valid turn', function () {
 });
 
 When('I get the game state and move on the opponent\'s square', async function () {
-  const getResponse = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}`, {
+  const getResponse = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}`, {
     headers: { Authorization: `Bearer ${this.token}` },
   });
   const gameState = await getResponse.json();
@@ -293,7 +293,7 @@ When('I get the game state and move on the opponent\'s square', async function (
   const y = opponentCol;
   const z = (boardSize - 1) - x - y;
 
-  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}/moves`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}/moves`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${this.token}`,
@@ -304,7 +304,7 @@ When('I get the game state and move on the opponent\'s square', async function (
 });
 
 When('I resign the game', async function () {
-  this.response = await fetch(`${this.GATEWAY_URL}/external/v1/games/${this.gameId}/resign`, {
+  this.response = await fetch(`${this.GATEWAY_URL}/api/v1/games/${this.gameId}/resign`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${this.token}` },
   });

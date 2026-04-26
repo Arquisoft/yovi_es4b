@@ -20,7 +20,7 @@ const {
   sanitizeRedirectPath,
   parseBoolean,
   start,
-} = require('./gateway-service');
+} = require('../../gateway-service');
 
 function noopProxyFactory() {
   return (_req, _res, next) => next();
@@ -173,7 +173,7 @@ test('createApp sets expected proxy configuration for each route', () => {
 test('buildProxy returns a 502 response when upstream fails', () => {
   let capturedConfig;
 
-  const { buildProxy } = require('./gateway-service');
+  const { buildProxy } = require('../../gateway-service');
 
   buildProxy(
     { target: 'http://example.local', stripPrefix: '/api' },
