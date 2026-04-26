@@ -456,8 +456,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#section-context-and-scope">3. Context and Scope</a>
 <ul class="sectlevel2">
-<li><a href="#_elements_description">3.1. Elements Description</a></li>
-<li><a href="#_technical_context">3.2. Technical Context</a></li>
+<li><a href="#_business_context">3.1. Business Context</a></li>
+<li><a href="#_business_context_elements">3.2. Business Context Elements</a></li>
+<li><a href="#_technical_context">3.3. Technical Context</a></li>
+<li><a href="#_technical_interfaces">3.4. Technical Interfaces</a></li>
 </ul>
 </li>
 <li><a href="#section-solution-strategy">4. Solution Strategy</a>
@@ -488,17 +490,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#section-deployment-view">7. Deployment View</a>
 <ul class="sectlevel2">
 <li><a href="#_infrastructure_level_1">7.1. Infrastructure Level 1</a></li>
-<li><a href="#_infrastructure_level_2">7.2. Infrastructure Level 2</a></li>
+<li><a href="#_monitoring_and_observability">7.2. Monitoring and Observability</a></li>
+<li><a href="#_infrastructure_level_2">7.3. Infrastructure Level 2</a></li>
 </ul>
 </li>
 <li><a href="#section-concepts">8. Cross-cutting Concepts</a>
 <ul class="sectlevel2">
-<li><a href="#_domain_concepts">8.1. <em>&lt;Domain Concepts&gt;</em></a></li>
-<li><a href="#_user_experience_concepts">8.2. <em>&lt;User Experience Concepts&gt;</em></a></li>
-<li><a href="#_architecture_and_design_patterns">8.3. <em>&lt;Architecture and Design Patterns&gt;</em></a></li>
-<li><a href="#_security_concepts">8.4. <em>&lt;Security Concepts&gt;</em></a></li>
-<li><a href="#_development_concepts">8.5. <em>&lt;Development Concepts&gt;</em></a></li>
-<li><a href="#_operational_concepts">8.6. <em>&lt;Operational Concepts&gt;</em></a></li>
+<li><a href="#_domain_concepts">8.1. Domain Concepts</a></li>
+<li><a href="#_user_experience_concepts">8.2. User Experience Concepts</a></li>
+<li><a href="#_security_concepts">8.3. Security Concepts</a></li>
+<li><a href="#_architecture_and_design_patterns">8.4. Architecture and Design Patterns</a></li>
+<li><a href="#_development_concepts">8.5. Development Concepts</a></li>
+<li><a href="#_operational_concepts">8.6. Operational Concepts</a></li>
 </ul>
 </li>
 <li><a href="#section-design-decisions">9. Architecture Decisions</a></li>
@@ -506,6 +509,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel2">
 <li><a href="#_quality_tree">10.1. Quality Tree</a></li>
 <li><a href="#_quality_scenarios">10.2. Quality Scenarios</a></li>
+<li><a href="#_load_testing_evidence">10.3. Load Testing Evidence</a></li>
 </ul>
 </li>
 <li><a href="#section-technical-risks">11. Risks and Technical Debts</a>
@@ -544,26 +548,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 See <a href="https://arc42.org" class="bare">https://arc42.org</a>.</p>
 </div>
 <hr>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>This version of the template contains some help and explanations.
-It is used for familiarization with arc42 and the understanding of the concepts.
-For documentation of your own system you use better the <em>plain</em> version.</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-</div>
-</div>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
@@ -574,33 +558,6 @@ For documentation of your own system you use better the <em>plain</em> version.<
 <p>YOVI is an online game based on Game Y, an abstract strategy board game described by John Milnor in the 1950&#8217;s and indepently invented in 1953 by Craige Schensted and Charles Titus.<br>
 The game is normally played on a triangular board by two players, whose goal is to connect the three sides of the board with an unbroken chain of their pieces.<br>
 YOVI is a modern implementation of Game Y, which allows players to play against bots of varying dificulties, against other players locally or online. It also features a login system, allowing it to log accounts' stats.</p>
-</div>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<p>Describes the relevant requirements and the driving forces that software architects and development team must consider.
-These include</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>underlying business goals,</p>
-</li>
-<li>
-<p>essential features,</p>
-</li>
-<li>
-<p>essential functional requirements,</p>
-</li>
-<li>
-<p>quality goals for the architecture and</p>
-</li>
-<li>
-<p>relevant stakeholders and their expectations</p>
-</li>
-</ul>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="_requirements_overview">1.1. Requirements Overview</h3>
@@ -683,33 +640,6 @@ These include</p>
 </li>
 </ul>
 </div>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>Short description of the functional requirements, driving forces, extract (or abstract)
-of requirements. Link to (hopefully existing) requirements documents
-(with version number and information where to find it).</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>From the point of view of the end users a system is created or modified to
-improve support of a business activity and/or improve the quality.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Short textual description, probably in tabular use-case format.
-If requirements documents exist this overview should refer to these documents.</p>
-</div>
-<div class="paragraph">
-<p>Keep these excerpts as short as possible. Balance readability of this document with potential redundancy w.r.t to requirements documents.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-1/">Introduction and Goals</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="_quality_goals">1.2. Quality Goals</h3>
@@ -752,68 +682,9 @@ If requirements documents exist this overview should refer to these documents.</
 </tr>
 </tbody>
 </table>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>The top three (max five) quality goals for the architecture whose fulfillment is of highest importance to the major stakeholders.
-We really mean quality goals for the architecture. Don&#8217;t confuse them with project goals.
-They are not necessarily identical.</p>
-</div>
-<div class="paragraph">
-<p>Consider this overview of potential topics (based upon the ISO 25010 standard):</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="./images/01_2_iso-25010-topics-EN.drawio.png" alt="Categories of Quality Requirements">
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>You should know the quality goals of your most important stakeholders, since they will influence fundamental architectural decisions.
-Make sure to be very concrete about these qualities, avoid buzzwords.
-If you as an architect do not know how the quality of your work will be judged&#8230;&#8203;</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>A table with quality goals and concrete scenarios, ordered by priorities</p>
-</div>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="_stakeholders">1.3. Stakeholders</h3>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>Explicit overview of stakeholders of the system, i.e. all person, roles or organizations that</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>should know the architecture</p>
-</li>
-<li>
-<p>have to be convinced of the architecture</p>
-</li>
-<li>
-<p>have to work with the architecture or with code</p>
-</li>
-<li>
-<p>need the documentation of the architecture for their work</p>
-</li>
-<li>
-<p>have to come up with decisions about the system or its development</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Table with role names, person names, and their expectations with respect to the architecture and its documentation.</p>
-</div>
-</div>
-</div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -951,26 +822,6 @@ Adrian Burguet Diego (<a href="mailto:UO294819@uniovi.es">UO294819@uniovi.es</a>
 </tr>
 </tbody>
 </table>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>Any requirement that constrains architects' freedom of design and implementation. These can be technical, organizational, or conventional and may be negotiable.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>Architects should know where they have freedom and where they must adhere to constraints.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Short tables and paragraphs describing constraints, rationale and impact.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-2/">Architecture Constraints</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
@@ -979,97 +830,61 @@ Adrian Burguet Diego (<a href="mailto:UO294819@uniovi.es">UO294819@uniovi.es</a>
 <h2 id="section-context-and-scope">3. Context and Scope</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This section describes the system boundary: the communication partners (users and external systems),
-the domain-level inputs and outputs, and the technical channels used for interaction. It separates
-business context (who interacts with the system and what domain information is exchanged) from
-technical context (protocols, ports, and runtime deployment aspects).</p>
+<p>This section defines the system boundary of Yovi.
+It shows who interacts with the platform, which technical channels are used, and how the main services collaborate at runtime inside the Docker Compose environment.</p>
 </div>
-<div class="paragraph">
-<p>Motivation: clear context and scope prevent misunderstandings about responsibilities, interfaces,
-and deployment requirements.
-=== Business Context</p>
-</div>
+<div class="sect2">
+<h3 id="_business_context">3.1. Business Context</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/business-context-diagram.png" alt="business context diagram" width="894" height="719">
+<img src="./images/business-context-diagram.png" alt="business context diagram" width="882" height="706">
+</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_elements_description">3.1. Elements Description</h3>
+<h3 id="_business_context_elements">3.2. Business Context Elements</h3>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Player</strong>: The end-user who interacts with the system through a web browser to play games and view statistics.</p>
+<p><code>Player</code>: main human user of the platform through a browser.</p>
 </li>
 <li>
-<p><strong>Bot</strong>: An automated agent that interacts directly with Gamey for gameplay and with Stats for user statistics queries.</p>
+<p><code>Bot</code>: automated consumer of the gameplay and stats APIs.</p>
 </li>
 <li>
-<p><strong>WebApp</strong>: The front-end application built with React and Vite, serving the user interface and handling user interactions.</p>
+<p><code>Gateway</code>: single public entry point of the system.</p>
 </li>
 <li>
-<p><strong>AuthService</strong>: Dedicated authentication microservice (Node.js + Express) that handles registration, login, stores password hashes in MongoDB and emits/verifies JWTs.</p>
+<p><code>Webapp</code>: SPA that renders login, dashboard, gameplay, history and help.</p>
 </li>
 <li>
-<p><strong>StatsService</strong>: Service responsible for player statistics and match history read/query operations.</p>
+<p><code>Auth Service</code>: registration, login, token verification and account persistence.</p>
 </li>
 <li>
-<p><strong>Gamey</strong>: The game engine and bot service implemented in Rust, responsible for game logic and interactions with bots.</p>
+<p><code>Gamey Service</code>: game rules, bot execution, online matchmaking and active session state.</p>
 </li>
 <li>
-<p><strong>UserDB</strong>: The database used to persist user password for authentication.</p>
+<p><code>Stats Service</code>: match history and player statistics persistence/query layer.</p>
 </li>
 <li>
-<p><strong>Game</strong>: The database used to persist game statistics.</p>
+<p><code>User Authentication DB</code>: MongoDB database used only by <code>auth_service</code>.</p>
+</li>
+<li>
+<p><code>Game Statistics DB</code>: MongoDB database used only by <code>stats</code>.</p>
 </li>
 </ul>
 </div>
-<div class="sidebarblock arc42help">
+</div>
+<div class="sect2">
+<h3 id="_technical_context">3.3. Technical Context</h3>
+<div class="imageblock">
 <div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>Specification of <strong>all</strong> communication partners (users, IT-systems, &#8230;&#8203;) with explanations of domain specific inputs and outputs or interfaces.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>All stakeholders should understand which data are exchanged with the environment of the system.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>All kinds of diagrams that show the system as a black box and specify the domain interfaces to communication partners.</p>
-</div>
-<div class="paragraph">
-<p>The title of the table is the name of your system, the three columns contain the name of the communication partner, the inputs, and the outputs.</p>
-</div>
+<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="799" height="846">
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_technical_context">3.2. Technical Context</h3>
-<div class="imageblock">
-<div class="content">
-<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="1707" height="726">
-</div>
-</div>
-<div class="sect3">
-<h4 id="_elements_description_2">3.2.1. Elements Description</h4>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>Technical interfaces (channels and transmission media) linking the system to its environment. In addition a mapping of domain specific input/output to the channels, i.e. an explanation which I/O uses which channel.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>Many stakeholders make architectural decision based on the technical interfaces between the system and its context. Especially infrastructure or hardware designers decide these technical interfaces.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>E.g. UML deployment diagram describing channels to neighboring systems,
-together with a mapping table showing the relationships between channels and input/output.</p>
-</div>
-</div>
-</div>
+<h3 id="_technical_interfaces">3.4. Technical Interfaces</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 33.3333%;">
@@ -1078,64 +893,74 @@ together with a mapping table showing the relationships between channels and inp
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Participants</th>
-<th class="tableblock halign-left valign-top">Input/Output</th>
-<th class="tableblock halign-left valign-top">Channel/Protocol</th>
+<th class="tableblock halign-left valign-top">Participant</th>
+<th class="tableblock halign-left valign-top">Input / Output</th>
+<th class="tableblock halign-left valign-top">Channel / Protocol</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Player (Browser)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Web navigation, gameplay actions, requests to the frontend</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS (via Reverse Proxy) / HTTP (dev 5173)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Player (Browser)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Open the SPA, authenticate, create games, play turns and inspect history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP/HTTPS through the gateway</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">External Bot</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Game actions and statistics queries (separate calls)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS JSON (Gamey API and Stats API)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>External Bot</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Query gameplay and statistics APIs outside the browser flow.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP JSON through the gateway external API</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Reverse Proxy (nginx)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Incoming HTTP/HTTPS traffic, routing to internal services</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTPS externally / HTTP internally</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Gateway</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Public entry point that serves <code>/</code>, <code>/auth/<strong></code>, <code>/api/</strong></code>, <code>/stats/<strong></code> and <code>/external/</strong></code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP/HTTPS externally, HTTP internally</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">WebApp (React + Vite + TypeScript)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">User interactions, REST API calls to Auth, Gamey, and Stats</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Webapp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Render the SPA and call backend APIs through the gateway.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP inside Docker</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">AuthService (Node.js + Express)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Login, registration, JWT issuance/verification; stores password hashes in MongoDB</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (REST) for auth endpoints (<code>/register</code>, <code>/login</code>, <code>/verify</code>) / TCP (MongoDB driver)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Auth Service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Registration, login, JWT verification and user persistence.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP REST plus MongoDB driver</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Gamey (Rust Engine + Bot Service)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Game logic, bot API, and match result reporting to Stats</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (internal REST)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Gamey Service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game creation, bot execution, matchmaking, online turns and internal reporting to stats.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP REST</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">StatsService (Node.js + Express)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">User stats/history queries and persistence of finished match outcomes</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (REST) for <code>/v1/me</code>, <code>/v1/me/history</code>, <code>/internal/v1/matches/finished</code> / TCP (MongoDB driver)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Stats Service</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Player aggregates, match history and internal finished-match ingestion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP REST plus MongoDB driver</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Databases (Mongo)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">One database for auth identities and another for game statistics/history</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TCP (MongoDB wire protocol)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Databases</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persistent storage for auth identities and statistics/history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MongoDB wire protocol</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Prometheus</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Metrics scraping from Auth and Gamey</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (/metrics)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Prometheus</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Scrape <code>/metrics</code> from runtime services.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Grafana</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Dashboard visualization, queries to Prometheus</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP (host port 9091 → container port 3000)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Grafana</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Visualize dashboards over Prometheus data.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP</p></td>
 </tr>
 </tbody>
 </table>
+<div class="sect3">
+<h4 id="_observability_context">3.4.1. Observability Context</h4>
+<div class="paragraph">
+<p>The technical context also includes an embedded observability stack for local execution and demos.
+<code>Prometheus</code> is available at <code><a href="http://localhost:9090" class="bare">http://localhost:9090</a></code> and scrapes <code>gateway</code>, <code>auth</code>, <code>stats</code> and <code>gamey</code> every <code>15s</code> through their <code>/metrics</code> endpoints, as configured in <code>monitoring/prometheus/prometheus.yml</code>.
+<code>Grafana</code> is available at <code><a href="http://localhost:9091" class="bare">http://localhost:9091</a></code>, uses that Prometheus instance as its default data source and provisions the dashboard <code>Yovi Observability</code>.</p>
+</div>
+<div class="paragraph">
+<p>This monitoring path matters architecturally because it gives direct visibility into both cross-service HTTP behavior and game-specific runtime data such as matchmaking queue size, active games and finished games still kept in memory by <code>gamey</code>.</p>
+</div>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
@@ -1144,47 +969,6 @@ together with a mapping table showing the relationships between channels and inp
 <div class="sect1">
 <h2 id="section-solution-strategy">4. Solution Strategy</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>A short summary and explanation of the fundamental decisions and solution strategies, that shape system architecture. It includes</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>technology decisions</p>
-</li>
-<li>
-<p>decisions about the top-level decomposition of the system, e.g. usage of an architectural pattern or design pattern</p>
-</li>
-<li>
-<p>decisions on how to achieve key quality goals</p>
-</li>
-<li>
-<p>relevant organizational decisions, e.g. selecting a development process or delegating certain tasks to third parties.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>These decisions form the cornerstones for your architecture. They are the foundation for many other detailed decisions or implementation rules.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Keep the explanations of such key decisions short.</p>
-</div>
-<div class="paragraph">
-<p>Motivate what was decided and why it was decided that way,
-based upon problem statement, quality goals and key constraints.
-Refer to details in the following sections.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-4/">Solution Strategy</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>This section summarizes the main solution approaches that shape the architecture of Yovi. It focuses on the decisions that most clearly explain why the system is structured as it is.</p>
 </div>
@@ -1271,7 +1055,7 @@ Refer to details in the following sections.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Security</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Credentials and internal write operations must be protected against unauthorized access.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth_service</code> centralizes login and token validation, passwords are hashed with <code>bcrypt</code>, sessions use JWT, and the internal stats endpoint requires a service token.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>auth_service</code> centralizes login and token validation, passwords are hashed with <code>scrypt</code>, sessions use JWT, and the internal stats endpoint requires a service token.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1301,53 +1085,37 @@ Refer to details in the following sections.</p>
 <div class="sect1">
 <h2 id="section-building-block-view">5. Building Block View</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
 <div class="paragraph">
-<div class="title">Content</div>
-<p>The building block view shows the static decomposition of the system into building blocks (modules, components, subsystems, classes, interfaces, packages, libraries, frameworks, layers, partitions, tiers, functions, macros, operations, data structures, &#8230;&#8203;) as well as their dependencies (relationships, associations, &#8230;&#8203;)</p>
-</div>
-<div class="paragraph">
-<p>This view is mandatory for every architecture documentation.
-In analogy to a house this is the <em>floor plan</em>.</p>
+<p>This section explains how Yovi is decomposed into building blocks and why those boundaries exist.
+The goal is not to mirror the repository file by file, but to make responsibility ownership visible:
+which block owns the browser experience, which block acts as public edge, which block owns live gameplay,
+and which blocks persist identity and history.</p>
 </div>
 <div class="paragraph">
-<div class="title">Motivation</div>
-<p>Maintain an overview of your source code by making its structure understandable through
-abstraction.</p>
+<p>The view is structured in three levels:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Level 1 presents the overall decomposition of the system.</p>
+</li>
+<li>
+<p>Level 2 zooms into the blocks that matter most for understanding the architecture in code.</p>
+</li>
+<li>
+<p>Level 3 refines the most coordination-heavy part of the system: online gameplay inside <code>Gamey Service</code>.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>This allows you to communicate with your stakeholder on an abstract level without disclosing implementation details.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>The building block view is a hierarchical collection of black boxes and white boxes.</p>
-</div>
-<div class="paragraph">
-<p><strong>Level 1</strong> is the white box description of the overall system together with black
-box descriptions of all contained building blocks.</p>
-</div>
-<div class="paragraph">
-<p><strong>Level 2</strong> zooms into some building blocks of level 1.
-Thus it contains the white box description of selected building blocks of level 1, together with black box descriptions of their internal building blocks.</p>
-</div>
-<div class="paragraph">
-<p><strong>Level 3</strong> zooms into selected building blocks of level 2, and so on.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-5/">Building Block View</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>This section describes the static decomposition of Yovi in three levels. The first level presents the overall system. The second level zooms into the blocks that are most relevant for understanding the architecture. The third level refines the most complex internal coordination logic.</p>
+<p>Some diagram nodes intentionally group closely related implementation pieces to keep the view readable.
+The tables below each diagram unpack those groups into their concrete responsibilities, interfaces and code locations.</p>
 </div>
 <div class="sect2">
 <h3 id="_whitebox_overall_system">5.1. Whitebox Overall System</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level1_yovi_overall.png" alt="05 level1 yovi overall" width="844" height="289">
+<img src="./images/05_level1_overall_whitebox.png" alt="05 level1 overall whitebox" width="701" height="208">
 </div>
 </div>
 <div class="dlist">
@@ -1355,7 +1123,8 @@ Thus it contains the white box description of selected building blocks of level 
 <dt class="hdlist1">Motivation</dt>
 <dd>
 <div class="paragraph">
-<p>The overall system is decomposed into a browser frontend, a single public entry point, three domain services and two persistence nodes. This separation makes the main responsibilities visible without exposing implementation details too early.</p>
+<p>The top-level decomposition follows responsibility boundaries rather than technical layers.
+The browser-facing concerns, public routing, authentication, live game execution and historical persistence evolve for different reasons and at different speeds, so they are documented as separate building blocks.</p>
 </div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
@@ -1426,13 +1195,13 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="ulist">
 <ul>
 <li>
-<p><code>Player &#8594; Gateway</code>: all browser traffic enters the system through one public HTTP endpoint.</p>
+<p><code>Player &#8594; Gateway</code>: all browser traffic enters through one public HTTP endpoint.</p>
 </li>
 <li>
-<p><code>Gateway &#8594; internal services</code>: the gateway strips prefixes and forwards requests to the owning service.</p>
+<p><code>Gateway &#8594; internal services</code>: the gateway resolves ownership of each route prefix and forwards the request to the corresponding service.</p>
 </li>
 <li>
-<p><code>Gamey Service &#8594; Stats Service</code>: finished matches are reported internally without involving the browser.</p>
+<p><code>Gamey Service &#8594; Stats Service</code>: match completion is reported internally so the browser never writes statistics directly.</p>
 </li>
 </ul>
 </div>
@@ -1443,13 +1212,17 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="sect2">
 <h3 id="_level_2">5.2. Level 2</h3>
 <div class="paragraph">
-<p>Level 2 zooms into the blocks with the highest architectural relevance: <code>Webapp</code>, <code>Gateway</code> and <code>Gamey Service</code>. <code>Auth Service</code> and <code>Stats Service</code> remain at black box level because their internal structure is comparatively simple.</p>
+<p>Level 2 focuses on the blocks with the highest explanatory value for this project: <code>Webapp</code>, <code>Gateway</code> and <code>Gamey Service</code>.
+Those three blocks concentrate the decisions that make Yovi distinctive: SPA state management, a single public edge, and an in-memory online gameplay core.</p>
+</div>
+<div class="paragraph">
+<p><code>Auth Service</code> and <code>Stats Service</code> remain at black box level because their internal structure is comparatively direct and does not add much architectural insight beyond the interfaces already shown in level 1.</p>
 </div>
 <div class="sect3">
 <h4 id="_white_box_webapp">5.2.1. White Box <code>Webapp</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_webapp.png" alt="05 level2 webapp" width="364" height="276">
+<img src="./images/05_level2_webapp_whitebox.png" alt="05 level2 webapp whitebox" width="546" height="150">
 </div>
 </div>
 <div class="dlist">
@@ -1457,7 +1230,9 @@ Thus it contains the white box description of selected building blocks of level 
 <dt class="hdlist1">Motivation</dt>
 <dd>
 <div class="paragraph">
-<p>The frontend is organized around a small application shell, presentation views and dedicated hooks for the main user flows. This keeps rendering, remote communication and local persistence clearly separated.</p>
+<p>The frontend is intentionally small in terms of architectural primitives.
+The app shell decides which screen to render, views focus on presentation, and hooks own the main interaction flows.
+This split keeps rendering logic, remote communication and browser persistence understandable without turning the SPA into a monolith of ad hoc state updates.</p>
 </div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
@@ -1493,7 +1268,7 @@ Thus it contains the white box description of selected building blocks of level 
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>useAuth</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Manages authentication state, guest mode, token verification and logout.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Calls auth endpoints through API helpers and browser storage.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Calls auth endpoints and browser storage directly.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/hooks/useAuth.ts</code></p></td>
 </tr>
 <tr>
@@ -1509,9 +1284,9 @@ Thus it contains the white box description of selected building blocks of level 
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/useStats.ts</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>API clients</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Wrap low-level HTTP interaction with backend services.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fetch</code> calls to <code>/auth</code>, <code>/api</code> and <code>/stats</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Game/Stats API clients</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Wrap low-level HTTP interaction for gameplay and statistics flows.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fetch</code> calls to <code>/api</code> and <code>/stats</code>.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>webapp/src/gameyApi.ts</code>, <code>webapp/src/statsApi.ts</code></p></td>
 </tr>
 <tr>
@@ -1546,7 +1321,7 @@ Thus it contains the white box description of selected building blocks of level 
 <h4 id="_white_box_gateway">5.2.2. White Box <code>Gateway</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_gateway.png" alt="05 level2 gateway" width="474" height="261">
+<img src="./images/05_level2_gateway_whitebox.png" alt="05 level2 gateway whitebox" width="413" height="326">
 </div>
 </div>
 <div class="dlist">
@@ -1554,7 +1329,9 @@ Thus it contains the white box description of selected building blocks of level 
 <dt class="hdlist1">Motivation</dt>
 <dd>
 <div class="paragraph">
-<p>The gateway is intentionally thin. It centralizes public routing and normalized failure handling, while keeping business rules in the backend services that own them.</p>
+<p>The gateway is intentionally thin.
+Its job is to be the single public edge of the system, not to absorb domain logic.
+That makes the deployment easier to explain and keeps ownership of authentication, gameplay and statistics inside the services that actually implement those rules.</p>
 </div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
@@ -1613,7 +1390,7 @@ Thus it contains the white box description of selected building blocks of level 
 <p><code>Gateway &#8594; Auth Service</code>, <code>Gamey Service</code>, <code>Stats Service</code>: forwards route-specific API traffic.</p>
 </li>
 <li>
-<p><code>Gateway &#8594; browser</code>: returns normalized <code>502 Bad Gateway</code> on upstream failures.</p>
+<p><code>Gateway &#8594; browser</code>: returns normalized <code>502 Bad Gateway</code> responses when an upstream service is unavailable.</p>
 </li>
 </ul>
 </div>
@@ -1625,7 +1402,7 @@ Thus it contains the white box description of selected building blocks of level 
 <h4 id="_white_box_gamey_service">5.2.3. White Box <code>Gamey Service</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_gamey.png" alt="05 level2 gamey" width="478" height="317">
+<img src="./images/05_level2_gamey_whitebox.png" alt="05 level2 gamey whitebox" width="547" height="258">
 </div>
 </div>
 <div class="dlist">
@@ -1633,7 +1410,9 @@ Thus it contains the white box description of selected building blocks of level 
 <dt class="hdlist1">Motivation</dt>
 <dd>
 <div class="paragraph">
-<p><code>Gamey Service</code> is the domain core of the system. It concentrates the rules of the game, online coordination and bot logic so that gameplay remains consistent and isolated from the rest of the platform.</p>
+<p><code>Gamey Service</code> is the architectural core of Yovi.
+It owns the state that is most volatile and hardest to coordinate: active matches, online matchmaking, player turn validation and bot-assisted gameplay.
+Keeping those responsibilities together avoids duplicating game rules across services and keeps the critical gameplay path short.</p>
 </div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
@@ -1710,13 +1489,13 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="ulist">
 <ul>
 <li>
-<p><code>x-user-id</code>: identifies authenticated users when a game is created or queried.</p>
+<p><code>x-user-id</code>: propagates the session identity used to associate games and statistics with a player.</p>
 </li>
 <li>
-<p><code>x-opponent-user-id</code>: supports direct online game creation.</p>
+<p><code>x-opponent-user-id</code>: supports direct human-vs-human game creation without matchmaking.</p>
 </li>
 <li>
-<p><code>x-player-token</code>: protects turn ownership in matchmaking-created online games.</p>
+<p><code>x-player-token</code>: proves turn ownership inside matchmaking-created online games.</p>
 </li>
 </ul>
 </div>
@@ -1728,16 +1507,17 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="sect2">
 <h3 id="_level_3">5.3. Level 3</h3>
 <div class="paragraph">
-<p>Level 3 opens the <code>Gamey Service</code> block introduced in level 2. The refinement focuses on its online gameplay runtime, because that slice contains the most coordination-heavy behavior: request handling, shared in-memory state, background supervision and completion reporting.</p>
+<p>Level 3 opens the <code>Gamey Service</code> block introduced in level 2.
+The refinement focuses on its online gameplay runtime because that slice contains the most coordination-heavy behavior in the whole system: request handling, shared in-memory state, background workers and completion reporting.</p>
 </div>
 <div class="paragraph">
-<p>Bot execution remains at level 2 because it is orthogonal to the online human-vs-human flow documented here.</p>
+<p>Bot execution remains at level 2 because it is important, but orthogonal to the online human-vs-human flow documented here.</p>
 </div>
 <div class="sect3">
 <h4 id="_white_box_gamey_service_online_gameplay_runtime">5.3.1. White Box Gamey Service - Online Gameplay Runtime</h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level3_online_coordination.png" alt="05 level3 online coordination" width="511" height="205">
+<img src="./images/05_level3_online_runtime_whitebox.png" alt="05 level3 online runtime whitebox" width="521" height="188">
 </div>
 </div>
 <div class="dlist">
@@ -1745,7 +1525,8 @@ Thus it contains the white box description of selected building blocks of level 
 <dt class="hdlist1">Motivation</dt>
 <dd>
 <div class="paragraph">
-<p>This white box zooms into the online human-vs-human runtime of <code>Gamey Service</code>. It mixes synchronous HTTP requests with asynchronous workers and must keep online matches consistent even though the runtime state is stored in memory.</p>
+<p>This white box explains the static structure behind online play in <code>Gamey Service</code>.
+The goal is to make clear which internal parts receive HTTP requests, which parts own runtime state, which parts run in the background and which part bridges the live match state with persistent history in <code>Stats Service</code>.</p>
 </div>
 </dd>
 <dt class="hdlist1">Contained Building Blocks</dt>
@@ -1785,10 +1566,16 @@ Thus it contains the white box description of selected building blocks of level 
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/state.rs</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Background coordinators</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Run asynchronous tasks that pair players and enforce inactivity and turn-timeout rules.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Internal scheduled workers.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code>, <code>gamey/src/bot_server/games.rs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Matchmaking worker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Pairs waiting players and creates the online <code>GameSession</code> plus player tokens once a compatible opponent is found.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal background task over matchmaking state.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/matchmaking.rs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Timeout monitor</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Supervises online activity, applies automatic pass on turn timeout and finishes games when inactivity rules are triggered.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Internal background task over active sessions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gamey/src/bot_server/games.rs</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>GameY engine</code></p></td>
@@ -1816,10 +1603,16 @@ Thus it contains the white box description of selected building blocks of level 
 <p><code>Matchmaking API &#8594; Runtime state</code>: create waiting tickets, expose queue status and publish matched results.</p>
 </li>
 <li>
-<p><code>Background coordinators &#8594; Runtime state</code>: consume waiting entries and enforce online timeout rules.</p>
+<p><code>Matchmaking worker &#8594; Runtime state</code>: consume waiting entries and publish matched ticket results together with the created online game.</p>
 </li>
 <li>
-<p><code>Game API / Background coordinators &#8594; GameY engine</code>: apply moves and actions using the same rule implementation.</p>
+<p><code>Timeout monitor &#8594; Runtime state</code>: read and update online session metadata used for inactivity and turn timers.</p>
+</li>
+<li>
+<p><code>Game API / Timeout monitor &#8594; GameY engine</code>: apply moves and forced actions using the same rule implementation.</p>
+</li>
+<li>
+<p><code>Game API / Timeout monitor &#8594; Completion reporting</code>: bridge finished runtime state with the reporting step that persists the outcome.</p>
 </li>
 <li>
 <p><code>Completion reporting &#8594; Stats Service</code>: persist the finished match outcome through the internal stats endpoint.</p>
@@ -1837,68 +1630,6 @@ Thus it contains the white box description of selected building blocks of level 
 <div class="sect1">
 <h2 id="section-runtime-view">6. Runtime View</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>The runtime view describes concrete behavior and interactions of the system&#8217;s building blocks in form of scenarios from the following areas:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>important use cases or features: how do building blocks execute them?</p>
-</li>
-<li>
-<p>interactions at critical external interfaces: how do building blocks cooperate with users and neighboring systems?</p>
-</li>
-<li>
-<p>operation and administration: launch, start-up, stop</p>
-</li>
-<li>
-<p>error and exception scenarios</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Remark: The main criterion for the choice of possible scenarios (sequences, workflows) is their <strong>architectural relevance</strong>. It is <strong>not</strong> important to describe a large number of scenarios. You should rather document a representative selection.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>You should understand how (instances of) building blocks of your system perform their job and communicate at runtime.
-You will mainly capture scenarios in your documentation to communicate your architecture to stakeholders that are less willing or able to read and understand the static models (building block view, deployment view).</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>There are many notations for describing scenarios, e.g.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>numbered list of steps (in natural language)</p>
-</li>
-<li>
-<p>activity diagrams or flow charts</p>
-</li>
-<li>
-<p>sequence diagrams</p>
-</li>
-<li>
-<p>BPMN or EPCs (event process chains)</p>
-</li>
-<li>
-<p>state machines</p>
-</li>
-<li>
-<p>&#8230;&#8203;</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-6/">Runtime View</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>This section documents the runtime scenarios that are most useful to understand Yovi: authentication, game creation, multiplayer synchronization, statistics reporting and degraded behavior.</p>
 </div>
@@ -2047,97 +1778,13 @@ You will mainly capture scenarios in your documentation to communicate your arch
 <div class="sect1">
 <h2 id="section-deployment-view">7. Deployment View</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Content</div>
-<p>The deployment view describes:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>technical infrastructure used to execute your system, with infrastructure elements like geographical locations, environments, computers, processors, channels and net topologies as well as other infrastructure elements and</p>
-</li>
-<li>
-<p>mapping of (software) building blocks to that infrastructure elements.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>Often systems are executed in different environments, e.g. development environment, test environment, production environment. In such cases you should document all relevant environments.</p>
-</div>
-<div class="paragraph">
-<p>Especially document a deployment view if your software is executed as distributed system with more than one computer, processor, server or container or when you design and construct your own hardware processors and chips.</p>
-</div>
-<div class="paragraph">
-<p>From a software perspective it is sufficient to capture only those elements of an infrastructure that are needed to show a deployment of your building blocks. Hardware architects can go beyond that and describe an infrastructure to any level of detail they need to capture.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>Software does not run without hardware.
-This underlying infrastructure can and will influence a system and/or some
-cross-cutting concepts. Therefore, there is a need to know the infrastructure.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Maybe a highest level deployment diagram is already contained in section 3.2. as
-technical context with your own infrastructure as ONE black box. In this section one can
-zoom into this black box using additional deployment diagrams:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>UML offers deployment diagrams to express that view. Use it, probably with nested diagrams,
-when your infrastructure is more complex.</p>
-</li>
-<li>
-<p>When your (hardware) stakeholders prefer other kinds of diagrams rather than a deployment diagram, let them use any kind that is able to show nodes and channels of the infrastructure.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-7/">Deployment View</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 <div class="sect2">
 <h3 id="_infrastructure_level_1">7.1. Infrastructure Level 1</h3>
-<div class="sidebarblock arc42help">
-<div class="content">
 <div class="paragraph">
-<p>Describe (usually in a combination of diagrams, tables, and text):</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>distribution of a system to multiple locations, environments, computers, processors, .., as well as physical connections between them</p>
-</li>
-<li>
-<p>important justifications or motivations for this deployment structure</p>
-</li>
-<li>
-<p>quality and/or performance features of this infrastructure</p>
-</li>
-<li>
-<p>mapping of software artifacts to elements of this infrastructure</p>
-</li>
-</ul>
+<p>The system is deployed using Docker containers orchestrated via Docker Compose, suitable for development and demonstration environments. The infrastructure consists of multiple microservices running in isolated containers, communicating over a Docker internal network.</p>
 </div>
 <div class="paragraph">
-<p>For multiple environments or alternative deployments please copy and adapt this section of arc42 for all relevant environments.</p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>The system is deployed as a distributed, container-based architecture.
-It consists of independent services communicating over HTTP and running within isolated container environments.</p>
-</div>
-<div class="paragraph">
-<p>The deployment view describes the technical infrastructure required to execute the system and the mapping of software building blocks to infrastructure elements.</p>
-</div>
-<div class="paragraph">
-<p>The following diagram shows the high-level deployment structure in a local environment using containerization.</p>
+<p>The deployment supports a local environment where all services run on a single host machine.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -2148,180 +1795,214 @@ It consists of independent services communicating over HTTP and running within i
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p>The deployment structure is based on containerized services to ensure:</p>
+<p>The containerized deployment ensures:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Clear separation between frontend, backend, and game engine.</p>
+<p>Isolation of services to prevent dependency conflicts.</p>
 </li>
 <li>
-<p>Independent deployment and scalability of each service.</p>
+<p>Easy scalability and portability across environments.</p>
 </li>
 <li>
-<p>Reproducible development environments.</p>
+<p>Simplified development setup with Docker Compose.</p>
 </li>
 <li>
-<p>Isolation of runtime dependencies.</p>
+<p>Observability through integrated monitoring tools.</p>
+</li>
+<li>
+<p>A database component has been introduced to persist user data, enabling real user registration and long-term storage.</p>
 </li>
 </ul>
 </div>
 </dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>A database component has been introduced to persist user data, enabling real user registration and long-term storage.</p>
-</div>
-<div class="dlist">
-<dl>
 <dt class="hdlist1">Quality and/or Performance Features</dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p>Scalability: Services can be scaled independently in future production environments.</p>
+<p><strong>Scalability</strong>: Each service can be scaled independently by adjusting container instances.</p>
 </li>
 <li>
-<p>Isolation: Each component runs in its own container.</p>
+<p><strong>Reliability</strong>: Containerization provides consistent runtime environments.</p>
 </li>
 <li>
-<p>Loose Coupling: Communication occurs via well-defined HTTP APIs.</p>
+<p><strong>Security</strong>: Services communicate over an internal network, with the gateway as the single entry point.</p>
 </li>
 <li>
-<p>Persistence: User data is stored in a dedicated database component.</p>
+<p><strong>Observability</strong>: Prometheus collects metrics, and Grafana provides dashboards for monitoring.</p>
 </li>
 <li>
-<p>Portability: The system can run on any infrastructure supporting containerization.</p>
+<p><strong>Performance</strong>: Lightweight containers minimize resource overhead in development.</p>
 </li>
 <li>
-<p>Maintainability: Clear separation of concerns reduces system complexity.</p>
+<p><strong>Persistence</strong>: User data is stored in a dedicated database component.</p>
 </li>
 </ul>
 </div>
 </dd>
 <dt class="hdlist1">Mapping of Building Blocks to Infrastructure</dt>
 <dd>
-<p>| Building Block         | Infrastructure Element                       |
-| ---------------------- | -------------------------------------------- |
-| React SPA (Webapp)     | Webapp Container                             |
-| Authentication Logic   | Auth Service Container                       |
-| Auth Persistence Layer | Mongo Auth Container                         |
-| Game Core &amp; Bots       | Gamey Container                              |
-| Client Interface       | Web Browser                                  |
-| Communication          | Docker Internal Network (HTTP + DB protocol) |</p>
+<p>| Building Block          | Infrastructure Element          |
+|-------------------------|---------------------------------|
+| Webapp (React SPA)      | Webapp Container               |
+| Gateway Service         | Gateway Container              |
+| Auth Service            | Auth Service Container         |
+| Gamey (Rust Game Engine)| Gamey Container                |
+| Stats Service           | Stats Service Container        |
+| User Data Persistence   | Mongo Auth DB Container        |
+| Stats Data Persistence  | Mongo Stats DB Container       |
+| Metrics Collection      | Prometheus Container           |
+| Dashboard Visualization | Grafana Container              |</p>
 </dd>
 </dl>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_infrastructure_level_2">7.2. Infrastructure Level 2</h3>
-<div class="sidebarblock arc42help">
-<div class="content">
+<h3 id="_monitoring_and_observability">7.2. Monitoring and Observability</h3>
 <div class="paragraph">
-<p>Here you can include the internal structure of (some) infrastructure elements from level 1.</p>
+<p>The Docker Compose deployment includes a built-in observability stack that is available during development, load testing and classroom demos.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Tool</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
+<th class="tableblock halign-left valign-top">Default URL</th>
+<th class="tableblock halign-left valign-top">Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Prometheus</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Collects time-series metrics by scraping the services' <code>/metrics</code> endpoints.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9090" class="bare">http://localhost:9090</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>monitoring/prometheus/prometheus.yml</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Grafana</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Displays dashboards over the Prometheus data source.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><a href="http://localhost:9091" class="bare">http://localhost:9091</a></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>monitoring/grafana/provisioning/</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Prometheus scrapes the internal Docker targets <code>gateway:8080</code>, <code>auth:3500</code>, <code>stats:3001</code> and <code>gamey:4000</code> every <code>15s</code>.
+Grafana is provisioned with the <code>Prometheus</code> data source and the dashboard <code>Yovi Observability</code>, so the monitoring UI is ready as soon as the stack starts.</p>
 </div>
 <div class="paragraph">
-<p>Please copy the structure from level 1 for each selected element.</p>
-</div>
-</div>
+<p>The deployment also provides an optional Gatling runner through <code>docker-compose.load-tests.yml</code>.
+It mounts the repository&#8217;s <code>load-tests/</code> directory into a Maven container and runs <code>YoviSimulation</code> against the internal <code>gateway:8080</code> endpoint by default.
+This keeps the load tests close to the project code while avoiding an always-on load generator in the normal application stack.</p>
 </div>
 <div class="paragraph">
-<p>This level provides a more detailed view of selected infrastructure elements.</p>
+<p>The dashboard concentrates on the signals that are most useful for this project:</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>request rate and average latency per service</p>
+</li>
+<li>
+<p><code>5xx</code> error rate and scrape health</p>
+</li>
+<li>
+<p>resident memory of the Node.js services</p>
+</li>
+<li>
+<p>game-specific metrics such as active games, finished games still in memory, matchmaking queue size and recent gameplay activity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The most relevant exported metrics are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>yovi_http_requests_total</code>, <code>yovi_http_request_duration_seconds_sum</code>, <code>yovi_http_request_duration_seconds_count</code> and <code>yovi_process_uptime_seconds</code> for generic HTTP traffic and latency</p>
+</li>
+<li>
+<p><code>yovi_process_resident_memory_bytes</code> and <code>yovi_process_heap_used_bytes</code> for Node.js process memory</p>
+</li>
+<li>
+<p><code>yovi_gamey_ongoing_games</code>, <code>yovi_gamey_finished_games_in_memory</code>, <code>yovi_gamey_matchmaking_queue_size</code>, <code>yovi_gamey_matchmaking_tickets</code>, <code>yovi_gamey_games_created_total</code>, <code>yovi_gamey_moves_played_total</code>, <code>yovi_gamey_resignations_total</code> and <code>yovi_gamey_turn_passes_total</code> for the live state of <code>gamey</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_infrastructure_level_2">7.3. Infrastructure Level 2</h3>
 <div class="sect3">
-<h4 id="_webapp_container">7.2.1. <em>&lt;Webapp Container&gt;</em></h4>
+<h4 id="_webapp_container">7.3.1. Webapp Container</h4>
+<div class="paragraph">
+<p>The Webapp container serves the production React build as static files through Nginx.
+Node.js is only used during the image build stage to compile the frontend assets.</p>
+</div>
 <div class="imageblock">
 <div class="content">
 <img src="./images/07_diagram_2.png" alt="07 diagram 2">
 </div>
 </div>
-<div class="paragraph">
-<p>The Webapp container:</p>
-</div>
 <div class="ulist">
 <ul>
 <li>
-<p>Hosts a Single Page Application built with React.</p>
+<p><strong>Nginx</strong>: Handles static file serving and SPA fallback routing.</p>
 </li>
 <li>
-<p>Handles all user interactions.</p>
-</li>
-<li>
-<p>Communicates with backend services via HTTP.</p>
-</li>
-<li>
-<p>Does not maintain persistent state.</p>
-</li>
-<li>
-<p>Acts as the primary system entry point.</p>
+<p><strong>React App</strong>: Client-side application for user interaction.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_auth_service_container">7.2.2. <em>&lt;Auth Service Container&gt;</em></h4>
+<h4 id="_auth_service_container">7.3.2. Auth Service Container</h4>
+<div class="paragraph">
+<p>The Auth Service container runs a Node.js application with MongoDB for persistence.</p>
+</div>
 <div class="imageblock">
 <div class="content">
 <img src="./images/07_diagram_3.png" alt="07 diagram 3">
 </div>
 </div>
-<div class="paragraph">
-<p>The Auth Service container:</p>
-</div>
 <div class="ulist">
 <ul>
 <li>
-<p>Exposes REST endpoints (<code>/register</code>, <code>/login</code>, <code>/verify</code>).</p>
+<p><strong>Node.js App</strong>: Implements authentication logic and REST API.</p>
 </li>
 <li>
-<p>Implements authentication and token verification logic.</p>
-</li>
-<li>
-<p>Contains a persistence layer responsible for storing password hashes and identities.</p>
-</li>
-<li>
-<p>Connects to the <code>mongo-auth</code> database container.</p>
-</li>
-<li>
-<p>Ensures separation between API layer, auth logic, and data access.</p>
+<p><strong>MongoDB</strong>: Persists user credentials and profiles.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_gamey_container">7.2.3. <em>&lt;Gamey Container&gt;</em></h4>
+<h4 id="_gamey_container">7.3.3. Gamey Container</h4>
+<div class="paragraph">
+<p>The Gamey container runs a Rust application for game logic.</p>
+</div>
 <div class="imageblock">
 <div class="content">
 <img src="./images/07_diagram_4.png" alt="07 diagram 4">
 </div>
 </div>
-<div class="paragraph">
-<p>The Gamey container:</p>
-</div>
 <div class="ulist">
 <ul>
 <li>
-<p>Hosts the Rust-based game engine.</p>
-</li>
-<li>
-<p>Encapsulates all core game logic.</p>
-</li>
-<li>
-<p>Provides bot functionality.</p>
-</li>
-<li>
-<p>Exposes a Web API for interaction with the frontend.</p>
-</li>
-<li>
-<p>Does not directly depend on the user database.</p>
+<p><strong>Rust Game Engine</strong>: Core game logic, matchmaking, and bot players.</p>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>Gamey remains logically independent from authentication persistence.</p>
-</div>
 </div>
 <div class="sect3">
-<h4 id="_mongo_auth_container">7.2.4. <em>&lt;Mongo Auth Container&gt;</em></h4>
+<h4 id="_mongo_auth_container">7.3.4. Mongo Auth Container</h4>
 <div class="paragraph">
 <p>The Mongo Auth container:</p>
 </div>
@@ -2344,6 +2025,27 @@ It consists of independent services communicating over HTTP and running within i
 <div class="paragraph">
 <p>Mongo Stats is a separate database container used by the <code>stats</code> service.</p>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_monitoring_stack">7.3.5. Monitoring Stack</h4>
+<div class="paragraph">
+<p>Prometheus and Grafana run in separate containers for observability.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/07_diagram_5.png" alt="07 diagram 5">
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Prometheus</strong>: Time-series database for metrics.</p>
+</li>
+<li>
+<p><strong>Grafana</strong>: Visualization tool for dashboards.</p>
+</li>
+</ul>
+</div>
 <div style="page-break-after: always;"></div>
 </div>
 </div>
@@ -2352,275 +2054,153 @@ It consists of independent services communicating over HTTP and running within i
 <div class="sect1">
 <h2 id="section-concepts">8. Cross-cutting Concepts</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
+<div class="sect2">
+<h3 id="_domain_concepts">8.1. Domain Concepts</h3>
 <div class="paragraph">
-<div class="title">Content</div>
-<p>This section describes overall, principal regulations and solution ideas that are relevant in multiple parts (= cross-cutting) of your system.
-Such concepts are often related to multiple building blocks.
-They can include many different topics, such as</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>models, especially domain models</p>
-</li>
-<li>
-<p>architecture or design patterns</p>
-</li>
-<li>
-<p>rules for using specific technology</p>
-</li>
-<li>
-<p>principal, often technical decisions of an overarching (= cross-cutting) nature</p>
-</li>
-<li>
-<p>implementation rules</p>
-</li>
-</ul>
+<p>The core domain of the Yovi system revolves around multiplayer board games, user authentication, and statistics tracking.</p>
 </div>
 <div class="paragraph">
-<div class="title">Motivation</div>
-<p>Concepts form the basis for <em>conceptual integrity</em> (consistency, homogeneity) of the architecture.
-Thus, they are an important contribution to achieve inner qualities of your system.</p>
-</div>
-<div class="paragraph">
-<p>Some of these concepts cannot be assigned to individual building blocks, e.g. security or safety.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>The form can be varied:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>concept papers with any kind of structure</p>
-</li>
-<li>
-<p>cross-cutting model excerpts or scenarios using notations of the architecture views</p>
-</li>
-<li>
-<p>sample implementations, especially for technical concepts</p>
-</li>
-<li>
-<p>reference to typical usage of standard frameworks (e.g. using Hibernate for object/relational mapping)</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Structure</div>
-<p>A potential (but not mandatory) structure for this section could be:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Domain concepts</p>
-</li>
-<li>
-<p>User Experience concepts (UX)</p>
-</li>
-<li>
-<p>Safety and security concepts</p>
-</li>
-<li>
-<p>Architecture and design patterns</p>
-</li>
-<li>
-<p>"Under-the-hood"</p>
-</li>
-<li>
-<p>development concepts</p>
-</li>
-<li>
-<p>operational concepts</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Note: it might be difficult to assign individual concepts to one specific topic
-on this list.</p>
+<p>Key domain entities include users, games, players (human or bot), moves, and statistics.</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="./images/08-concepts-EN.drawio.png" alt="Possible topics for crosscutting concepts">
+<img src="./images/08_diagram_1.png" alt="08 diagram 1">
 </div>
 </div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-8/">Concepts</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>This section describes the fundamental concepts, architectural principles, and technical decisions that apply across multiple components of the system.
-These concepts ensure architectural consistency, reduce complexity, and support the system’s long-term evolution.</p>
 </div>
 <div class="sect2">
-<h3 id="_domain_concepts">8.1. <em>&lt;Domain Concepts&gt;</em></h3>
+<h3 id="_user_experience_concepts">8.2. User Experience Concepts</h3>
 <div class="paragraph">
-<p>The domain of the system is centered around authentication, player profiles, and Game Y execution.</p>
-</div>
-<div class="paragraph">
-<p>Key domain concepts include:</p>
+<p>The user experience focuses on simplicity, responsiveness, and accessibility for game enthusiasts.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>User: A registered client of the system.</p>
+<p><strong>Single Page Application</strong>: Seamless navigation without page reloads.</p>
 </li>
 <li>
-<p>Game: A Game Y match, either active or completed.</p>
+<p><strong>Real-time Updates</strong>: Immediate feedback on game actions and matchmaking.</p>
 </li>
 <li>
-<p>Player: An entity participating in a game (human or automated).</p>
+<p><strong>Responsive UI</strong>: Adapts to mobile and desktop devices.</p>
 </li>
 <li>
-<p>Bot: An automated player controlled by the game engine.</p>
+<p><strong>Intuitive Navigation</strong>: Clear menus for registration, login, game creation, and stats viewing.</p>
 </li>
 <li>
-<p>Move / Action: A single action performed during gameplay.</p>
-</li>
-<li>
-<p>Game State: The current state of a game.</p>
-</li>
-<li>
-<p>User Profile: Persisted information associated with a user.</p>
+<p><strong>Error Handling</strong>: User-friendly messages for invalid actions or network issues.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_user_experience_concepts">8.2. <em>&lt;User Experience Concepts&gt;</em></h3>
+<h3 id="_security_concepts">8.3. Security Concepts</h3>
 <div class="paragraph">
-<p>The user experience is designed to be intuitive and responsive, focusing on ease of use for players of varying skill levels.</p>
-</div>
-<div class="paragraph">
-<p>Key UX concepts include:</p>
+<p>Security is paramount to protect user data and ensure fair gameplay.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Single Page Application (SPA): The webapp provides a seamless, client-side experience without page reloads.</p>
+<p><strong>Authentication</strong>: JWT tokens for session management.</p>
 </li>
 <li>
-<p>Responsive Design: The interface adapts to different screen sizes for accessibility on various devices.</p>
+<p><strong>Password Security</strong>: Hashing with scrypt.</p>
 </li>
 <li>
-<p>Real-time Feedback: Users receive immediate responses to actions, such as game moves or registration confirmations.</p>
+<p><strong>Data Isolation</strong>: Separate databases for auth and stats.</p>
 </li>
 <li>
-<p>Progressive Enhancement: Core functionality works without JavaScript, with enhancements for modern browsers.</p>
+<p><strong>Internal Write Protection</strong>: Stats writes are accepted only through the internal service-token endpoint.</p>
 </li>
 <li>
-<p>Accessibility: Basic support for screen readers and keyboard navigation to ensure inclusivity.</p>
+<p><strong>Gameplay Authorization</strong>: Matchmaking games use per-player tokens to validate online actions.</p>
+</li>
+</ul>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/08_diagram_2.png" alt="08 diagram 2">
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_architecture_and_design_patterns">8.4. Architecture and Design Patterns</h3>
+<div class="paragraph">
+<p>The architecture employs microservices with clear patterns for scalability and maintainability.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Microservices Pattern</strong>: Independent services for auth, game logic, stats, and gateway.</p>
+</li>
+<li>
+<p><strong>API Gateway</strong>: Centralized routing and error normalization at the public edge.</p>
+</li>
+<li>
+<p><strong>Separated Persistence</strong>: Authentication and statistics use independent MongoDB databases.</p>
+</li>
+<li>
+<p><strong>Pull-based Observability</strong>: Prometheus scrapes metrics exposed by the runtime services.</p>
+</li>
+<li>
+<p><strong>State Boundary</strong>: Gateway, auth and stats keep little runtime state, while active matches and matchmaking live in memory inside <code>gamey</code>.</p>
+</li>
+</ul>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/08_diagram_3.png" alt="08 diagram 3">
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_development_concepts">8.5. Development Concepts</h3>
+<div class="paragraph">
+<p>Development emphasizes modularity, testing, and continuous integration.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Independent Builds</strong>: Each service builds separately.</p>
+</li>
+<li>
+<p><strong>Automated Testing</strong>: Unit and integration tests.</p>
+</li>
+<li>
+<p><strong>Version Control</strong>: Git with feature branches.</p>
+</li>
+<li>
+<p><strong>Containerization</strong>: Docker for consistent environments.</p>
+</li>
+<li>
+<p><strong>Code Quality</strong>: Linting and code reviews.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_architecture_and_design_patterns">8.3. <em>&lt;Architecture and Design Patterns&gt;</em></h3>
+<h3 id="_operational_concepts">8.6. Operational Concepts</h3>
 <div class="paragraph">
-<p>The system follows a service-oriented and layered architecture, applying the following principles:</p>
+<p>Operations prioritize ease of deployment and monitoring in development/demo settings.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Client–Server Architecture
-The web application acts as a client, while backend services act as servers.</p>
+<p><strong>Container Orchestration</strong>: Docker Compose for local deployment.</p>
 </li>
 <li>
-<p>Separation of Concerns
-Each component has a clearly defined responsibility:</p>
+<p><strong>Logging</strong>: Stdout logging for containerized services.</p>
 </li>
 <li>
-<p>Webapp: User interaction and presentation</p>
+<p><strong>Monitoring</strong>: Prometheus and Grafana for metrics and dashboards.</p>
 </li>
 <li>
-<p>Auth Service: Registration, login, token verification, and credential persistence</p>
+<p><strong>Backup</strong>: MongoDB dumps for data persistence.</p>
 </li>
 <li>
-<p>Gamey: Game logic and bot execution</p>
-</li>
-<li>
-<p>API-first Design
-All communication between components is performed through HTTP-based APIs.</p>
+<p><strong>Scaling</strong>: Horizontal scaling via additional containers.</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>This approach ensures loose coupling and enables independent evolution of components.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_security_concepts">8.4. <em>&lt;Security Concepts&gt;</em></h3>
-<div class="paragraph">
-<p>The system implements the following security concepts:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>User authentication is enforced with JWT-based sessions (<code>/register</code>, <code>/login</code>, <code>/verify</code>).</p>
-</li>
-<li>
-<p>Passwords are never stored in plain text; they are hashed with <code>bcrypt</code>.</p>
-</li>
-<li>
-<p>Auth persistence is isolated in MongoDB (<code>mongo-auth</code>) and only accessed by <code>auth_service</code>.</p>
-</li>
-<li>
-<p>Internal service communication is isolated in the Docker network; the public entry point is the gateway.</p>
-</li>
-<li>
-<p>Stats internal endpoints are protected with a service token to avoid unauthorized writes.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_development_concepts">8.5. <em>&lt;Development Concepts&gt;</em></h3>
-<div class="paragraph">
-<p>Development follows these principles:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Each service can be built, tested, and run independently.</p>
-</li>
-<li>
-<p>Clear interface contracts define inter-service communication.</p>
-</li>
-<li>
-<p>Technology choices are isolated per component.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>This enables parallel development and easier maintenance.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_operational_concepts">8.6. <em>&lt;Operational Concepts&gt;</em></h3>
-<div class="paragraph">
-<p>From an operational perspective:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The system is primarily designed for local and development environments.</p>
-</li>
-<li>
-<p>Services are started and stopped as a group.</p>
-</li>
-<li>
-<p>Logs are written to standard output.</p>
-</li>
-<li>
-<p>No monitoring or automated scaling is currently implemented.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The operational model favors simplicity and transparency over production-level optimization.</p>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -2638,61 +2218,10 @@ All communication between components is performed through HTTP-based APIs.</p>
 <div class="sect1">
 <h2 id="section-quality-scenarios">10. Quality Requirements</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Content</div>
-<p>This section contains all quality requirements as quality tree with scenarios. The most important ones have already been described in section 1.2. (quality goals)</p>
-</div>
-<div class="paragraph">
-<p>Here you can also capture quality requirements with lesser priority,
-which will not create high risks when they are not fully achieved.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>Since quality requirements will have a lot of influence on architectural
-decisions you should know for every stakeholder what is really important to them,
-concrete and measurable.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-10/">Quality Requirements</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 <div class="sect2">
 <h3 id="_quality_tree">10.1. Quality Tree</h3>
 <div class="paragraph">
 <p><span class="image"><img src="./images/10-docs-Quality-tree.png" alt="Quality Tree"></span></p>
-</div>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Content</div>
-<p>The quality tree (as defined in ATAM – Architecture Tradeoff Analysis Method) with quality/evaluation scenarios as leafs.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>The tree structure with priorities provides an overview for a sometimes large number of quality requirements.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>The quality tree is a high-level overview of the quality goals and requirements:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>tree-like refinement of the term "quality". Use "quality" or "usefulness" as a root</p>
-</li>
-<li>
-<p>a mind map with quality categories as main branches</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>In any case the tree should include links to the scenarios of the following section.</p>
-</div>
-</div>
 </div>
 </div>
 <div class="sect2">
@@ -2745,43 +2274,72 @@ concrete and measurable.</p>
 </tr>
 </tbody>
 </table>
-<div class="sidebarblock arc42help">
+</div>
+<div class="sect2">
+<h3 id="_load_testing_evidence">10.3. Load Testing Evidence</h3>
+<div class="paragraph">
+<p>We complemented the qualitative scenarios above with an executable load test based on <code>Gatling 4.21.5</code>.
+The executed simulation was <code>YoviSimulation</code>, and the exercised scenario was <code>register-login-play-resign-stats</code>.
+The executable assets are versioned in <code>load-tests/</code>: the simulation is in <code>load-tests/test/YoviSimulation.java</code>, and the captured console output is stored in <code>load-tests/results/resultados.txt</code>.
+The simulation is parameterized through <code>yovi.baseUrl</code>, <code>yovi.usersPerSec</code> and <code>yovi.durationSeconds</code>, so the same test can be run against a local stack, the Docker Compose network or a deployed server.</p>
+</div>
+<div class="paragraph">
+<p>The most relevant part of the final Gatling console output is reproduced below, preserving the endpoint names and summary emitted by the tool:</p>
+</div>
+<div class="listingblock">
 <div class="content">
+<pre class="highlight"><code class="language-text" data-lang="text">========================================================================================================================
+2026-04-20 20:59:30 GMT                                                                              64s elapsed
+---- Requests -----------------------------------------------------------------------|---Total---|-----OK----|----KO----
+&gt; Global                                                                             |       720 |       720 |         0
+&gt; register                                                                           |       120 |       120 |         0
+&gt; login                                                                              |       120 |       120 |         0
+&gt; create_game                                                                        |       120 |       120 |         0
+&gt; resign_game                                                                        |       120 |       120 |         0
+&gt; stats_me                                                                           |       120 |       120 |         0
+&gt; stats_history                                                                      |       120 |       120 |         0
+
+---- register-login-play-resign-stats ----------------------------------------------------------------------------------
+[###############################################################################################################]   100%
+          waiting:         0 / active:         0  / done:       120
+========================================================================================================================
+
+---- Global Information -------------------------------------------------------------|---Total---|-----OK----|----KO----
+&gt; request count                                                                      |       720 |       720 |         -
+&gt; min response time (ms)                                                             |        90 |        90 |         -
+&gt; max response time (ms)                                                             |       224 |       224 |         -
+&gt; mean response time (ms)                                                            |       125 |       125 |         -
+&gt; response time std deviation (ms)                                                   |        40 |        40 |         -
+&gt; response time 50th percentile (ms)                                                 |        98 |        98 |         -
+&gt; response time 75th percentile (ms)                                                 |       177 |       177 |         -
+&gt; response time 95th percentile (ms)                                                 |       184 |       184 |         -
+&gt; response time 99th percentile (ms)                                                 |       198 |       198 |         -
+&gt; mean throughput (rps)                                                              |     11.08 |     11.08 |         -
+---- Response Time Distribution ----------------------------------------------------------------------------------------
+&gt; OK: t &lt; 800 ms                                                                                            720   (100%)
+&gt; OK: 800 ms &lt;= t &lt; 1200 ms                                                                                   0     (0%)
+&gt; OK: t &gt;= 1200 ms                                                                                            0     (0%)
+&gt; KO                                                                                                          0     (0%)
+========================================================================================================================</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Interpretation</dt>
+<dd>
 <div class="paragraph">
-<div class="title">Contents</div>
-<p>Concretization of (sometimes vague or implicit) quality requirements using (quality) scenarios.</p>
+<p>For the tested end-to-end flow, all <code>720</code> requests finished successfully, the mean response time remained at <code>125 ms</code>, and the complete run stayed below the project target of one second per request.
+The per-endpoint counts also show that the whole functional path was exercised uniformly: <code>120</code> executions each for <code>register</code>, <code>login</code>, <code>create_game</code>, <code>resign_game</code>, <code>stats_me</code> and <code>stats_history</code>.</p>
 </div>
+</dd>
+<dt class="hdlist1">Limitations</dt>
+<dd>
 <div class="paragraph">
-<p>These scenarios describe what should happen when a stimulus arrives at the system.</p>
+<p>This measurement is not a production benchmark.
+It was captured in a local deployment and focuses on a representative business flow, not on extreme concurrency, prolonged execution or large-scale online matchmaking saturation.</p>
 </div>
-<div class="paragraph">
-<p>For architects, two kinds of scenarios are important:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Usage scenarios (also called application scenarios or use case scenarios) describe the system’s runtime reaction to a certain stimulus. This also includes scenarios that describe the system’s efficiency or performance. Example: The system reacts to a user’s request within one second.</p>
-</li>
-<li>
-<p>Change scenarios describe a modification of the system or of its immediate environment. Example: Additional functionality is implemented or requirements for a quality attribute change.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>Scenarios make quality requirements concrete and allow to
-more easily measure or decide whether they are fulfilled.</p>
-</div>
-<div class="paragraph">
-<p>Especially when you want to assess your architecture using methods like
-ATAM you need to describe your quality goals (from section 1.2)
-more precisely down to a level of scenarios that can be discussed and evaluated.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>Tabular or free form text.</p>
-</div>
-</div>
+</dd>
+</dl>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -2795,29 +2353,6 @@ more precisely down to a level of scenarios that can be discussed and evaluated.
 By identifying potential issues ahead of time, the team can take appropriate measures to minimize their impact.
 Prioritizing these risks ensures that the most critical ones are addressed first, allowing for better planning
 and a more stable and maintainable architecture.</p>
-</div>
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>A list of identified technical risks or technical debts, ordered by priority</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>“Risk management is project management for grown-ups” (Tim Lister, Atlantic Systems Guild.)</p>
-</div>
-<div class="paragraph">
-<p>This should be your motto for systematic detection and evaluation of risks and technical debts in the architecture, which will be needed by management stakeholders (e.g. project managers, product owners) as part of the overall risk analysis and measurement planning.</p>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>List of risks and/or technical debts, probably including suggested measures to minimize, mitigate or avoid risks or reduce technical debts.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-11/">Risks and Technical Debt</a> in the arc42 documentation.</p>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="_technical_risks">11.1. Technical Risks</h3>
@@ -2878,9 +2413,9 @@ and a more stable and maintainable architecture.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Medium</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Third-party API failures</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Some game functionalities rely on external APIs, which may become unavailable.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Implement caching, evaluate fallback APIs, and provide error handling to minimize disruption.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Inter-service communication failures</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Game, authentication or statistics flows may be partially unavailable if one internal service is down or slow.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Keep gateway errors predictable, degrade gracefully when stats reporting fails, and monitor services with Prometheus/Grafana.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Low</p></td>
@@ -2897,42 +2432,6 @@ and a more stable and maintainable architecture.</p>
 <div class="sect1">
 <h2 id="section-glossary">12. Glossary</h2>
 <div class="sectionbody">
-<div class="sidebarblock arc42help">
-<div class="content">
-<div class="paragraph">
-<div class="title">Contents</div>
-<p>The most important domain and technical terms that your stakeholders use when discussing the system.</p>
-</div>
-<div class="paragraph">
-<p>You can also see the glossary as source for translations if you work in multi-language teams.</p>
-</div>
-<div class="paragraph">
-<div class="title">Motivation</div>
-<p>You should clearly define your terms, so that all stakeholders</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>have an identical understanding of these terms</p>
-</li>
-<li>
-<p>do not use synonyms and homonyms</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Form</div>
-<p>A table with columns &lt;Term&gt; and &lt;Definition&gt;.</p>
-</div>
-<div class="paragraph">
-<p>Potentially more columns in case you need translations.</p>
-</div>
-<div class="paragraph">
-<div class="title">Further Information</div>
-<p>See <a href="https://docs.arc42.org/section-12/">Glossary</a> in the arc42 documentation.</p>
-</div>
-</div>
-</div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 33.3333%;">
