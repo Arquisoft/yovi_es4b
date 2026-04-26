@@ -259,11 +259,11 @@ Hay tres formas reales de jugar que conviene diferenciar:
 +
 La partida vive en `gamey`. Tras la jugada humana, `gamey` puede resolver en la misma peticion la respuesta del bot.
 
-2. `human_vs_human` local
+2. `local_human_vs_human`
 +
 No usa matchmaking ni tokens. Sigue siendo una partida en `gamey`, pero pensada para alternar jugadores sin coordinacion remota especial.
 
-3. `human_vs_human` online con matchmaking
+3. `online`
 +
 Aqui aparece la parte mas rica del servicio: tickets, tokens por jugador, supervisores y polling.
 

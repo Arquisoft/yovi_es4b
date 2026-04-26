@@ -1,37 +1,5 @@
-[INFO] Scanning for projects...
-Downloading from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/io/gatling/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/org/codehaus/mojo/maven-metadata.xml
-Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-metadata.xml (14 kB at 27 kB/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/io/gatling/maven-metadata.xml (562 B at 1.0 kB/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/org/codehaus/mojo/maven-metadata.xml (21 kB at 36 kB/s)
-[INFO]
-[INFO] -----------< io.gatling.demo:gatling-maven-plugin-demo-java >-----------
-[INFO] Building gatling-maven-plugin-demo-java 3.15.0
-[INFO]   from pom.xml
-[INFO] --------------------------------[ jar ]---------------------------------
-[INFO]
-[INFO] >>> gatling:4.21.5:test (default-cli) > test-compile @ gatling-maven-plugin-demo-java >>>
-[INFO]
-[INFO] --- resources:3.5.0:resources (default-resources) @ gatling-maven-plugin-demo-java ---
-[INFO] skip non existing resourceDirectory C:\Users\Fernando\Desktop\gatling-maven-plugin-demo-java-main\gatling-maven-plugin-demo-java-main\src\main\resources
-[INFO]
-[INFO] --- compiler:3.15.0:compile (default-compile) @ gatling-maven-plugin-demo-java ---
-[INFO] No sources to compile
-[INFO]
-[INFO] --- resources:3.5.0:testResources (default-testResources) @ gatling-maven-plugin-demo-java ---
-[INFO] Copying 4 resources from src\test\resources to target\test-classes
-[INFO]
-[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ gatling-maven-plugin-demo-java ---
-[INFO] Recompiling the module because of changed source code.
-[INFO] Compiling 1 source file with javac [debug release 11] to target\test-classes
-[INFO]
-[INFO] <<< gatling:4.21.5:test (default-cli) < test-compile @ gatling-maven-plugin-demo-java <<<
-[INFO]
-[INFO]
-[INFO] --- gatling:4.21.5:test (default-cli) @ gatling-maven-plugin-demo-java ---
-[INFO] Running simulation io.gatling.example.YoviSimulation.
-Simulation io.gatling.example.YoviSimulation started...
+[INFO] Running simulation YoviSimulation.
+Simulation YoviSimulation started...
 
 ========================================================================================================================
 2026-04-20 20:58:30 GMT                                                                               5s elapsed
@@ -276,7 +244,7 @@ Generating reports...
 > KO                                                                                                          0     (0%)
 ========================================================================================================================
 
-Reports generated, please open the following file: file:///C:/Users/Fernando/Desktop/gatling-maven-plugin-demo-java-main/gatling-maven-plugin-demo-java-main/target/gatling/yovisimulation-20260420205825429/index.html
+Reports generated, please open the following file: file:///C:/Users/Fernando/Desktop/universidad/asw/proyecto/yovi_es4b/load-tests/target/gatling/yovisimulation-20260420205825429/index.html
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------

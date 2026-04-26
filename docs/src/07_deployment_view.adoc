@@ -151,11 +151,12 @@ endif::arc42help[]
 
 ==== Webapp Container
 
-The Webapp container runs a Node.js-based React application served by Nginx.
+The Webapp container serves the production React build as static files through Nginx.
+Node.js is only used during the image build stage to compile the frontend assets.
 
 image::07_diagram_2.png[]
 
-- **Nginx**: Handles static file serving and routing.
+- **Nginx**: Handles static file serving and SPA fallback routing.
 - **React App**: Client-side application for user interaction.
 
 ==== Auth Service Container
@@ -175,7 +176,7 @@ image::07_diagram_4.png[]
 
 - **Rust Game Engine**: Core game logic, matchmaking, and bot players.
 
-==== _<Mongo Auth Container>_
+==== Mongo Auth Container
 
 The Mongo Auth container:
 

@@ -78,8 +78,8 @@ Security is paramount to protect user data and ensure fair gameplay.
 - **Authentication**: JWT tokens for session management.
 - **Password Security**: Hashing with scrypt.
 - **Data Isolation**: Separate databases for auth and stats.
-- **API Security**: Internal communication via secure channels.
-- **Authorization**: Role-based access for admin functions.
+- **Internal Write Protection**: Stats writes are accepted only through the internal service-token endpoint.
+- **Gameplay Authorization**: Matchmaking games use per-player tokens to validate online actions.
 
 image::08_diagram_2.png[]
 
@@ -88,10 +88,10 @@ image::08_diagram_2.png[]
 The architecture employs microservices with clear patterns for scalability and maintainability.
 
 - **Microservices Pattern**: Independent services for auth, game logic, stats, and gateway.
-- **API Gateway**: Centralized routing and load balancing.
-- **Repository Pattern**: Data access abstraction.
-- **Observer Pattern**: Metrics collection via Prometheus.
-- **Stateless Services**: No session state in services.
+- **API Gateway**: Centralized routing and error normalization at the public edge.
+- **Separated Persistence**: Authentication and statistics use independent MongoDB databases.
+- **Pull-based Observability**: Prometheus scrapes metrics exposed by the runtime services.
+- **State Boundary**: Gateway, auth and stats keep little runtime state, while active matches and matchmaking live in memory inside `gamey`.
 
 image::08_diagram_3.png[]
 

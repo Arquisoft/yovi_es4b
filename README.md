@@ -249,7 +249,29 @@ $env:JWT_SECRET="change_this_secret"; $env:MONGO_AUTH_DB="mongodb://localhost:27
 
 The auth service will be available at `http://localhost:3500`.
 
-#### 2. Running the GameY Service
+#### 2. Running the Stats Service
+
+Navigate to the `stats` directory:
+
+```bash
+cd stats
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the service:
+
+```bash
+$env:MONGO_URL="mongodb://localhost:27017"; $env:MONGO_DB_NAME="yovi_stats"; $env:STATS_INTERNAL_TOKEN="stats-internal-token"; npm start
+```
+
+The stats service will be available at `http://localhost:3001`.
+
+#### 3. Running the GameY Service
 
 Navigate to the `gamey` directory:
 
@@ -260,10 +282,10 @@ cd gamey
 Run the service on port `4000`:
 
 ```bash
-cargo run -- --mode server --port 4000
+$env:STATS_SERVICE_URL="http://localhost:3001"; $env:STATS_INTERNAL_TOKEN="stats-internal-token"; cargo run -- --mode server --port 4000
 ```
 
-#### 3. Running the Web Application
+#### 4. Running the Web Application
 
 Navigate to the `webapp` directory:
 
@@ -285,7 +307,7 @@ npm run dev
 
 The web application will be available at `http://localhost:5173`.
 
-#### 4. Running the Gateway
+#### 5. Running the Gateway
 
 Navigate to the `gateway` directory:
 
@@ -325,6 +347,11 @@ Run these commands from `webapp/` (or from repo root using `npm --prefix webapp 
 ### Auth Service (`auth_service/package.json`)
 
 - `npm start`: Starts the auth service.
+- `npm test`: Runs the tests for the service.
+
+### Stats Service (`stats/package.json`)
+
+- `npm start`: Starts the stats service.
 - `npm test`: Runs the tests for the service.
 
 ### Gateway (`gateway/package.json`)

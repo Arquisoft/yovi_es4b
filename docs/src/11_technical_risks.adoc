@@ -71,9 +71,9 @@ This table lists the main technical risks for our online board game project, inc
 | Optimize queries, define indexes, and design the schema for future scalability.
 
 | Medium
-| Third-party API failures
-| Some game functionalities rely on external APIs, which may become unavailable.
-| Implement caching, evaluate fallback APIs, and provide error handling to minimize disruption.
+| Inter-service communication failures
+| Game, authentication or statistics flows may be partially unavailable if one internal service is down or slow.
+| Keep gateway errors predictable, degrade gracefully when stats reporting fails, and monitor services with Prometheus/Grafana.
 
 | Low
 | High concurrent usage
