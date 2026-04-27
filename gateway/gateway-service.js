@@ -308,8 +308,16 @@ function buildRedirectDestination({ redirectHostname, httpsPort, requestPath = '
   return destination.toString();
 }
 
-function createRedirectApp({ httpsPort = 443, redirectHostname = DEFAULT_REDIRECT_HTTPS_HOST } = {}) {
+function createRedirectApp({
+  httpsPort = 443,
+  redirectHostname = DEFAULT_REDIRECT_HTTPS_HOST,
+  metricsHandler = null,
+} = {}) {
   const app = express();
+
+  if (metricsHandler) {
+    app.get('/metrics', metricsHandler);
+  }
 
   app.use((req, res) => {
     const destination = buildRedirectDestination({
@@ -1068,11 +1076,11 @@ function createApp({
     }
   }
 
-  return { app, proxyRoutes };
+  return { app, metrics, proxyRoutes };
 }
 
 function start({ port = DEFAULT_PORT, env = process.env } = {}) {
-  const { app } = createApp({ env });
+  const { app, metrics } = createApp({ env });
   const tlsOptions = loadTlsOptions(env);
 
   if (!tlsOptions) {
@@ -1099,6 +1107,7 @@ function start({ port = DEFAULT_PORT, env = process.env } = {}) {
     const redirectApp = createRedirectApp({
       httpsPort: redirectHttpsPort,
       redirectHostname: redirectHost,
+      metricsHandler: metrics.handler,
     });
     httpServer = http.createServer(redirectApp);
     httpServer.listen(port, () => {
