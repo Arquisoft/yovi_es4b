@@ -436,10 +436,15 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
+<h1><span class="image"><img src="./images/arc42-logo.png" alt="arc42"></span> yovi_es4b</h1>
+<div class="details">
+<span id="revnumber">version 8.2 EN,</span>
+<span id="revdate">January 2023</span>
+<br><span id="revremark">(based upon AsciiDoc version)</span>
+</div>
 <div id="toc" class="toc">
-<div id="toctitle">table of contents</div>
+<div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_yovi_es4b"><span class="image"><img src="./images/arc42-logo.png" alt="arc42"></span> yovi_es4b</a></li>
 <li><a href="#section-introduction-and-goals">1. Introduction and Goals</a>
 <ul class="sectlevel2">
 <li><a href="#_requirements_overview">1.1. Requirements Overview</a></li>
@@ -522,8 +527,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 </div>
 <div id="content">
-<div class="sect1">
-<h2 id="_yovi_es4b"><span class="image"><img src="./images/arc42-logo.png" alt="arc42"></span> yovi_es4b</h2>
+<div id="preamble">
 <div class="sectionbody">
 <style>
 .arc42help {font-size:small; width: 14px; height: 16px; overflow: hidden; position: absolute; right: 0; padding: 2px 0 3px 2px;}
@@ -837,7 +841,7 @@ It shows who interacts with the platform, which technical channels are used, and
 <h3 id="_business_context">3.1. Business Context</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/business-context-diagram.png" alt="business context diagram" width="882" height="706">
+<img src="./images/business-context-diagram.png" alt="business context diagram" width="954" height="805">
 </div>
 </div>
 </div>
@@ -879,7 +883,7 @@ It shows who interacts with the platform, which technical channels are used, and
 <h3 id="_technical_context">3.3. Technical Context</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="799" height="846">
+<img src="./images/technical-context-diagram.png" alt="technical context diagram" width="875" height="950">
 </div>
 </div>
 </div>
@@ -1115,7 +1119,7 @@ The tables below each diagram unpack those groups into their concrete responsibi
 <h3 id="_whitebox_overall_system">5.1. Whitebox Overall System</h3>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level1_overall_whitebox.png" alt="05 level1 overall whitebox" width="701" height="208">
+<img src="./images/05_level1_overall_whitebox.png" alt="05 level1 overall whitebox" width="802" height="278">
 </div>
 </div>
 <div class="dlist">
@@ -1222,7 +1226,7 @@ Those three blocks concentrate the decisions that make Yovi distinctive: SPA sta
 <h4 id="_white_box_webapp">5.2.1. White Box <code>Webapp</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_webapp_whitebox.png" alt="05 level2 webapp whitebox" width="546" height="150">
+<img src="./images/05_level2_webapp_whitebox.png" alt="05 level2 webapp whitebox" width="602" height="186">
 </div>
 </div>
 <div class="dlist">
@@ -1321,7 +1325,7 @@ This split keeps rendering logic, remote communication and browser persistence u
 <h4 id="_white_box_gateway">5.2.2. White Box <code>Gateway</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_gateway_whitebox.png" alt="05 level2 gateway whitebox" width="413" height="326">
+<img src="./images/05_level2_gateway_whitebox.png" alt="05 level2 gateway whitebox" width="439" height="396">
 </div>
 </div>
 <div class="dlist">
@@ -1402,7 +1406,7 @@ That makes the deployment easier to explain and keeps ownership of authenticatio
 <h4 id="_white_box_gamey_service">5.2.3. White Box <code>Gamey Service</code></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level2_gamey_whitebox.png" alt="05 level2 gamey whitebox" width="547" height="258">
+<img src="./images/05_level2_gamey_whitebox.png" alt="05 level2 gamey whitebox" width="596" height="328">
 </div>
 </div>
 <div class="dlist">
@@ -1517,7 +1521,7 @@ The refinement focuses on its online gameplay runtime because that slice contain
 <h4 id="_white_box_gamey_service_online_gameplay_runtime">5.3.1. White Box Gamey Service - Online Gameplay Runtime</h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/05_level3_online_runtime_whitebox.png" alt="05 level3 online runtime whitebox" width="521" height="188">
+<img src="./images/05_level3_online_runtime_whitebox.png" alt="05 level3 online runtime whitebox" width="570" height="241">
 </div>
 </div>
 <div class="dlist">
@@ -1781,37 +1785,41 @@ The goal is to make clear which internal parts receive HTTP requests, which part
 <div class="sect2">
 <h3 id="_infrastructure_level_1">7.1. Infrastructure Level 1</h3>
 <div class="paragraph">
-<p>The system is deployed using Docker containers orchestrated via Docker Compose, suitable for development and demonstration environments. The infrastructure consists of multiple microservices running in isolated containers, communicating over a Docker internal network.</p>
+<p>The system is deployed as a distributed, container-based architecture.
+It consists of independent services communicating over HTTP and running within isolated container environments.</p>
 </div>
 <div class="paragraph">
-<p>The deployment supports a local environment where all services run on a single host machine.</p>
+<p>The deployment view describes the technical infrastructure required to execute the system and the mapping of software building blocks to infrastructure elements.</p>
+</div>
+<div class="paragraph">
+<p>The following diagram shows the high-level deployment structure in a local environment using containerization.</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="./images/07_diagram_1.png" alt="07 diagram 1">
+<img src="./images/07_level1_deployment.png" alt="07 level1 deployment" width="1990" height="640">
 </div>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Motivation</dt>
 <dd>
-<p>The containerized deployment ensures:</p>
+<p>The deployment structure is based on containerized services to ensure:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Isolation of services to prevent dependency conflicts.</p>
+<p>Clear separation between frontend, routing, authentication, game engine and statistics persistence.</p>
 </li>
 <li>
-<p>Easy scalability and portability across environments.</p>
+<p>Independent deployment and scalability of each service.</p>
 </li>
 <li>
-<p>Simplified development setup with Docker Compose.</p>
+<p>Reproducible development environments.</p>
 </li>
 <li>
-<p>Observability through integrated monitoring tools.</p>
+<p>Isolation of runtime dependencies.</p>
 </li>
 <li>
-<p>A database component has been introduced to persist user data, enabling real user registration and long-term storage.</p>
+<p>Explicit boundaries between in-memory runtime state and persistent storage.</p>
 </li>
 </ul>
 </div>
@@ -1821,39 +1829,46 @@ The goal is to make clear which internal parts receive HTTP requests, which part
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Scalability</strong>: Each service can be scaled independently by adjusting container instances.</p>
+<p>Scalability: Services can be scaled independently in future production environments.</p>
 </li>
 <li>
-<p><strong>Reliability</strong>: Containerization provides consistent runtime environments.</p>
+<p>Isolation: Each component runs in its own container.</p>
 </li>
 <li>
-<p><strong>Security</strong>: Services communicate over an internal network, with the gateway as the single entry point.</p>
+<p>Loose Coupling: Communication occurs via well-defined HTTP APIs.</p>
 </li>
 <li>
-<p><strong>Observability</strong>: Prometheus collects metrics, and Grafana provides dashboards for monitoring.</p>
+<p>Persistence: Authentication and statistics data are stored in dedicated MongoDB components.</p>
 </li>
 <li>
-<p><strong>Performance</strong>: Lightweight containers minimize resource overhead in development.</p>
+<p>Portability: The system can run on any infrastructure supporting containerization.</p>
 </li>
 <li>
-<p><strong>Persistence</strong>: User data is stored in a dedicated database component.</p>
+<p>Maintainability: Clear separation of concerns reduces system complexity.</p>
+</li>
+<li>
+<p>Observability: Prometheus and Grafana are deployed alongside the services, so runtime behavior can be inspected during demos and tests without extra manual setup.</p>
+</li>
+<li>
+<p>Operational flexibility: Docker Compose maps additional host ports for local tooling and diagnostics while keeping a single web edge for browser traffic.</p>
 </li>
 </ul>
 </div>
 </dd>
 <dt class="hdlist1">Mapping of Building Blocks to Infrastructure</dt>
 <dd>
-<p>| Building Block          | Infrastructure Element          |
-|-------------------------|---------------------------------|
-| Webapp (React SPA)      | Webapp Container               |
-| Gateway Service         | Gateway Container              |
-| Auth Service            | Auth Service Container         |
-| Gamey (Rust Game Engine)| Gamey Container                |
-| Stats Service           | Stats Service Container        |
-| User Data Persistence   | Mongo Auth DB Container        |
-| Stats Data Persistence  | Mongo Stats DB Container       |
-| Metrics Collection      | Prometheus Container           |
-| Dashboard Visualization | Grafana Container              |</p>
+<p>| Building Block         | Infrastructure Element                       |
+| ---------------------- | -------------------------------------------- |
+| React SPA (Webapp)     | Webapp Container (nginx static serving)      |
+| Public Edge and Routing| Gateway Container                            |
+| Authentication Logic   | Auth Service Container                       |
+| Auth Persistence Layer | Mongo Auth Container                         |
+| Game Core &amp; Bots       | Gamey Container                              |
+| Statistics Persistence | Stats Service + Mongo Stats Containers       |
+| Metrics Collection     | Prometheus Container                         |
+| Dashboard Visualization| Grafana Container                            |
+| Client Interface       | Web Browser                                  |
+| Communication          | Docker Internal Network (HTTP + DB protocol) |</p>
 </dd>
 </dl>
 </div>
@@ -1898,11 +1913,6 @@ The goal is to make clear which internal parts receive HTTP requests, which part
 Grafana is provisioned with the <code>Prometheus</code> data source and the dashboard <code>Yovi Observability</code>, so the monitoring UI is ready as soon as the stack starts.</p>
 </div>
 <div class="paragraph">
-<p>The deployment also provides an optional Gatling runner through <code>docker-compose.load-tests.yml</code>.
-It mounts the repository&#8217;s <code>load-tests/</code> directory into a Maven container and runs <code>YoviSimulation</code> against the internal <code>gateway:8080</code> endpoint by default.
-This keeps the load tests close to the project code while avoiding an always-on load generator in the normal application stack.</p>
-</div>
-<div class="paragraph">
 <p>The dashboard concentrates on the signals that are most useful for this project:</p>
 </div>
 <div class="ulist">
@@ -1940,69 +1950,104 @@ This keeps the load tests close to the project code while avoiding an always-on 
 </div>
 <div class="sect2">
 <h3 id="_infrastructure_level_2">7.3. Infrastructure Level 2</h3>
-<div class="sect3">
-<h4 id="_webapp_container">7.3.1. Webapp Container</h4>
 <div class="paragraph">
-<p>The Webapp container serves the production React build as static files through Nginx.
-Node.js is only used during the image build stage to compile the frontend assets.</p>
+<p>This level provides a more detailed view of selected infrastructure elements.</p>
 </div>
+<div class="sect3">
+<h4 id="_webapp_container">7.3.1. <em>&lt;Webapp Container&gt;</em></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/07_diagram_2.png" alt="07 diagram 2">
+<img src="./images/07_level2_webapp.png" alt="07 level2 webapp" width="766" height="231">
 </div>
+</div>
+<div class="paragraph">
+<p>The Webapp container:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Nginx</strong>: Handles static file serving and SPA fallback routing.</p>
+<p>Hosts a Single Page Application built with React and served by nginx.</p>
 </li>
 <li>
-<p><strong>React App</strong>: Client-side application for user interaction.</p>
+<p>Handles all user interactions.</p>
+</li>
+<li>
+<p>Calls backend APIs through the gateway.</p>
+</li>
+<li>
+<p>Does not maintain persistent state.</p>
+</li>
+<li>
+<p>Is internal in the integrated deployment; the gateway is the primary public entry point.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_auth_service_container">7.3.2. Auth Service Container</h4>
-<div class="paragraph">
-<p>The Auth Service container runs a Node.js application with MongoDB for persistence.</p>
-</div>
+<h4 id="_auth_service_container">7.3.2. <em>&lt;Auth Service Container&gt;</em></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/07_diagram_3.png" alt="07 diagram 3">
+<img src="./images/07_level2_auth.png" alt="07 level2 auth" width="1214" height="140">
 </div>
+</div>
+<div class="paragraph">
+<p>The Auth Service container:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Node.js App</strong>: Implements authentication logic and REST API.</p>
+<p>Exposes REST endpoints (<code>/register</code>, <code>/login</code>, <code>/verify</code>).</p>
 </li>
 <li>
-<p><strong>MongoDB</strong>: Persists user credentials and profiles.</p>
+<p>Implements authentication and token verification logic.</p>
+</li>
+<li>
+<p>Contains a persistence layer responsible for storing password hashes and identities.</p>
+</li>
+<li>
+<p>Connects to the <code>mongo-auth</code> database container.</p>
+</li>
+<li>
+<p>Ensures separation between API layer, auth logic, and data access.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_gamey_container">7.3.3. Gamey Container</h4>
-<div class="paragraph">
-<p>The Gamey container runs a Rust application for game logic.</p>
-</div>
+<h4 id="_gamey_container">7.3.3. <em>&lt;Gamey Container&gt;</em></h4>
 <div class="imageblock">
 <div class="content">
-<img src="./images/07_diagram_4.png" alt="07 diagram 4">
+<img src="./images/07_level2_gamey.png" alt="07 level2 gamey" width="1022" height="286">
 </div>
+</div>
+<div class="paragraph">
+<p>The Gamey container:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Rust Game Engine</strong>: Core game logic, matchmaking, and bot players.</p>
+<p>Hosts the Rust-based game engine.</p>
+</li>
+<li>
+<p>Encapsulates all core game logic.</p>
+</li>
+<li>
+<p>Provides bot functionality.</p>
+</li>
+<li>
+<p>Exposes a Web API for interaction with the frontend.</p>
+</li>
+<li>
+<p>Does not directly depend on the authentication database.</p>
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>Gamey remains logically independent from authentication persistence.</p>
+</div>
 </div>
 <div class="sect3">
-<h4 id="_mongo_auth_container">7.3.4. Mongo Auth Container</h4>
+<h4 id="_mongo_auth_container">7.3.4. <em>&lt;Mongo Auth Container&gt;</em></h4>
 <div class="paragraph">
 <p>The Mongo Auth container:</p>
 </div>
@@ -2024,27 +2069,6 @@ Node.js is only used during the image build stage to compile the frontend assets
 </div>
 <div class="paragraph">
 <p>Mongo Stats is a separate database container used by the <code>stats</code> service.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_monitoring_stack">7.3.5. Monitoring Stack</h4>
-<div class="paragraph">
-<p>Prometheus and Grafana run in separate containers for observability.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="./images/07_diagram_5.png" alt="07 diagram 5">
-</div>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>Prometheus</strong>: Time-series database for metrics.</p>
-</li>
-<li>
-<p><strong>Grafana</strong>: Visualization tool for dashboards.</p>
-</li>
-</ul>
 </div>
 <div style="page-break-after: always;"></div>
 </div>
@@ -2488,7 +2512,7 @@ and a more stable and maintainable architecture.</p>
 <div id="footer">
 <div id="footer-text">
 Version 8.2 EN<br>
-Last updated 2026-03-11 22:03:20 +0100
+Last updated 2026-04-27 12:38:34 +0200
 </div>
 </div>
 </body>
