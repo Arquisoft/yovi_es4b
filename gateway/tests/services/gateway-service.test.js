@@ -329,6 +329,25 @@ test('createRedirectApp redirects requests to the configured HTTPS port', async 
   });
 });
 
+test('createRedirectApp exposes metrics over HTTP when a metrics handler is configured', async () => {
+  const { metrics } = createApp({ proxyFactory: noopProxyFactory });
+  const redirectApp = createRedirectApp({
+    httpsPort: 8443,
+    redirectHostname: 'gateway.example.com',
+    metricsHandler: metrics.handler,
+  });
+
+  await withServer(redirectApp, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/metrics`, {
+      redirect: 'manual',
+    });
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /# TYPE yovi_http_requests_total counter/);
+  });
+});
+
 // Redirect hostnames come from trusted server configuration only.
 test('getRedirectHostname falls back to localhost when unset', () => {
   assert.equal(getRedirectHostname({}), 'localhost');
